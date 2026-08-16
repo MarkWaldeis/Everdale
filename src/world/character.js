@@ -700,6 +700,18 @@ export function createCharacterController(model, walkArea, home, axeModel, chopK
         job.chopTime += delta;
         const progress = THREE.MathUtils.clamp(job.chopTime / job.duration, 0, 1);
         job.progress = progress;
+        const duration = chopClip?.duration || CHOP_CYCLE;
+        const phase = (job.chopTime % duration) / duration;
+        const stepIn =
+          smootherStep(THREE.MathUtils.clamp(phase / 0.2, 0, 1)) -
+          smootherStep(THREE.MathUtils.clamp((phase - 0.42) / 0.22, 0, 1));
+        scratch.direction.subVectors(job.lookAt, job.approach);
+        scratch.direction.y = 0;
+        if (scratch.direction.lengthSq() > 0.000001) {
+          scratch.direction.normalize();
+          root.position.copy(job.approach).addScaledVector(scratch.direction, Math.max(0, stepIn) * 0.17);
+          root.position.y = walkArea.surfaceY;
+        }
         job.onChopProgress?.(progress);
         if (progress >= 1) {
           job.onChopDone?.();
