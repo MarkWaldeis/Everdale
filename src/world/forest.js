@@ -156,12 +156,43 @@ function generateTreePositions(worldWidth, worldDepth) {
   return points;
 }
 
+function createStoneNode(point, index, assets, surfaceY) {
+  const useSplit = Boolean(assets.stoneSplit) && index % 2 === 0;
+  const source = (useSplit ? assets.stoneSplit : assets.stone) ?? assets.stone ?? assets.stoneSplit;
+  const stone = new THREE.Group();
+  const model = source.clone(true);
+  model.scale.multiplyScalar(0.88 + (index % 5) * 0.04);
+  stone.add(model);
+  stone.position.set(point.x, surfaceY - 0.06, point.z);
+  stone.rotation.y = point.rotation;
+  stone.userData.id = `stone-${index}`;
+  stone.userData.assetId = useSplit ? "stoneSplit" : "stone";
+  stone.userData.phase = point.phase;
+  stone.userData.sway = 0;
+  stone.userData.enclosure = false;
+  stone.userData.harvestable = true;
+  stone.userData.harvestState = "idle";
+  stone.userData.isHarvestStone = true;
+  stone.userData.harvestKind = "stone";
+  stone.userData.baseYaw = point.rotation;
+  return stone;
+}
+
 function createForest(assets, worldWidth, worldDepth, surfaceY) {
   const group = new THREE.Group();
   const animatedTrees = [];
+  const animatedStones = [];
   group.name = "forest";
+  const canPlaceStone = Boolean(assets.stone || assets.stoneSplit);
 
   generateTreePositions(worldWidth, worldDepth).forEach((point, index) => {
+    if (canPlaceStone && !point.enclosure && index % 12 === 5) {
+      const stone = createStoneNode(point, index, assets, surfaceY);
+      animatedStones.push(stone);
+      group.add(stone);
+      return;
+    }
+
     const tree = new THREE.Group();
     const model = assets[point.assetId].clone(true);
     model.scale.multiplyScalar(point.scale);
@@ -176,12 +207,13 @@ function createForest(assets, worldWidth, worldDepth, surfaceY) {
     tree.userData.harvestable = true;
     tree.userData.harvestState = "idle";
     tree.userData.isHarvestTree = true;
+    tree.userData.harvestKind = "wood";
     tree.userData.baseYaw = point.rotation;
     animatedTrees.push(tree);
     group.add(tree);
   });
 
-  return { group, animatedTrees };
+  return { group, animatedTrees, animatedStones };
 }
 
 export function buildForestWorld(assets) {
@@ -196,6 +228,7 @@ export function buildForestWorld(assets) {
   return {
     root,
     animatedTrees: forest.animatedTrees,
+    animatedStones: forest.animatedStones,
     size: Math.max(ground.worldWidth, ground.worldDepth),
     walkArea: {
       radiusX: ground.worldWidth * CLEARING_SCALE_X - 1.15,

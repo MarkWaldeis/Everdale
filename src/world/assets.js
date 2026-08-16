@@ -54,6 +54,21 @@ export const ASSETS = Object.freeze({
     url: new URL("../../3d Assets/wooden log stack 3d model.glb", import.meta.url).href,
     height: 1.7,
   },
+  stone: {
+    label: "Waldstein",
+    url: new URL("../../3d Assets/stone.glb", import.meta.url).href,
+    height: 0.92,
+  },
+  stoneSplit: {
+    label: "Spaltstein",
+    url: new URL("../../3d Assets/stone-split.glb", import.meta.url).href,
+    height: 0.96,
+  },
+  pickaxe: {
+    label: "Spitzhacke",
+    url: new URL("../../3d Assets/pickaxe.glb", import.meta.url).href,
+    height: 0.32,
+  },
 });
 
 export const TREE_WEIGHTS = Object.freeze([

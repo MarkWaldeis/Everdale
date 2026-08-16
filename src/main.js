@@ -128,6 +128,7 @@ const FOLLOW_CAMERA_STATES = new Set([
 
 const animationState = {
   trees: [],
+  stones: [],
   character: null,
   cottage: null,
   harvest: null,
@@ -349,6 +350,8 @@ async function start() {
 
     const world = buildForestWorld(assets);
     animationState.trees = world.animatedTrees;
+    animationState.stones = world.animatedStones;
+    const harvestables = [...world.animatedTrees, ...world.animatedStones];
     animationState.cottage = createCottage(assets.cottage, world.walkArea.surfaceY);
     animationState.yard = createWoodYard(
       {
@@ -364,10 +367,11 @@ async function start() {
       animationState.cottage,
       assets.axe,
       assets.chopKit,
-      world.animatedTrees,
+      harvestables,
+      { pickaxe: assets.pickaxe },
     );
     animationState.harvest = createHarvestDirector({
-      trees: world.animatedTrees,
+      trees: harvestables,
       camera,
       canvas,
       scene: world.root,
@@ -427,6 +431,7 @@ async function start() {
       village: animationState.village,
       yard: animationState.yard,
       trees: world.animatedTrees,
+      stones: world.animatedStones,
       camera,
       controls,
       renderer,

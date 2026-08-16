@@ -6,6 +6,8 @@ const TREE_LABELS = Object.freeze({
   tree: "Waldbaum",
   appleTree: "Apfelbaum",
   blossomTree: "Blütenbaum",
+  stone: "Waldstein",
+  stoneSplit: "Spaltstein",
 });
 
 const scratch = {
@@ -68,7 +70,7 @@ function createChipBurst() {
   });
 
   for (let index = 0; index < 8; index += 1) {
-    const mesh = new THREE.Mesh(geometry, material);
+    const mesh = new THREE.Mesh(geometry, material.clone());
     mesh.visible = false;
     mesh.castShadow = true;
     chips.push({
@@ -102,6 +104,7 @@ export function createHarvestDirector({
   const trayTitle = document.querySelector("#worker-dock-title");
   const taskPin = document.querySelector("#worker-task-pin");
   const woodCount = document.querySelector("#wood-count");
+  const stoneCount = document.querySelector("#stone-count");
   const meter = document.querySelector("#harvest-meter");
   const meterFill = document.querySelector("#harvest-meter-fill");
   const meterLabel = document.querySelector("#harvest-meter-label");
@@ -109,6 +112,7 @@ export function createHarvestDirector({
 
   scene.add(marker);
   chips.forEach((chip) => scene.add(chip.mesh));
+  let gatheredStone = 0;
 
   const pointerState = {
     down: null,
@@ -120,7 +124,7 @@ export function createHarvestDirector({
   function findTreeFromObject(object) {
     let node = object;
     while (node) {
-      if (node.userData?.isHarvestTree) return node;
+      if (node.userData?.isHarvestTree || node.userData?.isHarvestStone) return node;
       node = node.parent;
     }
     return null;
@@ -201,13 +205,16 @@ export function createHarvestDirector({
               state === "job-align-storage" ||
               state === "job-deposit"
             ? "Zum Lager"
-            : "Holzfällen"
+            : pointerState.selected?.userData.harvestKind === "stone"
+              ? "Steine hauen"
+              : "Holzfällen"
         : "Frei";
     }
     workerButton?.classList.toggle("is-busy", busy);
     if (taskPin) {
       taskPin.hidden = !busy;
-      taskPin.dataset.task = "chop";
+      taskPin.dataset.task =
+        pointerState.selected?.userData.harvestKind === "stone" ? "mine" : "chop";
     }
   }
 
@@ -232,7 +239,8 @@ export function createHarvestDirector({
     }
 
     const label = TREE_LABELS[tree.userData.assetId] ?? "Baum";
-    if (trayTitle) trayTitle.textContent = `${label} fällen`;
+    const action = tree.userData.harvestKind === "stone" ? "abbauen" : "fällen";
+    if (trayTitle) trayTitle.textContent = `${label} ${action}`;
     refreshWorkerCard();
     setTrayOpen(true);
   }
@@ -246,7 +254,8 @@ export function createHarvestDirector({
     }
     if (scratch.toward.lengthSq() < 0.0001) scratch.toward.set(0, 0, 1);
     scratch.toward.normalize();
-    const point = tree.position.clone().addScaledVector(scratch.toward, 1.48);
+    const standOff = tree.userData.harvestKind === "stone" ? 1.18 : 1.48;
+    const point = tree.position.clone().addScaledVector(scratch.toward, standOff);
     point.y = surfaceY;
     if (cottage?.containsPoint(point, 0.55)) {
       point.addScaledVector(scratch.toward, -0.85);
@@ -254,10 +263,12 @@ export function createHarvestDirector({
     return point;
   }
 
-  function spawnChips(origin) {
+  function spawnChips(origin, kind = "wood") {
+    const chipColor = kind === "stone" ? 0x8a8680 : 0x8a5a32;
     chips.forEach((chip, index) => {
       chip.mesh.position.copy(origin);
       chip.mesh.position.y += 0.42;
+      if (chip.mesh.material) chip.mesh.material.color.setHex(chipColor);
       chip.velocity.set(
         (Math.random() - 0.5) * 1.8,
         1.4 + Math.random() * 1.1,
@@ -321,6 +332,8 @@ export function createHarvestDirector({
     uniquifyMaterials(tree);
     tree.userData.harvestState = "falling";
     tree.userData.fallTime = 0;
+    tree.userData.breakKind = tree.userData.harvestKind === "stone" ? "stone" : "wood";
+    tree.userData.baseScale = tree.scale.x;
     scratch.toward.subVectors(tree.position, awayFrom);
     scratch.toward.y = 0;
     if (scratch.toward.lengthSq() < 0.0001) scratch.toward.set(1, 0, 0);
@@ -338,15 +351,18 @@ export function createHarvestDirector({
     }
 
     const approach = approachPoint(tree);
+    const isStone = tree.userData.harvestKind === "stone";
     const accepted = character.assignJob({
       tree,
+      tool: isStone ? "pickaxe" : "axe",
       approach,
       lookAt: tree.position.clone(),
-      storageApproach: yard?.stand,
-      storageLook: yard?.look,
-      storageBlock: yard
-        ? { x: yard.root.position.x, z: yard.root.position.z, radius: 1.15 }
-        : null,
+      storageApproach: isStone ? null : yard?.stand,
+      storageLook: isStone ? null : yard?.look,
+      storageBlock:
+        !isStone && yard
+          ? { x: yard.root.position.x, z: yard.root.position.z, radius: 1.15 }
+          : null,
       hitsNeeded: CHOP_HITS,
       onStartChop: () => {
         tree.userData.harvestState = "chopping";
@@ -356,7 +372,7 @@ export function createHarvestDirector({
       onImpact: () => {
         const origin = tree.position.clone();
         origin.y = surfaceY;
-        spawnChips(origin);
+        spawnChips(origin, isStone ? "stone" : "wood");
         tree.userData.impactPulse = 1;
         projectMeter(tree, character.getJobProgress());
       },
@@ -366,8 +382,13 @@ export function createHarvestDirector({
       onChopDone: () => {
         beginFall(tree, character.root.position.clone());
         setFollowTarget?.(character.root);
+        if (isStone) {
+          gatheredStone = Math.min(20, gatheredStone + 5);
+          if (stoneCount) stoneCount.textContent = String(gatheredStone);
+        }
       },
       onDeliver: () => {
+        if (isStone) return;
         const amount = yard?.deposit() ?? 0;
         if (woodCount) woodCount.textContent = String(amount);
         refreshWorkerCard();
@@ -408,10 +429,41 @@ export function createHarvestDirector({
     });
   }
 
+  function fadeAndRemove(tree, sink) {
+    tree.traverse((child) => {
+      if (!child.isMesh || !child.material) return;
+      const materials = Array.isArray(child.material) ? child.material : [child.material];
+      materials.forEach((material) => {
+        material.transparent = true;
+        material.depthWrite = false;
+        material.opacity = 1 - sink;
+        material.needsUpdate = true;
+      });
+    });
+    if (sink < 1) return true;
+    tree.visible = false;
+    tree.userData.harvestState = "gone";
+    tree.userData.harvestable = false;
+    return false;
+  }
+
   function updateFalls(delta) {
     pointerState.falling = pointerState.falling.filter((tree) => {
       tree.userData.fallTime += delta;
       const time = tree.userData.fallTime;
+
+      if (tree.userData.breakKind === "stone") {
+        const crumble = smootherStep(Math.min(time / 0.9, 1));
+        const base = tree.userData.baseScale ?? 1;
+        tree.scale.setScalar(Math.max(0.12, base * (1 - crumble * 0.82)));
+        tree.position.y = surfaceY - 0.02 - crumble * 0.28;
+        tree.rotation.y = (tree.userData.baseYaw ?? 0) + crumble * 0.35;
+        if (time > 0.9) {
+          return fadeAndRemove(tree, smootherStep(Math.min((time - 0.9) / 0.45, 1)));
+        }
+        return true;
+      }
+
       const fall = smootherStep(Math.min(time / 1.25, 1));
       const yaw = new THREE.Quaternion().setFromAxisAngle(
         new THREE.Vector3(0, 1, 0),
@@ -424,22 +476,7 @@ export function createHarvestDirector({
       if (time > 1.25) {
         const sink = smootherStep(Math.min((time - 1.25) / 0.7, 1));
         tree.position.y = surfaceY - 0.14 - sink * 1.4;
-        tree.traverse((child) => {
-          if (!child.isMesh || !child.material) return;
-          const materials = Array.isArray(child.material) ? child.material : [child.material];
-          materials.forEach((material) => {
-            material.transparent = true;
-            material.depthWrite = false;
-            material.opacity = 1 - sink;
-            material.needsUpdate = true;
-          });
-        });
-        if (sink >= 1) {
-          tree.visible = false;
-          tree.userData.harvestState = "gone";
-          tree.userData.harvestable = false;
-          return false;
-        }
+        return fadeAndRemove(tree, sink);
       }
       return true;
     });

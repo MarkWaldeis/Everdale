@@ -299,12 +299,41 @@ function createArmReacher(model, handleAnchor, preferredSide = null) {
   };
 }
 
-export function createCharacterController(model, walkArea, home, axeModel, chopKit, trees = []) {
+export function createCharacterController(
+  model,
+  walkArea,
+  home,
+  axeModel,
+  chopKit,
+  trees = [],
+  extraTools = {},
+) {
   const root = new THREE.Group();
   root.name = "village-resident";
   root.position.set(-0.72, walkArea.surfaceY, 1.15);
   root.add(model);
   const axe = axeModel ? createAxeWielder(model, axeModel) : null;
+  const pickaxe = extraTools.pickaxe
+    ? createAxeWielder(model, extraTools.pickaxe, {
+        targetLength: 0.42,
+        gripName: "pickaxe-grip",
+      })
+    : null;
+
+  function holsterTools() {
+    axe?.setCarried(false);
+    pickaxe?.setCarried(false);
+  }
+
+  function drawJobTool() {
+    if (job?.tool === "pickaxe" && pickaxe) {
+      axe?.setCarried(false);
+      pickaxe.setCarried(true, root);
+      return;
+    }
+    pickaxe?.setCarried(false);
+    axe?.setCarried(true, root);
+  }
 
   const clips = model.userData.animationClips ?? [];
   const mixer = new THREE.AnimationMixer(model);
@@ -374,7 +403,7 @@ export function createCharacterController(model, walkArea, home, axeModel, chopK
     if (nextState === STATES.REST_INSIDE && job) {
       const finished = job;
       job = null;
-      axe?.setCarried(false);
+      holsterTools();
       finished.onReturned?.();
     }
   }
@@ -582,7 +611,7 @@ export function createCharacterController(model, walkArea, home, axeModel, chopK
       case STATES.REST_INSIDE:
         stopMoving(delta);
         home.door.setOpenProgress(0);
-        axe?.setCarried(false);
+        holsterTools();
         break;
 
       case STATES.OPEN_TO_EXIT:
@@ -673,11 +702,11 @@ export function createCharacterController(model, walkArea, home, axeModel, chopK
         home.door.setOpenProgress(1);
         if (moveToward(points.exit, DOOR_WALK_SPEED, delta, false, true)) {
           model.visible = true;
-          axe?.setCarried(false);
+          holsterTools();
           transition(STATES.JOB_LEAVE_PORCH);
         } else if (root.position.distanceTo(points.inside) > 0.12) {
           model.visible = true;
-          axe?.setCarried(false);
+          holsterTools();
         }
         break;
 
@@ -699,7 +728,7 @@ export function createCharacterController(model, walkArea, home, axeModel, chopK
 
       case STATES.JOB_ALIGN: {
         stopMoving(delta);
-        axe?.setCarried(true, root);
+        drawJobTool();
         const remaining = faceToward(job.lookAt, delta);
         if (stateTime >= 0.38 && remaining < 0.08) {
           job.chopTime = 0;
@@ -720,7 +749,7 @@ export function createCharacterController(model, walkArea, home, axeModel, chopK
 
       case STATES.JOB_CHOP: {
         stopMoving(delta, 14);
-        axe?.setCarried(true, root);
+        drawJobTool();
         faceToward(job.lookAt, delta);
         job.chopTime += delta;
         if (job.hitLock > 0) job.hitLock = Math.max(0, job.hitLock - delta);
@@ -728,7 +757,7 @@ export function createCharacterController(model, walkArea, home, axeModel, chopK
       }
 
       case STATES.JOB_WALK_STORAGE: {
-        axe?.setCarried(false);
+        holsterTools();
         followWaypoints(job.storagePath, "storagePathIndex", job.storageApproach, () => {
           transition(STATES.JOB_ALIGN_STORAGE);
         }, delta);
@@ -737,7 +766,7 @@ export function createCharacterController(model, walkArea, home, axeModel, chopK
 
       case STATES.JOB_ALIGN_STORAGE: {
         stopMoving(delta);
-        axe?.setCarried(false);
+        holsterTools();
         const remaining = faceToward(job.storageLook ?? job.storageApproach, delta);
         if (stateTime >= 0.28 && remaining < 0.1) {
           transition(STATES.JOB_DEPOSIT);
@@ -747,7 +776,7 @@ export function createCharacterController(model, walkArea, home, axeModel, chopK
 
       case STATES.JOB_DEPOSIT:
         stopMoving(delta, 14);
-        axe?.setCarried(false);
+        holsterTools();
         if (stateTime >= DEPOSIT_TIME) {
           if (!job.delivered) {
             job.delivered = true;
@@ -758,7 +787,7 @@ export function createCharacterController(model, walkArea, home, axeModel, chopK
         break;
 
       case STATES.JOB_WALK_HOME: {
-        axe?.setCarried(false);
+        holsterTools();
         followWaypoints(job.homePath, "homePathIndex", points.depart, () => {
           transition(STATES.HOME_APPROACH);
         }, delta);
@@ -805,6 +834,7 @@ export function createCharacterController(model, walkArea, home, axeModel, chopK
     if (!chopping) stabilizeHead(elapsed, movementAmount);
     doorReach.apply(reachWeight);
     axe?.updateDraw(delta);
+    pickaxe?.updateDraw(delta);
 
     if (chopping) {
       const hand = model.getObjectByName("R_Hand");
@@ -895,7 +925,7 @@ export function createCharacterController(model, walkArea, home, axeModel, chopK
   }
 
   function beginCarryToStorage() {
-    axe?.setCarried(false);
+    holsterTools();
     if (!job) return;
     if (job.storageApproach) {
       job.storagePath = pathViaMeadow(root.position, job.storageApproach, job.walkability);
@@ -1029,7 +1059,7 @@ export function createCharacterController(model, walkArea, home, axeModel, chopK
       walkability: routes.walkability,
     };
     lastImpactCycle = -1;
-    axe?.setCarried(false);
+    holsterTools();
 
     if (state === STATES.REST_INSIDE || state === STATES.CLOSE_INSIDE) {
       model.visible = false;
@@ -1038,7 +1068,7 @@ export function createCharacterController(model, walkArea, home, axeModel, chopK
     }
 
     if (model.visible) {
-      axe?.setCarried(false);
+      holsterTools();
       transition(STATES.JOB_WALK);
       return true;
     }
@@ -1063,7 +1093,7 @@ export function createCharacterController(model, walkArea, home, axeModel, chopK
     getState: () => state,
     debugResetToHome: () => {
       job = null;
-      axe?.setCarried(false);
+      holsterTools();
       if (home) {
         root.position.copy(home.points.inside);
         model.visible = false;

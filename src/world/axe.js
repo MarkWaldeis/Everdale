@@ -10,10 +10,11 @@ const scratch = {
   handWorld: new THREE.Quaternion(),
 };
 
-export function createAxeWielder(model, axeModel) {
+export function createAxeWielder(model, axeModel, options = {}) {
+  const targetLength = options.targetLength ?? TARGET_LENGTH;
   const rightHand = model.getObjectByName("R_Hand");
   const grip = new THREE.Group();
-  grip.name = "axe-grip";
+  grip.name = options.gripName ?? "axe-grip";
   grip.visible = false;
 
   const axe = axeModel.clone(true);
@@ -38,7 +39,7 @@ export function createAxeWielder(model, axeModel) {
   scratch.box.setFromObject(axe);
   scratch.box.getSize(scratch.size);
   const longest = Math.max(scratch.size.x, scratch.size.y, scratch.size.z, 0.001);
-  grip.scale.setScalar(TARGET_LENGTH / longest);
+  grip.scale.setScalar(targetLength / longest);
 
   function aimBladeForward(characterRoot) {
     if (!rightHand || !characterRoot) return;

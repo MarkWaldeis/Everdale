@@ -80,6 +80,12 @@ a:focus-visible {
   gap: 14px;
 }
 
+.resource-counters {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
 .wood-counter {
   display: flex;
   align-items: center;
@@ -92,11 +98,19 @@ a:focus-visible {
   font-family: "Fredoka", sans-serif;
 }
 
+.stone-counter {
+  background: #6b675f;
+}
+
 .wood-counter-icon {
   width: 28px;
   height: 28px;
   border-radius: 50%;
   background: url("./ui/icons-row.jpg") 0% 50% / 600% auto no-repeat;
+}
+
+.stone-counter-icon {
+  background-position: 40% 50%;
 }
 
 .wood-counter strong {
@@ -689,6 +703,10 @@ a:focus-visible {
 
 .task-pin[data-task="chop"] {
   background-position: 20% 50%;
+}
+
+.task-pin[data-task="mine"] {
+  background-position: 40% 50%;
 }
 
 .task-pin[data-task="cook"] {
