@@ -215,12 +215,16 @@ function createArmReacher(model, handleAnchor, preferredSide = null) {
   let activeChain = null;
   let lastDistance = Infinity;
 
-  function apply(weight) {
+  function apply(weight, options = {}) {
     if (weight < 0.002) {
       activeChain = null;
       lastDistance = Infinity;
       return;
     }
+
+    const iterations = options.iterations ?? 5;
+    const forearmBlend = options.forearmBlend ?? 0.72;
+    const upperBlend = options.upperBlend ?? 0.56;
 
     model.updateWorldMatrix(true, true);
     handleAnchor.updateWorldMatrix(true, false);
@@ -237,7 +241,7 @@ function createArmReacher(model, handleAnchor, preferredSide = null) {
       }, null).chain;
     }
 
-    for (let iteration = 0; iteration < 5; iteration += 1) {
+    for (let iteration = 0; iteration < iterations; iteration += 1) {
       [activeChain.forearm, activeChain.upperarm].forEach((joint, jointIndex) => {
         joint.updateWorldMatrix(true, true);
         joint.getWorldPosition(jointPosition);
@@ -255,7 +259,10 @@ function createArmReacher(model, handleAnchor, preferredSide = null) {
         joint.parent.getWorldQuaternion(parentWorld);
         desiredWorld.copy(deltaRotation).multiply(currentWorld);
         desiredLocal.copy(parentWorld.invert()).multiply(desiredWorld);
-        joint.quaternion.slerp(desiredLocal, weight * (jointIndex === 0 ? 0.72 : 0.56));
+        joint.quaternion.slerp(
+          desiredLocal,
+          weight * (jointIndex === 0 ? forearmBlend : upperBlend),
+        );
         joint.updateWorldMatrix(false, true);
       });
     }
@@ -768,8 +775,12 @@ export function createCharacterController(model, walkArea, home, axeModel, chopK
       chopAnchor.position.copy(job.lookAt);
       chopAnchor.position.y = walkArea.surfaceY + 0.4;
       // Handle stays in the palm; target sits just outside the trunk so the blade lands.
-      chopAnchor.position.addScaledVector(scratch.direction, 0.44);
-      chopReach.apply(Math.max(0, wind - recover));
+      chopAnchor.position.addScaledVector(scratch.direction, 0.4);
+      chopReach.apply(Math.max(0, wind - recover), {
+        iterations: 14,
+        forearmBlend: 0.96,
+        upperBlend: 0.9,
+      });
     }
     axe?.updateDraw(delta);
 
