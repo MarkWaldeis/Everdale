@@ -793,6 +793,7 @@ export function createCharacterController(model, walkArea, home, axeModel, chopK
         forearmBlend: 0.96,
         upperBlend: 0.9,
       });
+      axe?.applyChop(root, job.lookAt, phase);
     }
     axe?.updateDraw(delta);
 

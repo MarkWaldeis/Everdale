@@ -6,6 +6,11 @@ const scratch = {
   size: new THREE.Vector3(),
   handle: new THREE.Vector3(),
   blade: new THREE.Vector3(),
+  shaft: new THREE.Vector3(),
+  desired: new THREE.Vector3(),
+  extra: new THREE.Quaternion(),
+  parentWorld: new THREE.Quaternion(),
+  nextLocal: new THREE.Quaternion(),
 };
 
 function findNamed(root, name) {
@@ -106,6 +111,7 @@ function plantHandleInPalm(axe) {
   const turn = new THREE.Quaternion().setFromAxisAngle(new THREE.Vector3(1, 0, 0), -Math.PI / 2);
   axe.quaternion.copy(turn);
   axe.position.copy(ends.handle).applyQuaternion(turn).multiplyScalar(-1);
+  axe.userData.shaftLocal = ends.blade.clone().sub(ends.handle).applyQuaternion(turn).normalize();
 }
 
 export function createAxeWielder(model, fallbackAxe, chopKit) {
@@ -147,24 +153,53 @@ export function createAxeWielder(model, fallbackAxe, chopKit) {
   const longest = Math.max(scratch.size.x, scratch.size.y, scratch.size.z, 0.001);
   grip.scale.multiplyScalar(TARGET_LENGTH / longest);
 
-  let drawWeight = 0;
+  const restGripQuaternion = grip.quaternion.clone();
 
   function setCarried(carried) {
     const wanted = Boolean(carried && rightHand);
     grip.userData.wanted = wanted;
     grip.visible = wanted;
-    drawWeight = wanted ? 1 : 0;
+    if (!wanted) grip.quaternion.copy(restGripQuaternion);
   }
 
   function updateDraw() {
     grip.visible = Boolean(grip.userData.wanted && rightHand);
   }
 
+  function applyChop(root, treePosition, phase) {
+    if (!grip.visible || !rightHand || !axe.userData.shaftLocal) return 0;
+    grip.quaternion.copy(restGripQuaternion);
+    model.updateWorldMatrix(true, true);
+    axe.updateWorldMatrix(true, true);
+    scratch.shaft.copy(axe.userData.shaftLocal).transformDirection(axe.matrixWorld);
+    if (scratch.shaft.lengthSq() < 0.000001) return 0;
+    scratch.shaft.normalize();
+    grip.getWorldPosition(scratch.desired);
+    scratch.desired.set(
+      treePosition.x - scratch.desired.x,
+      root.position.y + 0.42 - scratch.desired.y,
+      treePosition.z - scratch.desired.z,
+    );
+    if (scratch.desired.lengthSq() < 0.000001) return 0;
+    scratch.desired.normalize();
+    scratch.extra.setFromUnitVectors(scratch.shaft, scratch.desired);
+    rightHand.getWorldQuaternion(scratch.parentWorld);
+    scratch.nextLocal
+      .copy(scratch.parentWorld)
+      .invert()
+      .multiply(scratch.extra)
+      .multiply(scratch.parentWorld)
+      .multiply(restGripQuaternion);
+    const aim = THREE.MathUtils.smoothstep(phase, 0.08, 0.22);
+    grip.quaternion.copy(restGripQuaternion).slerp(scratch.nextLocal, aim);
+    return phase >= 0.17 && phase <= 0.28 ? 1 : 0;
+  }
+
   return {
     setCarried,
     updateDraw,
     applyCarry: () => {},
-    applyChop: () => 0,
+    applyChop,
     resetSpine: () => {},
     isCarried: () => grip.visible,
     getAxe: () => axe,
