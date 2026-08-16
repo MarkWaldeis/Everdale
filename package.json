@@ -1,0 +1,19 @@
+{
+  "name": "everdale",
+  "private": true,
+  "version": "0.1.0",
+  "type": "module",
+  "description": "Everdale 3D-Welt – Three.js",
+  "homepage": "https://markwaldeis.github.io/Everdale/",
+  "scripts": {
+    "dev": "vite --host 127.0.0.1 --port 5173 --strictPort",
+    "build": "vite build",
+    "preview": "vite preview --host 127.0.0.1"
+  },
+  "dependencies": {
+    "three": "^0.179.1"
+  },
+  "devDependencies": {
+    "vite": "^7.1.2"
+  }
+}

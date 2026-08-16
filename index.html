@@ -1,0 +1,181 @@
+<!doctype html>
+<html lang="de">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <meta
+      name="description"
+      content="Ein sauberer Three.js-Prototyp für eine Everdale-inspirierte Waldwelt."
+    />
+    <title>Everdale · Waldprototyp</title>
+    <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'%3E%3Crect width='32' height='32' rx='9' fill='%2339704a'/%3E%3Cpath fill='%23fffdf4' d='m16 5-8 10h4l-5 7h7v6h4v-6h7l-5-7h4L16 5Z'/%3E%3C/svg%3E" />
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link
+      href="https://fonts.googleapis.com/css2?family=DM+Mono:wght@400;500&family=Fredoka:wght@500;600&family=Nunito+Sans:wght@400;600;700&display=swap"
+      rel="stylesheet"
+    />
+    <script>
+      if (window.location.protocol === "file:") {
+        document.documentElement.classList.add("is-file-mode");
+      }
+    </script>
+    <style>
+      #file-open-notice { display: none; }
+      .is-file-mode body {
+        margin: 0;
+        color: #1d3527;
+        background: #dcebd4;
+        font-family: "Nunito Sans", Arial, sans-serif;
+      }
+      .is-file-mode .experience { display: none; }
+      .is-file-mode #file-open-notice {
+        min-height: 100vh;
+        display: grid;
+        place-items: center;
+        padding: 24px;
+        box-sizing: border-box;
+      }
+      .file-notice-card {
+        width: min(520px, calc(100vw - 48px));
+        padding: 34px;
+        border: 1px solid rgba(255, 255, 255, 0.76);
+        border-radius: 28px;
+        background: rgba(255, 253, 244, 0.9);
+        box-shadow: 0 24px 70px rgba(52, 83, 56, 0.18);
+        text-align: center;
+      }
+      .file-notice-icon {
+        width: 58px;
+        height: 58px;
+        margin: 0 auto 20px;
+        display: grid;
+        place-items: center;
+        border-radius: 18px;
+        color: #fffdf4;
+        background: #39704a;
+        font-size: 29px;
+      }
+      .file-notice-card small {
+        color: #6a7e6e;
+        font-family: "DM Mono", monospace;
+        font-size: 0.68rem;
+        letter-spacing: 0.08em;
+        text-transform: uppercase;
+      }
+      .file-notice-card h1 {
+        margin: 10px 0 12px;
+        font-family: "Fredoka", Arial, sans-serif;
+        font-size: clamp(1.8rem, 7vw, 2.7rem);
+        line-height: 1.05;
+      }
+      .file-notice-card p {
+        margin: 0;
+        color: #58705f;
+        line-height: 1.55;
+      }
+      .file-notice-file {
+        display: block;
+        margin: 22px 0 10px;
+        padding: 13px 16px;
+        border-radius: 14px;
+        color: #fffdf4;
+        background: #39704a;
+        font-family: "DM Mono", monospace;
+        font-size: 0.82rem;
+        font-weight: 500;
+      }
+    </style>
+  </head>
+  <body>
+    <section id="file-open-notice" aria-label="Startanleitung">
+      <div class="file-notice-card">
+        <div class="file-notice-icon" aria-hidden="true">↗</div>
+        <small>Fast geschafft</small>
+        <h1>Starte die Welt über den Everdale-Starter.</h1>
+        <p>Diese 3D-Welt braucht einen lokalen Webserver. Öffne im Projektordner per Doppelklick:</p>
+        <strong class="file-notice-file">Everdale starten.cmd</strong>
+        <p>Der Starter öffnet danach automatisch die richtige Adresse im Browser.</p>
+      </div>
+    </section>
+
+    <main class="experience" aria-label="Interaktive 3D-Waldwelt">
+      <canvas id="world-canvas" aria-label="3D-Ansicht der Waldlichtung"></canvas>
+
+      <header class="brand-panel panel">
+        <a class="brand" href="#" aria-label="Zurück zur Standardansicht" id="brand-home">
+          <svg viewBox="0 0 34 34" aria-hidden="true">
+            <path d="M17 3 7.7 14h5.1L6 23h8v8h6v-8h8l-6.8-9h5.1L17 3Z" />
+          </svg>
+          <span>
+            <strong>Everdale</strong>
+            <small>Waldprototyp</small>
+          </span>
+        </a>
+        <span class="phase-tag">Phase 03 · Zuhause</span>
+      </header>
+
+      <aside class="world-note panel" aria-label="Information zur Welt">
+        <span class="note-index">02</span>
+        <div>
+          <p class="eyebrow">Aktueller Baustein</p>
+          <h2>Das erste bewohnte Holzhaus.</h2>
+          <p>Die Bewohnerin öffnet die Tür, geht hinein und kehrt später in die Lichtung zurück.</p>
+        </div>
+      </aside>
+
+      <section class="forest-status panel" aria-label="Verwendete 3D-Assets">
+        <div class="status-heading">
+          <span class="live-dot" aria-hidden="true"></span>
+          <span>6 Assets aktiv</span>
+        </div>
+        <ul>
+          <li><span class="swatch swatch-ground"></span>Boden</li>
+          <li><span class="swatch swatch-forest"></span>Waldbäume</li>
+          <li><span class="swatch swatch-apple"></span>Apfelbäume</li>
+          <li><span class="swatch swatch-blossom"></span>Blütenbäume</li>
+          <li><span class="swatch swatch-character"></span>Bewohnerin</li>
+          <li><span class="swatch swatch-cottage"></span>Holzhaus</li>
+        </ul>
+      </section>
+
+      <nav class="view-controls panel" aria-label="Kameraansichten">
+        <p class="eyebrow">Blickwinkel</p>
+        <div class="view-buttons">
+          <button class="view-button" type="button" data-view="village">
+            <span>01</span>Tal
+          </button>
+          <button class="view-button" type="button" data-view="clearing">
+            <span>02</span>Lichtung
+          </button>
+          <button class="view-button" type="button" data-view="map">
+            <span>03</span>Karte
+          </button>
+          <button class="view-button is-active" type="button" data-view="cottage">
+            <span>04</span>Haus
+          </button>
+        </div>
+        <button class="wind-button" id="wind-toggle" type="button" aria-pressed="true">
+          <span class="wind-icon" aria-hidden="true">≈</span>
+          Sanfter Wind
+        </button>
+      </nav>
+
+      <div class="interaction-hint" aria-hidden="true">
+        <span class="mouse-symbol"></span>
+        Ziehen zum Drehen <i></i> Scrollen zum Näherkommen
+      </div>
+
+      <div class="error-message panel" id="error-message" role="alert" hidden>
+        <strong>Die Welt konnte nicht geladen werden.</strong>
+        <span id="error-detail">Prüfe die 3D-Assets und starte den lokalen Server neu.</span>
+      </div>
+    </main>
+
+    <script type="module">
+      if (window.location.protocol !== "file:") {
+        import("./src/main.js");
+      }
+    </script>
+  </body>
+</html>

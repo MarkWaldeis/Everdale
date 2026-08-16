@@ -1,0 +1,295 @@
+import * as THREE from "three";
+import { OrbitControls } from "three/addons/controls/OrbitControls.js";
+import { ASSETS } from "./world/assets.js";
+import { loadWorldAssets } from "./world/asset-loader.js";
+import { buildForestWorld } from "./world/forest.js";
+import { createCharacterController } from "./world/character.js";
+import { createCottage } from "./world/cottage.js";
+import "./styles.css";
+
+const canvas = document.querySelector("#world-canvas");
+const errorMessage = document.querySelector("#error-message");
+const errorDetail = document.querySelector("#error-detail");
+const windToggle = document.querySelector("#wind-toggle");
+const viewButtons = [...document.querySelectorAll("[data-view]")];
+
+const scene = new THREE.Scene();
+scene.background = new THREE.Color(0xb9d8e7);
+scene.fog = new THREE.FogExp2(0xb9d8e7, 0.014);
+
+const camera = new THREE.PerspectiveCamera(33, window.innerWidth / window.innerHeight, 0.1, 100);
+const renderer = new THREE.WebGLRenderer({
+  canvas,
+  antialias: true,
+  powerPreference: "high-performance",
+});
+renderer.setSize(window.innerWidth, window.innerHeight);
+renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
+renderer.outputColorSpace = THREE.SRGBColorSpace;
+renderer.toneMapping = THREE.ACESFilmicToneMapping;
+renderer.toneMappingExposure = 1.08;
+renderer.shadowMap.enabled = true;
+renderer.shadowMap.type = THREE.PCFSoftShadowMap;
+
+const controls = new OrbitControls(camera, renderer.domElement);
+controls.enableDamping = true;
+controls.dampingFactor = 0.055;
+controls.enablePan = false;
+controls.screenSpacePanning = false;
+controls.minPolarAngle = THREE.MathUtils.degToRad(4);
+controls.maxPolarAngle = THREE.MathUtils.degToRad(67);
+controls.minDistance = 7.5;
+controls.maxDistance = 38.9;
+controls.target.set(0, 0.45, 0);
+
+const hemisphere = new THREE.HemisphereLight(0xeaf8ff, 0x6f7a3a, 2.3);
+scene.add(hemisphere);
+
+const sun = new THREE.DirectionalLight(0xfff1c8, 4.1);
+sun.position.set(-12, 22, 14);
+sun.castShadow = true;
+sun.shadow.mapSize.set(2048, 2048);
+sun.shadow.camera.left = -19;
+sun.shadow.camera.right = 19;
+sun.shadow.camera.top = 19;
+sun.shadow.camera.bottom = -19;
+sun.shadow.camera.near = 1;
+sun.shadow.camera.far = 55;
+sun.shadow.bias = -0.0004;
+scene.add(sun);
+
+const fill = new THREE.DirectionalLight(0xaed8ff, 0.9);
+fill.position.set(10, 7, -9);
+scene.add(fill);
+
+const cameraViews = {
+  cottage: {
+    position: new THREE.Vector3(0.35, 4.05, 8.3),
+    target: new THREE.Vector3(-1.55, 1.2, -1.85),
+    mobilePosition: new THREE.Vector3(5.5, 6.2, 13),
+    mobileTarget: new THREE.Vector3(-1.5, 1.2, -1.4),
+  },
+  village: {
+    position: new THREE.Vector3(23, 19.8, 24.5),
+    target: new THREE.Vector3(0, 0.45, 0),
+  },
+  clearing: {
+    position: new THREE.Vector3(16.5, 12.5, 17.5),
+    target: new THREE.Vector3(0, 0.65, -0.25),
+  },
+  map: {
+    position: new THREE.Vector3(0.1, 38.3, 0.1),
+    target: new THREE.Vector3(0, 0, 0),
+  },
+};
+
+const cottageActionViews = {
+  entry: cameraViews.cottage,
+  close: {
+    position: new THREE.Vector3(-6.0, 4.05, 8.3),
+    target: new THREE.Vector3(-1.55, 1.2, -1.85),
+  },
+};
+
+const COTTAGE_CLOSE_CAMERA_STATES = new Set([
+  "close-inside",
+  "rest-inside",
+  "open-to-exit",
+  "exit",
+  "position-to-close",
+  "align-to-close",
+  "reach-to-close",
+  "close-outside",
+  "leave-porch",
+]);
+
+const animationState = {
+  trees: [],
+  character: null,
+  cottage: null,
+  debugPaused: false,
+  windEnabled: !window.matchMedia("(prefers-reduced-motion: reduce)").matches,
+  cameraTween: null,
+  cottageCameraStage: "entry",
+  cameraUserControlled: false,
+};
+let previousFrameTime = performance.now();
+let activeCameraView = "cottage";
+
+function setCameraView(name, immediate = false) {
+  const view = cameraViews[name];
+  if (!view) return;
+  activeCameraView = name;
+  animationState.cameraUserControlled = false;
+  const useMobileView = window.innerWidth < 640 && view.mobilePosition && view.mobileTarget;
+  const stagedView =
+    name === "cottage" && !useMobileView
+      ? cottageActionViews[animationState.cottageCameraStage]
+      : view;
+  const endPosition = useMobileView ? view.mobilePosition : stagedView.position;
+  const endTarget = useMobileView ? view.mobileTarget : stagedView.target;
+
+  viewButtons.forEach((button) => {
+    button.classList.toggle("is-active", button.dataset.view === name);
+  });
+
+  const duration = immediate || window.matchMedia("(prefers-reduced-motion: reduce)").matches ? 0 : 780;
+  animationState.cameraTween = {
+    startedAt: performance.now(),
+    duration,
+    startPosition: camera.position.clone(),
+    startTarget: controls.target.clone(),
+    endPosition: endPosition.clone(),
+    endTarget: endTarget.clone(),
+  };
+
+  if (duration === 0) updateCameraTween(performance.now());
+}
+
+function updateCottageCameraStage() {
+  const characterState = animationState.character?.getState();
+  if (!characterState) return;
+
+  const nextStage = COTTAGE_CLOSE_CAMERA_STATES.has(characterState) ? "close" : "entry";
+  if (nextStage === animationState.cottageCameraStage) return;
+  animationState.cottageCameraStage = nextStage;
+
+  if (
+    activeCameraView !== "cottage" ||
+    window.innerWidth < 640 ||
+    animationState.cameraUserControlled
+  ) {
+    return;
+  }
+
+  const view = cottageActionViews[nextStage];
+  const duration = window.matchMedia("(prefers-reduced-motion: reduce)").matches
+    ? 0
+    : 1350;
+  animationState.cameraTween = {
+    startedAt: performance.now(),
+    duration,
+    startPosition: camera.position.clone(),
+    startTarget: controls.target.clone(),
+    endPosition: view.position.clone(),
+    endTarget: view.target.clone(),
+  };
+
+  if (duration === 0) updateCameraTween(performance.now());
+}
+
+function updateCameraTween(now) {
+  const tween = animationState.cameraTween;
+  if (!tween) return;
+
+  const progress = tween.duration === 0 ? 1 : Math.min((now - tween.startedAt) / tween.duration, 1);
+  const eased = 1 - (1 - progress) ** 3;
+  camera.position.lerpVectors(tween.startPosition, tween.endPosition, eased);
+  controls.target.lerpVectors(tween.startTarget, tween.endTarget, eased);
+
+  if (progress >= 1) animationState.cameraTween = null;
+}
+
+function updateWind(elapsed) {
+  animationState.trees.forEach((tree) => {
+    const targetX = animationState.windEnabled
+      ? Math.sin(elapsed * 0.72 + tree.userData.phase) * tree.userData.sway
+      : 0;
+    const targetZ = animationState.windEnabled
+      ? Math.cos(elapsed * 0.6 + tree.userData.phase) * tree.userData.sway * 0.7
+      : 0;
+
+    tree.rotation.x = THREE.MathUtils.lerp(tree.rotation.x, targetX, 0.035);
+    tree.rotation.z = THREE.MathUtils.lerp(tree.rotation.z, targetZ, 0.035);
+  });
+}
+
+function bindInterface() {
+  controls.addEventListener("start", () => {
+    animationState.cameraUserControlled = true;
+    animationState.cameraTween = null;
+  });
+
+  viewButtons.forEach((button) => {
+    button.addEventListener("click", () => setCameraView(button.dataset.view));
+  });
+
+  document.querySelector("#brand-home").addEventListener("click", (event) => {
+    event.preventDefault();
+    setCameraView("village");
+  });
+
+  windToggle.setAttribute("aria-pressed", String(animationState.windEnabled));
+  windToggle.addEventListener("click", () => {
+    animationState.windEnabled = !animationState.windEnabled;
+    windToggle.setAttribute("aria-pressed", String(animationState.windEnabled));
+  });
+
+  window.addEventListener("keydown", (event) => {
+    if (event.key === "1") setCameraView("village");
+    if (event.key === "2") setCameraView("clearing");
+    if (event.key === "3") setCameraView("map");
+    if (event.key === "4") setCameraView("cottage");
+  });
+}
+
+function onResize() {
+  camera.aspect = window.innerWidth / window.innerHeight;
+  camera.updateProjectionMatrix();
+  renderer.setSize(window.innerWidth, window.innerHeight);
+  renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
+  setCameraView(activeCameraView, true);
+}
+
+function animate(now = 0) {
+  requestAnimationFrame(animate);
+  const delta = Math.min(Math.max((now - previousFrameTime) / 1000, 0), 0.05);
+  previousFrameTime = now;
+  updateWind(now * 0.001);
+  if (!animationState.debugPaused) {
+    animationState.character?.update(delta, now * 0.001);
+  }
+  updateCottageCameraStage();
+  updateCameraTween(now);
+  controls.update();
+  renderer.render(scene, camera);
+}
+
+async function start() {
+  bindInterface();
+  window.addEventListener("resize", onResize);
+  setCameraView("cottage", true);
+  animate();
+
+  try {
+    const assets = await loadWorldAssets(ASSETS);
+
+    const world = buildForestWorld(assets);
+    animationState.trees = world.animatedTrees;
+    animationState.cottage = createCottage(assets.cottage, world.walkArea.surfaceY);
+    animationState.character = createCharacterController(
+      assets.character,
+      world.walkArea,
+      animationState.cottage,
+    );
+    world.root.add(animationState.cottage.root, animationState.character.root);
+    scene.add(world.root);
+
+    window.__everdaleDebug = {
+      character: animationState.character,
+      cottage: animationState.cottage,
+      setCameraView,
+      getSnapshot: () => animationState.character.getSnapshot(),
+      setPaused: (paused) => {
+        animationState.debugPaused = Boolean(paused);
+      },
+    };
+
+  } catch (error) {
+    console.error(error);
+    errorDetail.textContent = error?.message || "Unbekannter Ladefehler";
+    errorMessage.hidden = false;
+  }
+}
+
+start();
