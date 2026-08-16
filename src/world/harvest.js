@@ -229,7 +229,7 @@ export function createHarvestDirector({
     }
     if (scratch.toward.lengthSq() < 0.0001) scratch.toward.set(0, 0, 1);
     scratch.toward.normalize();
-    const point = tree.position.clone().addScaledVector(scratch.toward, 0.64);
+    const point = tree.position.clone().addScaledVector(scratch.toward, 0.88);
     point.y = surfaceY;
     if (cottage?.containsPoint(point, 0.55)) {
       point.addScaledVector(scratch.toward, -0.85);

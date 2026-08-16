@@ -185,14 +185,15 @@ function createHeadStabilizer(model) {
   };
 }
 
-function createArmReacher(model, handleAnchor) {
+function createArmReacher(model, handleAnchor, preferredSide = null) {
   const inactive = Object.freeze({
     apply: () => {},
     getDistance: () => Infinity,
   });
   if (!handleAnchor) return inactive;
 
-  const chains = ["L", "R"]
+  const sides = preferredSide ? [preferredSide] : ["L", "R"];
+  const chains = sides
     .map((side) => ({
       upperarm: model.getObjectByName(`${side}_Upperarm`),
       forearm: model.getObjectByName(`${side}_Forearm`),
@@ -289,6 +290,9 @@ export function createCharacterController(model, walkArea, home, axeModel, chopK
 
   const stabilizeHead = createHeadStabilizer(model);
   const doorReach = createArmReacher(model, home?.door.handleAnchor);
+  const chopAnchor = new THREE.Object3D();
+  chopAnchor.name = "chop-strike-anchor";
+  const chopReach = createArmReacher(model, chopAnchor, "R");
   const isRoamPointAllowed = (point) => !home?.containsPoint(point, 0.72);
   let roamTarget = randomPointInEllipse(
     walkArea.radiusX,
@@ -752,6 +756,21 @@ export function createCharacterController(model, walkArea, home, axeModel, chopK
 
     if (!chopping) stabilizeHead(elapsed, movementAmount);
     doorReach.apply(reachWeight);
+    if (chopping && job?.lookAt) {
+      const duration = chopClip?.duration || CHOP_CYCLE;
+      const phase = (job.chopTime % duration) / duration;
+      const wind = smootherStep(THREE.MathUtils.clamp(phase / 0.2, 0, 1));
+      const recover = smootherStep(THREE.MathUtils.clamp((phase - 0.42) / 0.22, 0, 1));
+      scratch.direction.subVectors(root.position, job.lookAt);
+      scratch.direction.y = 0;
+      if (scratch.direction.lengthSq() < 0.000001) scratch.direction.set(0, 0, 1);
+      scratch.direction.normalize();
+      chopAnchor.position.copy(job.lookAt);
+      chopAnchor.position.y = walkArea.surfaceY + 0.4;
+      // Handle stays in the palm; target sits just outside the trunk so the blade lands.
+      chopAnchor.position.addScaledVector(scratch.direction, 0.44);
+      chopReach.apply(Math.max(0, wind - recover));
+    }
     axe?.updateDraw(delta);
 
     const chopDuration = chopClip?.duration || CHOP_CYCLE;
