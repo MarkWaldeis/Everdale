@@ -39,6 +39,12 @@ export function createWalkability(cottage, trees = [], options = {}) {
       const radius = treeRadius + (tree.userData.enclosure ? 0.12 : 0);
       if (dx * dx + dz * dz < radius * radius) return true;
     }
+    const extras = options.extras ?? [];
+    for (const extra of extras) {
+      const dx = extra.x - point.x;
+      const dz = extra.z - point.z;
+      if (dx * dx + dz * dz < (extra.radius ?? 1) ** 2) return true;
+    }
     return false;
   }
 

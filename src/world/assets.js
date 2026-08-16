@@ -39,6 +39,21 @@ export const ASSETS = Object.freeze({
     url: new URL("../../3d Assets/girl_chopping_tree.glb", import.meta.url).href,
     raw: true,
   },
+  storageEmpty: {
+    label: "Holzlager leer",
+    url: new URL("../../3d Assets/wooden storage empty.glb", import.meta.url).href,
+    height: 1.85,
+  },
+  storageHalf: {
+    label: "Holzlager halb",
+    url: new URL("../../3d Assets/wooden storage half full.glb", import.meta.url).href,
+    height: 1.85,
+  },
+  storageFull: {
+    label: "Holzlager voll",
+    url: new URL("../../3d Assets/wooden log stack 3d model.glb", import.meta.url).href,
+    height: 1.7,
+  },
 });
 
 export const TREE_WEIGHTS = Object.freeze([

@@ -88,6 +88,7 @@ export function createHarvestDirector({
   scene,
   character,
   cottage,
+  yard,
   surfaceY,
   setFollowTarget,
 }) {
@@ -99,6 +100,7 @@ export function createHarvestDirector({
   const workerStatus = document.querySelector("#worker-status");
   const trayTitle = document.querySelector("#worker-dock-title");
   const taskPin = document.querySelector("#worker-task-pin");
+  const woodCount = document.querySelector("#wood-count");
   const meter = document.querySelector("#harvest-meter");
   const meterFill = document.querySelector("#harvest-meter-fill");
   const meterLabel = document.querySelector("#harvest-meter-label");
@@ -190,7 +192,12 @@ export function createHarvestDirector({
     const busy = character.isBusy();
     if (workerButton) workerButton.disabled = busy;
     if (workerStatus) {
-      workerStatus.textContent = busy ? "Holzfällen" : "Frei";
+      const state = character.getState();
+      workerStatus.textContent = busy
+        ? state === "job-walk-storage" || state === "job-align-storage" || state === "job-deposit"
+          ? "Zum Lager"
+          : "Holzfällen"
+        : "Frei";
     }
     workerButton?.classList.toggle("is-busy", busy);
     if (taskPin) {
@@ -330,6 +337,11 @@ export function createHarvestDirector({
       tree,
       approach,
       lookAt: tree.position.clone(),
+      storageApproach: yard?.stand,
+      storageLook: yard?.look,
+      storageBlock: yard
+        ? { x: yard.root.position.x, z: yard.root.position.z, radius: 1.15 }
+        : null,
       hitsNeeded: CHOP_HITS,
       onStartChop: () => {
         tree.userData.harvestState = "chopping";
@@ -348,6 +360,11 @@ export function createHarvestDirector({
       },
       onChopDone: () => {
         beginFall(tree, character.root.position.clone());
+      },
+      onDeliver: () => {
+        const amount = yard?.deposit() ?? 0;
+        if (woodCount) woodCount.textContent = String(amount);
+        refreshWorkerCard();
       },
       onReturned: () => {
         refreshWorkerCard();

@@ -6,6 +6,7 @@ import { buildForestWorld } from "./world/forest.js";
 import { createCharacterController } from "./world/character.js";
 import { createCottage } from "./world/cottage.js";
 import { createHarvestDirector } from "./world/harvest.js";
+import { createWoodYard } from "./world/wood-yard.js";
 import { captureCharacterPortrait } from "./world/capture-portrait.js";
 import "./styles.css";
 
@@ -112,6 +113,9 @@ const FOLLOW_CAMERA_STATES = new Set([
   "job-walk",
   "job-align",
   "job-chop",
+  "job-walk-storage",
+  "job-align-storage",
+  "job-deposit",
   "job-walk-home",
 ]);
 
@@ -337,6 +341,14 @@ async function start() {
     const world = buildForestWorld(assets);
     animationState.trees = world.animatedTrees;
     animationState.cottage = createCottage(assets.cottage, world.walkArea.surfaceY);
+    animationState.yard = createWoodYard(
+      {
+        empty: assets.storageEmpty,
+        half: assets.storageHalf,
+        full: assets.storageFull,
+      },
+      world.walkArea.surfaceY,
+    );
     animationState.character = createCharacterController(
       assets.character,
       world.walkArea,
@@ -352,16 +364,22 @@ async function start() {
       scene: world.root,
       character: animationState.character,
       cottage: animationState.cottage,
+      yard: animationState.yard,
       surfaceY: world.walkArea.surfaceY,
       setFollowTarget,
     });
-    world.root.add(animationState.cottage.root, animationState.character.root);
+    world.root.add(
+      animationState.cottage.root,
+      animationState.yard.root,
+      animationState.character.root,
+    );
     scene.add(world.root);
 
     window.__everdaleDebug = {
       character: animationState.character,
       cottage: animationState.cottage,
       harvest: animationState.harvest,
+      yard: animationState.yard,
       trees: world.animatedTrees,
       camera,
       controls,

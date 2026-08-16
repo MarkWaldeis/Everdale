@@ -70,14 +70,42 @@ a:focus-visible {
 .brand-panel {
   top: 24px;
   left: 24px;
-  width: min(380px, calc(100vw - 48px));
+  width: min(460px, calc(100vw - 48px));
   min-height: 72px;
   padding: 12px 14px;
   border-radius: 20px;
   display: flex;
   align-items: center;
   justify-content: space-between;
-  gap: 18px;
+  gap: 14px;
+}
+
+.wood-counter {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  padding: 6px 10px 6px 6px;
+  border-radius: 999px;
+  background: #3f7a28;
+  box-shadow: inset 0 -3px 0 rgba(0, 0, 0, 0.16);
+  color: #fffdf4;
+  font-family: "Fredoka", sans-serif;
+}
+
+.wood-counter-icon {
+  width: 28px;
+  height: 28px;
+  border-radius: 50%;
+  background: url("./ui/icons-row.jpg") 0% 50% / 600% auto no-repeat;
+}
+
+.wood-counter strong {
+  font-size: 1.05rem;
+}
+
+.wood-counter-max {
+  color: rgba(255, 253, 244, 0.72);
+  font-size: 0.82rem;
 }
 
 .brand {

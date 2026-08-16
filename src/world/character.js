@@ -34,6 +34,9 @@ const STATES = Object.freeze({
   JOB_WALK: "job-walk",
   JOB_ALIGN: "job-align",
   JOB_CHOP: "job-chop",
+  JOB_WALK_STORAGE: "job-walk-storage",
+  JOB_ALIGN_STORAGE: "job-align-storage",
+  JOB_DEPOSIT: "job-deposit",
   JOB_WALK_HOME: "job-walk-home",
 });
 
@@ -44,8 +47,13 @@ const JOB_STATES = new Set([
   STATES.JOB_WALK,
   STATES.JOB_ALIGN,
   STATES.JOB_CHOP,
+  STATES.JOB_WALK_STORAGE,
+  STATES.JOB_ALIGN_STORAGE,
+  STATES.JOB_DEPOSIT,
   STATES.JOB_WALK_HOME,
 ]);
+
+const DEPOSIT_TIME = 1.2;
 
 const CHOP_CYCLE = 0.92;
 
@@ -398,7 +406,10 @@ export function createCharacterController(model, walkArea, home, axeModel, chopK
 
     if (distance <= ARRIVAL_DISTANCE) {
       stopMoving(delta, 11);
-      const outdoor = state === STATES.JOB_WALK || state === STATES.JOB_WALK_HOME;
+      const outdoor =
+        state === STATES.JOB_WALK ||
+        state === STATES.JOB_WALK_HOME ||
+        state === STATES.JOB_WALK_STORAGE;
       const canSnap = !outdoor || !job?.walkability?.blocked(target);
       if (canSnap) {
         root.position.x = target.x;
@@ -433,7 +444,9 @@ export function createCharacterController(model, walkArea, home, axeModel, chopK
     }
 
     if (
-      (state === STATES.JOB_WALK || state === STATES.JOB_WALK_HOME) &&
+      (state === STATES.JOB_WALK ||
+        state === STATES.JOB_WALK_HOME ||
+        state === STATES.JOB_WALK_STORAGE) &&
       job?.walkability?.blocked(scratch.nextPosition)
     ) {
       const slideX = scratch.nextPosition.clone();
@@ -719,6 +732,69 @@ export function createCharacterController(model, walkArea, home, axeModel, chopK
         break;
       }
 
+      case STATES.JOB_WALK_STORAGE: {
+        axe?.setCarried(false);
+        const path = job.storagePath ?? [];
+        const waypoint = path[job.storagePathIndex] ?? job.storageApproach;
+        if (!waypoint) {
+          transition(STATES.JOB_ALIGN_STORAGE);
+          break;
+        }
+        if (moveToward(waypoint, WALK_SPEED, delta, false)) {
+          job.stuckTime = 0;
+          if (job.storagePathIndex < path.length - 1) {
+            job.storagePathIndex += 1;
+            stateTime = 0;
+            stateOrigin.copy(root.position);
+          } else {
+            transition(STATES.JOB_ALIGN_STORAGE);
+          }
+        } else {
+          job.stuckTime = (job.stuckTime ?? 0) + delta;
+          if (job.stuckTime > 1.6) {
+            job.stuckTime = 0;
+            if (job.storagePathIndex < path.length - 1) {
+              job.storagePathIndex += 1;
+            } else {
+              root.position.x = waypoint.x;
+              root.position.z = waypoint.z;
+              transition(STATES.JOB_ALIGN_STORAGE);
+            }
+          }
+        }
+        break;
+      }
+
+      case STATES.JOB_ALIGN_STORAGE: {
+        stopMoving(delta);
+        axe?.setCarried(false);
+        const remaining = faceToward(job.storageLook ?? job.storageApproach, delta);
+        if (stateTime >= 0.28 && remaining < 0.1) {
+          transition(STATES.JOB_DEPOSIT);
+        }
+        break;
+      }
+
+      case STATES.JOB_DEPOSIT:
+        stopMoving(delta, 14);
+        axe?.setCarried(false);
+        if (stateTime >= DEPOSIT_TIME) {
+          if (!job.delivered) {
+            job.delivered = true;
+            job.onDeliver?.();
+          }
+          job.homePath = findWalkPath(
+            resolveStandPoint(root.position, job.walkability, walkArea.surfaceY),
+            resolveStandPoint(home.points.depart, job.walkability, walkArea.surfaceY),
+            job.walkability,
+            home,
+            walkArea.surfaceY,
+          );
+          job.homePathIndex = 0;
+          transition(STATES.JOB_WALK_HOME);
+        }
+        break;
+
       case STATES.JOB_WALK_HOME: {
         axe?.setCarried(false);
         const waypoint = job.homePath[job.homePathIndex] ?? points.depart;
@@ -797,7 +873,20 @@ export function createCharacterController(model, walkArea, home, axeModel, chopK
             if (job.hits >= job.hitsNeeded) {
               job.onChopDone?.();
               axe?.setCarried(false);
-              transition(STATES.JOB_WALK_HOME);
+              const storageGoal = job.storageApproach;
+              if (storageGoal) {
+                job.storagePath = findWalkPath(
+                  resolveStandPoint(root.position, job.walkability, walkArea.surfaceY),
+                  resolveStandPoint(storageGoal, job.walkability, walkArea.surfaceY),
+                  job.walkability,
+                  home,
+                  walkArea.surfaceY,
+                );
+                job.storagePathIndex = 0;
+                transition(STATES.JOB_WALK_STORAGE);
+              } else {
+                transition(STATES.JOB_WALK_HOME);
+              }
             }
           }
         }
@@ -835,7 +924,7 @@ export function createCharacterController(model, walkArea, home, axeModel, chopK
   }
 
   function isBusy() {
-    return Boolean(job) && state !== STATES.REST_INSIDE;
+    return Boolean(job) && !job.delivered && state !== STATES.REST_INSIDE;
   }
 
   function buildJobPaths(nextJob) {
@@ -843,16 +932,28 @@ export function createCharacterController(model, walkArea, home, axeModel, chopK
       state === STATES.REST_INSIDE || !model.visible
         ? home.points.depart.clone()
         : root.position.clone();
-    const walkability = createWalkability(home, trees, { ignoreTree: nextJob.tree });
+    const extras = nextJob.storageBlock ? [nextJob.storageBlock] : [];
+    const walkability = createWalkability(home, trees, {
+      ignoreTree: nextJob.tree,
+      extras,
+    });
     const start = resolveStandPoint(startPoint, walkability, walkArea.surfaceY);
     const approach = resolveStandPoint(nextJob.approach, walkability, walkArea.surfaceY);
+    const storage = nextJob.storageApproach
+      ? resolveStandPoint(nextJob.storageApproach, walkability, walkArea.surfaceY)
+      : null;
+    const homeStand = resolveStandPoint(home.points.depart, walkability, walkArea.surfaceY);
     return {
       walkability,
       approach,
+      storage,
       path: findWalkPath(start, approach, walkability, home, walkArea.surfaceY),
+      storagePath: storage
+        ? findWalkPath(approach, storage, walkability, home, walkArea.surfaceY)
+        : [],
       homePath: findWalkPath(
-        approach,
-        resolveStandPoint(home.points.depart, walkability, walkArea.surfaceY),
+        storage ?? approach,
+        homeStand,
         walkability,
         home,
         walkArea.surfaceY,
@@ -862,12 +963,16 @@ export function createCharacterController(model, walkArea, home, axeModel, chopK
 
   function assignJob(nextJob) {
     if (!home || !nextJob) return false;
-    if (job && state !== STATES.REST_INSIDE) return false;
+    if (job && !job.delivered && state !== STATES.REST_INSIDE) return false;
 
     const routes = buildJobPaths(nextJob);
     job = {
       ...nextJob,
       approach: routes.approach,
+      storageApproach: routes.storage ?? nextJob.storageApproach,
+      storagePath: nextJob.storagePath ?? routes.storagePath,
+      storagePathIndex: 0,
+      delivered: false,
       chopTime: 0,
       hits: 0,
       hitsNeeded: Math.max(nextJob.hitsNeeded ?? 5, 1),
