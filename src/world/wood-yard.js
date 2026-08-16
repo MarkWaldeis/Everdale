@@ -29,9 +29,15 @@ export function createWoodYard(models, surfaceY) {
   const size = bounds.getSize(new THREE.Vector3());
   const center = bounds.getCenter(new THREE.Vector3());
 
-  const stand = new THREE.Vector3(center.x - 0.15, surfaceY, center.z + Math.max(size.z * 0.55, 1.15));
+  const stand = new THREE.Vector3(
+    center.x - 0.15,
+    surfaceY,
+    center.z + Math.max(size.z * 0.55, 1.15),
+  );
   const look = center.clone();
   look.y = surfaceY + 0.4;
+  const localStand = stand.clone().sub(root.position);
+  const localLook = look.clone().sub(root.position);
 
   let wood = 0;
 
@@ -54,6 +60,21 @@ export function createWoodYard(models, surfaceY) {
     return setWood(wood + amount);
   }
 
+  function refreshAnchors() {
+    root.updateWorldMatrix(true, true);
+    stand.copy(root.position).add(localStand);
+    stand.y = surfaceY;
+    look.copy(root.position).add(localLook);
+    look.y = surfaceY + 0.4;
+  }
+
+  function setWorldPosition(x, z) {
+    root.position.x = x;
+    root.position.y = surfaceY;
+    root.position.z = z;
+    refreshAnchors();
+  }
+
   function containsPoint(worldPoint, margin = 0.35) {
     const local = root.worldToLocal(worldPoint.clone());
     return Math.abs(local.x) <= size.x * 0.5 + margin && Math.abs(local.z) <= size.z * 0.5 + margin;
@@ -63,10 +84,13 @@ export function createWoodYard(models, surfaceY) {
     root,
     stand,
     look,
+    size,
     getWood: () => wood,
     setWood,
     deposit,
     containsPoint,
+    refreshAnchors,
+    setWorldPosition,
     max: WOOD_MAX,
     perTree: WOOD_PER_TREE,
   };

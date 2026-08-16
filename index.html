@@ -112,7 +112,7 @@
             <small>Waldprototyp</small>
           </span>
         </a>
-        <span class="phase-tag">Phase 04 · Holzfällen</span>
+        <span class="phase-tag">Phase 05 · Dorf</span>
         <div class="wood-counter" id="wood-counter" aria-label="Holzvorrat">
           <span class="wood-counter-icon" aria-hidden="true"></span>
           <strong id="wood-count">0</strong>
@@ -124,8 +124,8 @@
         <span class="note-index">04</span>
         <div>
           <p class="eyebrow">Aktueller Baustein</p>
-          <h2>Tippe auf einen beliebigen Baum.</h2>
-          <p>Nach dem Fällen bringt sie das Holz zum Lager. Erst dann ist sie wieder frei.</p>
+          <h2>Ordne dein Dorf selbst.</h2>
+          <p>Gebäude stehen auf kleinen Feldern mit Abstand. Tippe Anordnen, um Haus und Lager zu verschieben.</p>
         </div>
       </aside>
 
@@ -167,9 +167,32 @@
         </button>
       </nav>
 
+      <button class="village-edit-toggle" id="village-edit-toggle" type="button" aria-pressed="false">
+        <img src="./ui/btn-arrange.jpg" alt="" width="128" height="128" />
+        <span>Anordnen</span>
+      </button>
+
+      <aside class="village-edit-bar" id="village-edit-bar" hidden>
+        <div class="village-edit-plank">
+          <div class="village-edit-copy">
+            <p class="village-edit-title" id="village-edit-title">Dorf anordnen</p>
+            <p class="village-edit-hint" id="village-edit-hint">Tippe ein Gebäude und setze es auf ein freies Feld.</p>
+          </div>
+          <div class="village-edit-actions" id="village-edit-actions" hidden>
+            <button class="village-edit-action is-cancel" id="village-edit-cancel" type="button" aria-label="Abbrechen">
+              <img src="./ui/btn-cancel.jpg" alt="" width="96" height="96" />
+            </button>
+            <button class="village-edit-action is-confirm" id="village-edit-confirm" type="button" aria-label="Hierhin stellen">
+              <img src="./ui/btn-confirm.jpg" alt="" width="96" height="96" />
+            </button>
+          </div>
+          <button class="village-edit-done" id="village-edit-done" type="button">Fertig</button>
+        </div>
+      </aside>
+
       <div class="interaction-hint" aria-hidden="true">
         <span class="mouse-symbol"></span>
-        Baum antippen <i></i> Ziehen zum Drehen
+        Baum antippen <i></i> Anordnen für Gebäude
       </div>
 
       <div class="harvest-meter" id="harvest-meter" hidden>

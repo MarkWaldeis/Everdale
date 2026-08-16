@@ -70,13 +70,43 @@ export function createCottage(cottageModel, surfaceY) {
   forward.normalize();
 
   const deckY = anchor.y + 0.006;
-  const steps = pointAlongEntrance(anchor, forward, 0.78, surfaceY, 0.04);
-  const approach = pointAlongEntrance(anchor, forward, 0.3, deckY, 0.04);
-  const threshold = pointAlongEntrance(anchor, forward, 0.055, deckY);
-  const inside = pointAlongEntrance(anchor, forward, -0.58, deckY);
-  const exit = pointAlongEntrance(anchor, forward, 0.72, deckY);
-  const close = pointAlongEntrance(anchor, forward, 0.58, deckY, -0.22);
-  const depart = pointAlongEntrance(anchor, forward, 2.45, surfaceY);
+  const points = {
+    steps: pointAlongEntrance(anchor, forward, 0.78, surfaceY, 0.04),
+    approach: pointAlongEntrance(anchor, forward, 0.3, deckY, 0.04),
+    threshold: pointAlongEntrance(anchor, forward, 0.055, deckY),
+    inside: pointAlongEntrance(anchor, forward, -0.58, deckY),
+    exit: pointAlongEntrance(anchor, forward, 0.72, deckY),
+    close: pointAlongEntrance(anchor, forward, 0.58, deckY, -0.22),
+    depart: pointAlongEntrance(anchor, forward, 2.45, surfaceY),
+  };
+
+  function refreshAnchors() {
+    root.updateWorldMatrix(true, true);
+    const nextAnchor = door.entranceAnchor.getWorldPosition(new THREE.Vector3());
+    const nextForward = new THREE.Vector3(0, 0, 1).transformDirection(
+      door.entranceAnchor.matrixWorld,
+    );
+    nextForward.y = 0;
+    nextForward.normalize();
+    const nextDeckY = nextAnchor.y + 0.006;
+    const write = (key, distance, height, lateral = 0) => {
+      points[key].copy(pointAlongEntrance(nextAnchor, nextForward, distance, height, lateral));
+    };
+    write("steps", 0.78, surfaceY, 0.04);
+    write("approach", 0.3, nextDeckY, 0.04);
+    write("threshold", 0.055, nextDeckY);
+    write("inside", -0.58, nextDeckY);
+    write("exit", 0.72, nextDeckY);
+    write("close", 0.58, nextDeckY, -0.22);
+    write("depart", 2.45, surfaceY);
+  }
+
+  function setWorldPosition(x, z) {
+    root.position.x = x;
+    root.position.y = surfaceY;
+    root.position.z = z;
+    refreshAnchors();
+  }
 
   function containsPoint(worldPoint, margin = 0) {
     root.updateWorldMatrix(true, false);
@@ -91,9 +121,11 @@ export function createCottage(cottageModel, surfaceY) {
     root,
     door,
     interiorShadow,
-    points: { steps, approach, threshold, inside, exit, close, depart },
+    points,
     containsPoint,
     size,
     surfaceY,
+    refreshAnchors,
+    setWorldPosition,
   };
 }

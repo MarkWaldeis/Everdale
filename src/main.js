@@ -7,6 +7,7 @@ import { createCharacterController } from "./world/character.js";
 import { createCottage } from "./world/cottage.js";
 import { createHarvestDirector } from "./world/harvest.js";
 import { createWoodYard } from "./world/wood-yard.js";
+import { createVillageEditor } from "./world/village-editor.js";
 import { captureCharacterPortrait } from "./world/capture-portrait.js";
 import "./styles.css";
 
@@ -84,6 +85,12 @@ const cameraViews = {
     position: new THREE.Vector3(0.1, 92, 0.1),
     target: new THREE.Vector3(0, 0, 0),
   },
+  arrange: {
+    position: new THREE.Vector3(22, 28, 26),
+    target: new THREE.Vector3(0.4, 0.15, -0.8),
+    mobilePosition: new THREE.Vector3(18, 24, 22),
+    mobileTarget: new THREE.Vector3(0.2, 0.2, -0.4),
+  },
 };
 
 const cottageActionViews = {
@@ -124,6 +131,7 @@ const animationState = {
   character: null,
   cottage: null,
   harvest: null,
+  village: null,
   debugPaused: false,
   windEnabled: !window.matchMedia("(prefers-reduced-motion: reduce)").matches,
   cameraTween: null,
@@ -308,6 +316,7 @@ function animate(now = 0) {
   if (!animationState.debugPaused) {
     animationState.character?.update(delta, now * 0.001);
     animationState.harvest?.update(delta, now * 0.001);
+    animationState.village?.update(delta, now * 0.001);
     updateCottageCameraStage();
     updateCameraTween(now);
     updateFollowCamera();
@@ -367,6 +376,42 @@ async function start() {
       yard: animationState.yard,
       surfaceY: world.walkArea.surfaceY,
       setFollowTarget,
+      isPlacementActive: () => Boolean(animationState.village?.isActive()),
+    });
+    animationState.village = createVillageEditor({
+      scene: world.root,
+      camera,
+      canvas,
+      walkArea: world.walkArea,
+      character: animationState.character,
+      controls,
+      setCameraView,
+      onModeChange: (active) => {
+        if (active) animationState.harvest?.selectTree(null);
+      },
+    });
+    animationState.village.register({
+      id: "cottage",
+      label: "Holzhaus",
+      root: animationState.cottage.root,
+      size: animationState.cottage.size,
+      w: 2,
+      h: 2,
+      padding: 1,
+      setWorldPosition: (x, z) => animationState.cottage.setWorldPosition(x, z),
+      refresh: () => animationState.cottage.refreshAnchors(),
+      onRelocated: () => animationState.character.relocateWithHome(),
+    });
+    animationState.village.register({
+      id: "wood-yard",
+      label: "Holzlager",
+      root: animationState.yard.root,
+      size: animationState.yard.size,
+      w: 2,
+      h: 2,
+      padding: 1,
+      setWorldPosition: (x, z) => animationState.yard.setWorldPosition(x, z),
+      refresh: () => animationState.yard.refreshAnchors(),
     });
     world.root.add(
       animationState.cottage.root,
@@ -379,6 +424,7 @@ async function start() {
       character: animationState.character,
       cottage: animationState.cottage,
       harvest: animationState.harvest,
+      village: animationState.village,
       yard: animationState.yard,
       trees: world.animatedTrees,
       camera,

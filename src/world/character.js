@@ -868,6 +868,20 @@ export function createCharacterController(model, walkArea, home, axeModel, chopK
     return Boolean(job) && state !== STATES.REST_INSIDE;
   }
 
+  function isIndoors() {
+    return (
+      !model.visible ||
+      state === STATES.REST_INSIDE ||
+      state === STATES.CLOSE_INSIDE ||
+      state === STATES.ENTER
+    );
+  }
+
+  function relocateWithHome() {
+    if (!home || !isIndoors()) return;
+    root.position.copy(home.points.inside);
+  }
+
   function pathViaMeadow(from, to, walkability) {
     return routeViaClearing(
       from,
@@ -1043,6 +1057,8 @@ export function createCharacterController(model, walkArea, home, axeModel, chopK
     forceHomeSequence,
     assignJob,
     isBusy,
+    isIndoors,
+    relocateWithHome,
     getJobProgress,
     getState: () => state,
     debugResetToHome: () => {

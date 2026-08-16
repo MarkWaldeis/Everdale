@@ -15,6 +15,9 @@ Painted Supercell / Everdale look for every menu.
 - `btn-hire.jpg` — hire / plus tile
 - `pin-empty.jpg` — resource pin
 - `icons-row.jpg` — wood, axe, stone, pumpkin, apple, wheat
+- `btn-arrange.jpg` — move / village edit
+- `btn-confirm.jpg` — place building
+- `btn-cancel.jpg` — cancel move
 
 ## Rules
 - Put labels in HTML, never in the pictures.

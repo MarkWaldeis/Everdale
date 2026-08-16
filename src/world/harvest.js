@@ -91,6 +91,7 @@ export function createHarvestDirector({
   yard,
   surfaceY,
   setFollowTarget,
+  isPlacementActive,
 }) {
   const raycaster = new THREE.Raycaster();
   const marker = createGroundMarker();
@@ -474,16 +475,26 @@ export function createHarvestDirector({
 
   function onPointerDown(event) {
     if (event.button !== 0) return;
+    if (isPlacementActive?.()) return;
     pointerState.down = { x: event.clientX, y: event.clientY };
   }
 
   function onPointerMove(event) {
+    if (isPlacementActive?.()) {
+      pointerState.hovered = null;
+      canvas.classList.remove("is-over-tree");
+      return;
+    }
     const tree = pickTree(event.clientX, event.clientY);
     pointerState.hovered = tree;
     canvas.classList.toggle("is-over-tree", Boolean(tree));
   }
 
   function onPointerUp(event) {
+    if (isPlacementActive?.()) {
+      pointerState.down = null;
+      return;
+    }
     if (!pointerState.down || event.button !== 0) return;
     const travel = Math.hypot(event.clientX - pointerState.down.x, event.clientY - pointerState.down.y);
     pointerState.down = null;
