@@ -2,14 +2,29 @@
 name: 3d-modell-tripo-ai
 description: >
   Turn a needed game 3D asset into a white-background Grok Imagine render,
-  convert that image to a model with Tripo AI in the user's browser, then
-  import the GLB into this Everdale project. Use when the user needs a new
-  3D model, GLB, mesh, image-to-3D, Tripo, or runs /3d-modell-tripo-ai.
+  convert that image to a model with Tripo AI in the user's already-open
+  logged-in Chrome tab, then import the GLB into this Everdale project. Use
+  when the user needs a new 3D model, GLB, mesh, image-to-3D, Tripo, or
+  runs /3d-modell-tripo-ai.
 ---
 
 # 3D-Modell Tripo AI
 
 Mandatory pipeline for every new 3D mesh in this project. Do not sculpt in code, do not download a random GLB, do not use Tripo text-to-3D. Image first, then Tripo, then the game.
+
+The user opens **studio.tripo3d.ai** in Chrome and signs in **before** the session. Always drive that already-open window. Never open Tripo in Playwright Chromium or any other fresh browser — that session is logged out and wastes time.
+
+## Credits — do not burn tokens
+
+Each **Modell generieren** click spends credits (often 40–55). Treat every click as expensive.
+
+- Generate **once** per approved still. Never retry because you got impatient.
+- Do not start a second job while **Wird generiert...** or a progress bar is visible.
+- Confirm the **image** is uploaded (thumbnail in the left Image-to-3D slot) **before** you click generate.
+- Confirm you used the **image** file picker, not the right-hand **3D-Modell hochladen** picker (that one only accepts GLB/OBJ/FBX/STL).
+- Confirm the list item you invoked is the PNG you just saved (`everdale-<slug>.png`), not an old GLB.
+- One good mesh can be reused (scale/rotation) instead of a second generation for a minor variant.
+- If the generate button cost is higher than remaining credits, stop and tell the user. Do not click it.
 
 ## 1. Imagine source image
 
@@ -23,24 +38,44 @@ Load the `imagine` skill, then call `image_gen`.
 
 If the result is not a lone object on white, `image_edit` until it is. Read the image back and check before continuing.
 
-Copy the approved still to:
+Copy the approved still to both:
 
-`3d Assets/<slug>.png`
+- `3d Assets/<slug>.png` (repo)
+- `%USERPROFILE%\Downloads\everdale-<slug>.png` (Tripo's file dialog usually opens on Downloads)
 
-Use a short English slug (`well`, `bakery`, `fence-post`). Keep that slug for the GLB and the asset id.
+Use a short English slug (`well`, `bakery`, `pickaxe`). Same slug for the GLB and the asset id.
 
-## 2. Tripo in the user's browser
+## 2. Tripo — the logged-in Chrome window
 
-Use the Playwright tools on the user's browser. Do not invent a Tripo API.
+Do not invent a Tripo API. Drive the existing Chrome window with Windows UI Automation (not Playwright).
 
-1. Open `https://studio.tripo3d.ai/workspace/generate`.
-2. If a login or paywall blocks generation, stop and tell the user to sign in in that tab, then continue from this step.
-3. Choose **Image to 3D** / upload. Prefer the current quality model (v3.x if shown).
-4. Click the upload control, then `playwright__browser_file_upload` with the absolute path of `3d Assets/<slug>.png`. JPG/PNG/WEBP, keep the file under 20 MB.
-5. Start **Generate Model**. Wait until the 3D preview is ready. Do not click Text-to-3D.
-6. Export **GLB**. Save it as `3d Assets/<slug>.glb` in this repo (download via the page or a Playwright download). Overwrite only that slug.
+Find the top-level window whose title contains `3D-Modell generieren` (full title looks like `3D-Modell generieren - Bild und Text zu 3D: Sofort, Professionell, Kostenlos - Google Chrome`). If that window is missing, **stop** and ask the user to open studio.tripo3d.ai and sign in.
 
-If upload or export fails, say what the page showed. Do not switch to another 3D generator.
+### Upload (image picker only)
+
+1. There are two buttons named like `Datei auswählen: Keine ausgewählt`. **Use the first one** (left column, Image to 3D). The second is for uploading an existing mesh.
+2. `InvokePattern` on that first button. The Open dialog is a **nested** window under Chrome (`Öffnen` / `Open`), not a top-level window. Search descendants of the Chrome window.
+3. Press F5 in that dialog so Downloads refreshes.
+4. Find the `ListItem` named `everdale-<slug>.png` and Invoke it.
+5. **Gate:** after the dialog closes, the first image picker must no longer say `Keine ausgewählt` (thumbnail in the left slot). If the dialog listed only `.glb` files, you hit the wrong picker — Escape, then use the first picker. Do not generate.
+
+### Generate — once, then wait
+
+1. Read the yellow button label (`Modell generieren 40` / `55`). If you cannot afford it, stop.
+2. Click **Modell generieren** exactly once.
+3. Wait. A run often takes **1–3 minutes**. Poll for a `ProgressBar` and a hyperlink `Wird generiert...`. Keep waiting until **both are gone**.
+4. Success: a new history hyperlink appears (Tripo names it, e.g. `rock moss 3d model 08-16 21:35` or `hammer 3d model 08-16 21:40`).
+5. Do not click generate again, do not refresh, do not upload another file until this job is finished.
+
+### Export GLB
+
+1. Click the history item if it is not already selected.
+2. Click **Exportieren**. A nested `Exportieren` dialog opens; format **GLB** is the default.
+3. Click **Exportieren** inside that dialog.
+4. Chrome downloads to Downloads as something like `rock+moss+3d+model.glb` or `hammer+3d+model.glb`. Wait until the download shelf says Fertig / the `.glb` file has a stable size.
+5. Copy that file to `3d Assets/<slug>.glb`. Overwrite only that slug.
+
+If upload or export fails, say what the UI showed. Do not switch to another 3D generator.
 
 ## 3. Put it in the game
 
