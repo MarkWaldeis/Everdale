@@ -673,6 +673,9 @@ export function createCharacterController(model, walkArea, home, axeModel, chopK
         if (stateTime >= 0.38 && remaining < 0.08) {
           job.chopTime = 0;
           lastImpactCycle = -1;
+          chopAction?.reset();
+          chopAction?.setEffectiveWeight(1);
+          chopAction?.play();
           job.onStartChop?.();
           transition(STATES.JOB_CHOP);
         }
@@ -755,7 +758,7 @@ export function createCharacterController(model, walkArea, home, axeModel, chopK
     if (chopping) {
       const phase = (job.chopTime % chopDuration) / chopDuration;
       const cycleIndex = Math.floor(job.chopTime / chopDuration);
-      if (cycleIndex !== lastImpactCycle && phase >= 0.52 && phase <= 0.64) {
+      if (cycleIndex !== lastImpactCycle && phase >= 0.17 && phase <= 0.28) {
         lastImpactCycle = cycleIndex;
         job.onImpact?.();
       }
