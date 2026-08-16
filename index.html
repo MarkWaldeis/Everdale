@@ -176,21 +176,39 @@
       </div>
 
       <aside class="worker-dock" id="worker-dock" hidden>
-        <div class="worker-dock-head">
-          <p class="eyebrow">Arbeiter wählen</p>
-          <strong id="worker-dock-title">Baum fällen</strong>
+        <div class="worker-plank">
+          <div class="resource-row" aria-label="Vorräte">
+            <span class="resource-pin" data-icon="0" title="Holz"></span>
+            <span class="resource-pin" data-icon="1" title="Axt"></span>
+            <span class="resource-pin" data-icon="2" title="Stein"></span>
+            <span class="resource-pin" data-icon="3" title="Kürbis"></span>
+            <span class="resource-pin" data-icon="4" title="Apfel"></span>
+            <span class="resource-pin" data-icon="5" title="Weizen"></span>
+          </div>
+          <div class="worker-row">
+            <button class="worker-card" id="worker-assign" type="button">
+              <span class="worker-frame">
+                <img
+                  class="worker-portrait"
+                  src="./ui/portrait-bewohnerin.jpg"
+                  alt=""
+                  width="160"
+                  height="214"
+                />
+              </span>
+              <span class="worker-name">Bewohnerin</span>
+              <small class="worker-state" id="worker-status">Frei</small>
+            </button>
+            <button class="hire-card" id="worker-hire" type="button" disabled>
+              <img src="./ui/btn-hire.jpg" alt="" width="128" height="128" />
+              <span>Mehr bald</span>
+            </button>
+          </div>
+          <p class="dock-task" id="worker-dock-title">Baum fällen</p>
           <button class="worker-dock-close" id="worker-dock-close" type="button" aria-label="Auswahl schließen">
             ×
           </button>
         </div>
-        <button class="worker-card" id="worker-assign" type="button">
-          <span class="worker-avatar" aria-hidden="true"></span>
-          <span class="worker-copy">
-            <strong>Bewohnerin</strong>
-            <small id="worker-status">Frei</small>
-          </span>
-          <span class="worker-action">Schicken</span>
-        </button>
       </aside>
 
       <div class="error-message panel" id="error-message" role="alert" hidden>
