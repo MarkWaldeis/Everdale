@@ -697,6 +697,10 @@ export function createCharacterController(model, walkArea, home, axeModel, chopK
           job.chopTime = 0;
           lastImpactCycle = -1;
           job.lastHandY = null;
+          job.hits = 0;
+          job.progress = 0;
+          job.hitLock = 0;
+          job.handRising = false;
           chopAction?.reset();
           chopAction?.setEffectiveWeight(1);
           chopAction?.play();
@@ -711,14 +715,7 @@ export function createCharacterController(model, walkArea, home, axeModel, chopK
         axe?.setCarried(true, root);
         faceToward(job.lookAt, delta);
         job.chopTime += delta;
-        const progress = THREE.MathUtils.clamp(job.chopTime / job.duration, 0, 1);
-        job.progress = progress;
-        job.onChopProgress?.(progress);
-        if (progress >= 1) {
-          job.onChopDone?.();
-          axe?.setCarried(false);
-          transition(STATES.JOB_WALK_HOME);
-        }
+        if (job.hitLock > 0) job.hitLock = Math.max(0, job.hitLock - delta);
         break;
       }
 
@@ -784,9 +781,24 @@ export function createCharacterController(model, walkArea, home, axeModel, chopK
         hand.getWorldPosition(scratch.nextPosition);
         if (job.lastHandY != null) {
           const fall = job.lastHandY - scratch.nextPosition.y;
-          if (fall > 0.045 && lastImpactCycle !== Math.floor(job.chopTime * 8)) {
-            lastImpactCycle = Math.floor(job.chopTime * 8);
+          if (fall < -0.012) job.handRising = true;
+          if (
+            job.handRising &&
+            fall > 0.055 &&
+            (job.hitLock ?? 0) <= 0 &&
+            job.hits < job.hitsNeeded
+          ) {
+            job.hits += 1;
+            job.progress = job.hits / job.hitsNeeded;
+            job.hitLock = 0.7;
+            job.handRising = false;
             job.onImpact?.();
+            job.onChopProgress?.(job.progress);
+            if (job.hits >= job.hitsNeeded) {
+              job.onChopDone?.();
+              axe?.setCarried(false);
+              transition(STATES.JOB_WALK_HOME);
+            }
           }
         }
         job.lastHandY = scratch.nextPosition.y;
@@ -857,8 +869,12 @@ export function createCharacterController(model, walkArea, home, axeModel, chopK
       ...nextJob,
       approach: routes.approach,
       chopTime: 0,
+      hits: 0,
+      hitsNeeded: Math.max(nextJob.hitsNeeded ?? 5, 1),
       progress: 0,
-      duration: Math.max(nextJob.duration ?? 16, 0.5),
+      hitLock: 0,
+      handRising: false,
+      duration: Math.max(nextJob.duration ?? 60, 0.5),
       path: nextJob.path ?? routes.path,
       pathIndex: 0,
       homePath: nextJob.homePath ?? routes.homePath,

@@ -1,6 +1,6 @@
 import * as THREE from "three";
 
-export const CHOP_DURATION = 16;
+export const CHOP_HITS = 5;
 const CLICK_SLOP = 8;
 const TREE_LABELS = Object.freeze({
   tree: "Waldbaum",
@@ -287,7 +287,7 @@ export function createHarvestDirector({
     const offset = 113.1 * (1 - progress);
     if (meterFill) meterFill.style.strokeDashoffset = String(offset);
     if (meterLabel) {
-      meterLabel.textContent = `${Math.round(progress * 100)}%`;
+      meterLabel.textContent = `${Math.round(progress * CHOP_HITS)}/${CHOP_HITS}`;
     }
   }
 
@@ -325,16 +325,18 @@ export function createHarvestDirector({
       tree,
       approach,
       lookAt: tree.position.clone(),
-      duration: CHOP_DURATION,
+      hitsNeeded: CHOP_HITS,
       onStartChop: () => {
         tree.userData.harvestState = "chopping";
         tree.userData.lockSway = true;
+        projectMeter(tree, 0);
       },
       onImpact: () => {
         const origin = tree.position.clone();
         origin.y = surfaceY;
         spawnChips(origin);
         tree.userData.impactPulse = 1;
+        projectMeter(tree, character.getJobProgress());
       },
       onChopProgress: (progress) => {
         projectMeter(tree, progress);
