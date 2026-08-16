@@ -21,7 +21,7 @@ export const ASSETS = Object.freeze({
   },
   character: {
     label: "Dorfbewohnerin",
-    url: new URL("../../3d Assets/medieval+girl+3d+model.glb", import.meta.url).href,
+    url: new URL("../../3d Assets/medieval+girl+3d+model (2).glb", import.meta.url).href,
     height: 1.08,
   },
   cottage: {

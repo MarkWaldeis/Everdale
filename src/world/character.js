@@ -95,7 +95,20 @@ function rotateToward(object, targetAngle, delta) {
 
 function extractNamedClip(model, preferredName) {
   const clips = model?.userData.animationClips ?? [];
-  return clips.find((clip) => clip.name === preferredName) ?? clips[0] ?? null;
+  const exact = clips.find((clip) => clip.name === preferredName);
+  if (exact) return exact;
+  const fuzzy = clips.find((clip) => new RegExp(preferredName, "i").test(clip.name));
+  return fuzzy ?? null;
+}
+
+function extractChopClip(model, chopKit) {
+  const own = model?.userData.animationClips ?? [];
+  const named =
+    extractNamedClip(model, "hacken") ||
+    own.find((clip) => /hacken|chop|hack/i.test(clip.name));
+  if (named) return named;
+  if (own.length > 1) return own[1];
+  return extractNamedClip(chopKit, "AN_Girl_ChopTree") ?? extractNamedClip(chopKit, "hacken");
 }
 
 function plantClip(sourceClip, name) {
@@ -282,24 +295,23 @@ export function createCharacterController(model, walkArea, home, axeModel, chopK
   root.name = "village-resident";
   root.position.set(-0.72, walkArea.surfaceY, 1.15);
   root.add(model);
-  const axe = axeModel || chopKit ? createAxeWielder(model, axeModel, chopKit) : null;
+  const axe = axeModel ? createAxeWielder(model, axeModel) : null;
 
   const clips = model.userData.animationClips ?? [];
   const mixer = new THREE.AnimationMixer(model);
-  const walkClip = clips.length ? cleanWalkClip(clips[0]) : null;
+  const chopSource = extractChopClip(model, chopKit);
+  const walkSource = clips.find((clip) => clip !== chopSource) ?? clips[0];
+  const walkClip = walkSource ? cleanWalkClip(walkSource) : null;
   const walkAction = walkClip ? mixer.clipAction(walkClip) : null;
   walkAction?.setLoop(THREE.LoopRepeat, Infinity).play();
   walkAction?.setEffectiveWeight(0);
-  const chopClip = plantClip(extractNamedClip(chopKit, "AN_Girl_ChopTree"), "ChopTree");
+  const chopClip = plantClip(chopSource, "Hacken");
   const chopAction = chopClip ? mixer.clipAction(chopClip) : null;
   chopAction?.setLoop(THREE.LoopRepeat, Infinity).play();
   chopAction?.setEffectiveWeight(0);
 
   const stabilizeHead = createHeadStabilizer(model);
   const doorReach = createArmReacher(model, home?.door.handleAnchor);
-  const chopAnchor = new THREE.Object3D();
-  chopAnchor.name = "chop-strike-anchor";
-  const chopReach = createArmReacher(model, chopAnchor, "R");
   const isRoamPointAllowed = (point) => !home?.containsPoint(point, 0.72);
   let roamTarget = randomPointInEllipse(
     walkArea.radiusX,
@@ -679,11 +691,12 @@ export function createCharacterController(model, walkArea, home, axeModel, chopK
 
       case STATES.JOB_ALIGN: {
         stopMoving(delta);
-        axe?.setCarried(true);
+        axe?.setCarried(true, root);
         const remaining = faceToward(job.lookAt, delta);
         if (stateTime >= 0.38 && remaining < 0.08) {
           job.chopTime = 0;
           lastImpactCycle = -1;
+          job.lastHandY = null;
           chopAction?.reset();
           chopAction?.setEffectiveWeight(1);
           chopAction?.play();
@@ -695,23 +708,11 @@ export function createCharacterController(model, walkArea, home, axeModel, chopK
 
       case STATES.JOB_CHOP: {
         stopMoving(delta, 14);
-        axe?.setCarried(true);
+        axe?.setCarried(true, root);
         faceToward(job.lookAt, delta);
         job.chopTime += delta;
         const progress = THREE.MathUtils.clamp(job.chopTime / job.duration, 0, 1);
         job.progress = progress;
-        const duration = chopClip?.duration || CHOP_CYCLE;
-        const phase = (job.chopTime % duration) / duration;
-        const stepIn =
-          smootherStep(THREE.MathUtils.clamp(phase / 0.2, 0, 1)) -
-          smootherStep(THREE.MathUtils.clamp((phase - 0.42) / 0.22, 0, 1));
-        scratch.direction.subVectors(job.lookAt, job.approach);
-        scratch.direction.y = 0;
-        if (scratch.direction.lengthSq() > 0.000001) {
-          scratch.direction.normalize();
-          root.position.copy(job.approach).addScaledVector(scratch.direction, Math.max(0, stepIn) * 0.17);
-          root.position.y = walkArea.surfaceY;
-        }
         job.onChopProgress?.(progress);
         if (progress >= 1) {
           job.onChopDone?.();
@@ -775,35 +776,20 @@ export function createCharacterController(model, walkArea, home, axeModel, chopK
 
     if (!chopping) stabilizeHead(elapsed, movementAmount);
     doorReach.apply(reachWeight);
-    if (chopping && job?.lookAt) {
-      const duration = chopClip?.duration || CHOP_CYCLE;
-      const phase = (job.chopTime % duration) / duration;
-      const wind = smootherStep(THREE.MathUtils.clamp(phase / 0.2, 0, 1));
-      const recover = smootherStep(THREE.MathUtils.clamp((phase - 0.42) / 0.22, 0, 1));
-      scratch.direction.subVectors(root.position, job.lookAt);
-      scratch.direction.y = 0;
-      if (scratch.direction.lengthSq() < 0.000001) scratch.direction.set(0, 0, 1);
-      scratch.direction.normalize();
-      chopAnchor.position.copy(job.lookAt);
-      chopAnchor.position.y = walkArea.surfaceY + 0.4;
-      // Handle stays in the palm; target sits just outside the trunk so the blade lands.
-      chopAnchor.position.addScaledVector(scratch.direction, 0.4);
-      chopReach.apply(Math.max(0, wind - recover), {
-        iterations: 14,
-        forearmBlend: 0.96,
-        upperBlend: 0.9,
-      });
-      axe?.applyChop(root, job.lookAt, phase);
-    }
     axe?.updateDraw(delta);
 
-    const chopDuration = chopClip?.duration || CHOP_CYCLE;
     if (chopping) {
-      const phase = (job.chopTime % chopDuration) / chopDuration;
-      const cycleIndex = Math.floor(job.chopTime / chopDuration);
-      if (cycleIndex !== lastImpactCycle && phase >= 0.17 && phase <= 0.28) {
-        lastImpactCycle = cycleIndex;
-        job.onImpact?.();
+      const hand = model.getObjectByName("R_Hand");
+      if (hand) {
+        hand.getWorldPosition(scratch.nextPosition);
+        if (job.lastHandY != null) {
+          const fall = job.lastHandY - scratch.nextPosition.y;
+          if (fall > 0.045 && lastImpactCycle !== Math.floor(job.chopTime * 8)) {
+            lastImpactCycle = Math.floor(job.chopTime * 8);
+            job.onImpact?.();
+          }
+        }
+        job.lastHandY = scratch.nextPosition.y;
       }
     }
   }
