@@ -98,6 +98,7 @@ export function createHarvestDirector({
   const workerButton = document.querySelector("#worker-assign");
   const workerStatus = document.querySelector("#worker-status");
   const trayTitle = document.querySelector("#worker-dock-title");
+  const taskPin = document.querySelector("#worker-task-pin");
   const meter = document.querySelector("#harvest-meter");
   const meterFill = document.querySelector("#harvest-meter-fill");
   const meterLabel = document.querySelector("#harvest-meter-label");
@@ -189,9 +190,13 @@ export function createHarvestDirector({
     const busy = character.isBusy();
     if (workerButton) workerButton.disabled = busy;
     if (workerStatus) {
-      workerStatus.textContent = busy ? "Unterwegs" : "Frei";
+      workerStatus.textContent = busy ? "Holzfällen" : "Frei";
     }
     workerButton?.classList.toggle("is-busy", busy);
+    if (taskPin) {
+      taskPin.hidden = !busy;
+      taskPin.dataset.task = "chop";
+    }
   }
 
   function selectTree(tree) {
@@ -354,8 +359,8 @@ export function createHarvestDirector({
     tree.userData.harvestState = "assigned";
     tree.userData.lockSway = true;
     placeMarker(null);
-    setTrayOpen(false);
     refreshWorkerCard();
+    setTrayOpen(true);
     setFollowTarget?.(character.root, tree);
   }
 

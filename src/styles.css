@@ -437,8 +437,8 @@ a:focus-visible {
 
 .worker-plank {
   position: relative;
-  min-height: 168px;
-  padding: 28px 28px 14px;
+  min-height: 158px;
+  padding: 18px 28px 14px;
   background:
     linear-gradient(180deg, rgba(255, 214, 150, 0.35), transparent 18px),
     url("./ui/panel-wood.jpg") center / cover no-repeat,
@@ -448,30 +448,6 @@ a:focus-visible {
     inset 0 8px 0 rgba(255, 228, 180, 0.35);
   border-top: 4px solid #f3c27a;
 }
-
-.resource-row {
-  position: absolute;
-  top: -22px;
-  left: 50%;
-  transform: translateX(-50%);
-  display: flex;
-  gap: 10px;
-}
-
-.resource-pin {
-  width: 46px;
-  height: 58px;
-  background:
-    url("./ui/icons-row.jpg") 0 50% / 600% auto no-repeat;
-  filter: drop-shadow(0 4px 6px rgba(60, 30, 8, 0.28));
-}
-
-.resource-pin[data-icon="0"] { background-position: 0% 50%, center; }
-.resource-pin[data-icon="1"] { background-position: 20% 50%, center; }
-.resource-pin[data-icon="2"] { background-position: 40% 50%, center; }
-.resource-pin[data-icon="3"] { background-position: 60% 50%, center; }
-.resource-pin[data-icon="4"] { background-position: 80% 50%, center; }
-.resource-pin[data-icon="5"] { background-position: 100% 50%, center; }
 
 .worker-row {
   display: flex;
@@ -492,6 +468,7 @@ a:focus-visible {
 }
 
 .worker-frame {
+  position: relative;
   display: block;
   width: 92px;
   height: 118px;
@@ -510,9 +487,36 @@ a:focus-visible {
   width: 100%;
   height: 100%;
   object-fit: cover;
-  object-position: center 18%;
+  object-position: center 12%;
   border-radius: 11px;
   background: #1f5a28;
+}
+
+.task-pin {
+  position: absolute;
+  top: -16px;
+  left: 50%;
+  width: 38px;
+  height: 38px;
+  transform: translateX(-50%);
+  border-radius: 50%;
+  background:
+    url("./ui/icons-row.jpg") 20% 50% / 600% auto no-repeat,
+    #5dae32;
+  box-shadow: 0 3px 0 #2f6d14, 0 6px 10px rgba(40, 22, 6, 0.28);
+  pointer-events: none;
+}
+
+.task-pin[hidden] {
+  display: none;
+}
+
+.task-pin[data-task="chop"] {
+  background-position: 20% 50%;
+}
+
+.task-pin[data-task="cook"] {
+  background-position: 80% 50%;
 }
 
 .worker-name,
@@ -545,7 +549,10 @@ a:focus-visible {
 .worker-card:disabled,
 .worker-card.is-busy {
   cursor: not-allowed;
-  filter: saturate(0.55) brightness(0.88);
+}
+
+.worker-card.is-busy .worker-portrait {
+  filter: saturate(0.86);
 }
 
 .worker-card.is-busy .worker-state {

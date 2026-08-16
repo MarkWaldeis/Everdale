@@ -6,6 +6,7 @@ import { buildForestWorld } from "./world/forest.js";
 import { createCharacterController } from "./world/character.js";
 import { createCottage } from "./world/cottage.js";
 import { createHarvestDirector } from "./world/harvest.js";
+import { captureCharacterPortrait } from "./world/capture-portrait.js";
 import "./styles.css";
 
 const canvas = document.querySelector("#world-canvas");
@@ -324,6 +325,14 @@ async function start() {
 
   try {
     const assets = await loadWorldAssets(ASSETS);
+    const portrait = document.querySelector("#worker-portrait");
+    if (portrait) {
+      try {
+        portrait.src = captureCharacterPortrait(assets.character);
+      } catch (error) {
+        console.warn("Porträt konnte nicht aus dem 3D-Modell erzeugt werden.", error);
+      }
+    }
 
     const world = buildForestWorld(assets);
     animationState.trees = world.animatedTrees;

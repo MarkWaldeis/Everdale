@@ -177,24 +177,18 @@
 
       <aside class="worker-dock" id="worker-dock" hidden>
         <div class="worker-plank">
-          <div class="resource-row" aria-label="Vorräte">
-            <span class="resource-pin" data-icon="0" title="Holz"></span>
-            <span class="resource-pin" data-icon="1" title="Axt"></span>
-            <span class="resource-pin" data-icon="2" title="Stein"></span>
-            <span class="resource-pin" data-icon="3" title="Kürbis"></span>
-            <span class="resource-pin" data-icon="4" title="Apfel"></span>
-            <span class="resource-pin" data-icon="5" title="Weizen"></span>
-          </div>
           <div class="worker-row">
             <button class="worker-card" id="worker-assign" type="button">
               <span class="worker-frame">
                 <img
                   class="worker-portrait"
+                  id="worker-portrait"
                   src="./ui/portrait-bewohnerin.jpg"
                   alt=""
                   width="160"
                   height="214"
                 />
+                <span class="task-pin" id="worker-task-pin" hidden data-task="chop"></span>
               </span>
               <span class="worker-name">Bewohnerin</span>
               <small class="worker-state" id="worker-status">Frei</small>
