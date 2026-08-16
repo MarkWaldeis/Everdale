@@ -5,6 +5,8 @@ dist/
 output/
 harvest-*.png
 everdale-live-*.png
+axe-*.png
+chop-*.png
 .DS_Store
 Thumbs.db
 *.log

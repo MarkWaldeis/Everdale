@@ -76,7 +76,7 @@ export function createCottage(cottageModel, surfaceY) {
   const inside = pointAlongEntrance(anchor, forward, -0.58, deckY);
   const exit = pointAlongEntrance(anchor, forward, 0.72, deckY);
   const close = pointAlongEntrance(anchor, forward, 0.58, deckY, -0.22);
-  const depart = pointAlongEntrance(anchor, forward, 1.7, surfaceY);
+  const depart = pointAlongEntrance(anchor, forward, 2.45, surfaceY);
 
   function containsPoint(worldPoint, margin = 0) {
     root.updateWorldMatrix(true, false);

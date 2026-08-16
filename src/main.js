@@ -303,11 +303,16 @@ function animate(now = 0) {
   if (!animationState.debugPaused) {
     animationState.character?.update(delta, now * 0.001);
     animationState.harvest?.update(delta, now * 0.001);
+    updateCottageCameraStage();
+    updateCameraTween(now);
+    updateFollowCamera();
+    controls.update();
   }
-  updateCottageCameraStage();
-  updateCameraTween(now);
-  updateFollowCamera();
-  if (!animationState.debugPaused) controls.update();
+  if (animationState.frozenCamera) {
+    camera.position.copy(animationState.frozenCamera.position);
+    controls.target.copy(animationState.frozenCamera.target);
+    camera.lookAt(animationState.frozenCamera.target);
+  }
   renderer.render(scene, camera);
 }
 
@@ -329,6 +334,7 @@ async function start() {
       animationState.cottage,
       assets.axe,
       assets.chopKit,
+      world.animatedTrees,
     );
     animationState.harvest = createHarvestDirector({
       trees: world.animatedTrees,
@@ -350,7 +356,8 @@ async function start() {
       trees: world.animatedTrees,
       camera,
       controls,
-      setCameraView,
+      renderer,
+      scene,
       getSnapshot: () => animationState.character.getSnapshot(),
       setPaused: (paused) => {
         animationState.debugPaused = Boolean(paused);
@@ -359,6 +366,19 @@ async function start() {
         animationState.follow = null;
         animationState.cameraTween = null;
         animationState.cameraUserControlled = true;
+      },
+      snapCamera: (x, y, z, tx, ty, tz) => {
+        animationState.follow = null;
+        animationState.cameraTween = null;
+        animationState.cameraUserControlled = true;
+        animationState.frozenCamera = {
+          position: new THREE.Vector3(x, y, z),
+          target: new THREE.Vector3(tx, ty, tz),
+        };
+        camera.position.set(x, y, z);
+        controls.target.set(tx, ty, tz);
+        camera.lookAt(tx, ty, tz);
+        camera.updateMatrixWorld();
       },
     };
 

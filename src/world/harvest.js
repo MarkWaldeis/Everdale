@@ -1,6 +1,6 @@
 import * as THREE from "three";
 
-export const CHOP_DURATION = 8;
+export const CHOP_DURATION = 16;
 const CLICK_SLOP = 8;
 const TREE_LABELS = Object.freeze({
   tree: "Waldbaum",
@@ -205,7 +205,9 @@ export function createHarvestDirector({
     if (tree && tree.userData.harvestState === "idle") {
       tree.userData.harvestState = "selected";
     }
-    placeMarker(tree);
+    if (!tree || tree.userData.harvestState === "selected") {
+      placeMarker(tree);
+    }
 
     if (!tree) {
       setTrayOpen(false);
@@ -219,13 +221,18 @@ export function createHarvestDirector({
   }
 
   function approachPoint(tree) {
-    scratch.toward.set(-tree.position.x, 0, -tree.position.z);
+    const fromCottage = cottage?.root.position ?? new THREE.Vector3();
+    scratch.toward.subVectors(fromCottage, tree.position);
+    scratch.toward.y = 0;
+    if (scratch.toward.lengthSq() < 0.0001) {
+      scratch.toward.set(-tree.position.x, 0, -tree.position.z);
+    }
     if (scratch.toward.lengthSq() < 0.0001) scratch.toward.set(0, 0, 1);
     scratch.toward.normalize();
-    const point = tree.position.clone().addScaledVector(scratch.toward, 0.84);
+    const point = tree.position.clone().addScaledVector(scratch.toward, 1.12);
     point.y = surfaceY;
-    if (cottage?.containsPoint(point, 0.5)) {
-      point.addScaledVector(scratch.toward, 0.55);
+    if (cottage?.containsPoint(point, 0.55)) {
+      point.addScaledVector(scratch.toward, -0.85);
     }
     return point;
   }
@@ -344,6 +351,7 @@ export function createHarvestDirector({
     if (!accepted) return;
     tree.userData.harvestState = "assigned";
     tree.userData.lockSway = true;
+    placeMarker(null);
     setTrayOpen(false);
     refreshWorkerCard();
     setFollowTarget?.(character.root, tree);
