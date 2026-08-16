@@ -1,4 +1,5 @@
 import * as THREE from "three";
+import { createAxeWielder } from "./axe.js";
 
 const WALK_SPEED = 0.72;
 const DOOR_WALK_SPEED = 0.54;
@@ -26,7 +27,26 @@ const STATES = Object.freeze({
   REACH_TO_CLOSE: "reach-to-close",
   CLOSE_OUTSIDE: "close-outside",
   LEAVE_PORCH: "leave-porch",
+  JOB_OPEN_TO_EXIT: "job-open-to-exit",
+  JOB_EXIT: "job-exit",
+  JOB_LEAVE_PORCH: "job-leave-porch",
+  JOB_WALK: "job-walk",
+  JOB_ALIGN: "job-align",
+  JOB_CHOP: "job-chop",
+  JOB_WALK_HOME: "job-walk-home",
 });
+
+const JOB_STATES = new Set([
+  STATES.JOB_OPEN_TO_EXIT,
+  STATES.JOB_EXIT,
+  STATES.JOB_LEAVE_PORCH,
+  STATES.JOB_WALK,
+  STATES.JOB_ALIGN,
+  STATES.JOB_CHOP,
+  STATES.JOB_WALK_HOME,
+]);
+
+const CHOP_CYCLE = 0.92;
 
 const scratch = {
   direction: new THREE.Vector3(),
@@ -70,6 +90,19 @@ function rotateToward(object, targetAngle, delta) {
   object.rotation.y =
     THREE.MathUtils.euclideanModulo(object.rotation.y + Math.PI, Math.PI * 2) - Math.PI;
   return Math.abs(difference);
+}
+
+function extractNamedClip(model, preferredName) {
+  const clips = model?.userData.animationClips ?? [];
+  return clips.find((clip) => clip.name === preferredName) ?? clips[0] ?? null;
+}
+
+function plantClip(sourceClip, name) {
+  if (!sourceClip) return null;
+  const tracks = sourceClip.tracks
+    .filter((track) => !/(^|\/)Root\.(position|translation)$/i.test(track.name))
+    .map((track) => track.clone());
+  return new THREE.AnimationClip(name, sourceClip.duration, tracks);
 }
 
 function cleanWalkClip(sourceClip) {
@@ -235,18 +268,24 @@ function createArmReacher(model, handleAnchor) {
   };
 }
 
-export function createCharacterController(model, walkArea, home) {
+export function createCharacterController(model, walkArea, home, axeModel, chopKit) {
   const root = new THREE.Group();
   root.name = "village-resident";
   root.position.set(-0.72, walkArea.surfaceY, 1.15);
   root.add(model);
+  const lumberAxe = chopKit?.getObjectByName("Lumberjack_Axe");
+  const axe = axeModel || lumberAxe ? createAxeWielder(model, lumberAxe ?? axeModel) : null;
 
   const clips = model.userData.animationClips ?? [];
-  const mixer = clips.length ? new THREE.AnimationMixer(model) : null;
+  const mixer = new THREE.AnimationMixer(model);
   const walkClip = clips.length ? cleanWalkClip(clips[0]) : null;
-  const walkAction = mixer && walkClip ? mixer.clipAction(walkClip) : null;
+  const walkAction = walkClip ? mixer.clipAction(walkClip) : null;
   walkAction?.setLoop(THREE.LoopRepeat, Infinity).play();
   walkAction?.setEffectiveWeight(0);
+  const chopClip = plantClip(extractNamedClip(chopKit, "AN_Girl_ChopTree"), "ChopTree");
+  const chopAction = chopClip ? mixer.clipAction(chopClip) : null;
+  chopAction?.setLoop(THREE.LoopRepeat, Infinity).play();
+  chopAction?.setEffectiveWeight(0);
 
   const stabilizeHead = createHeadStabilizer(model);
   const doorReach = createArmReacher(model, home?.door.handleAnchor);
@@ -262,9 +301,18 @@ export function createCharacterController(model, walkArea, home) {
   let walkWeight = 0;
   let reachWeight = 0;
   let waitTime = 0;
-  let homeCountdown = 2.6;
+  let homeCountdown = Infinity;
   let lastElapsed = 0;
+  let job = null;
+  let lastImpactCycle = -1;
   const stateOrigin = root.position.clone();
+
+  if (home) {
+    root.position.copy(home.points.inside);
+    model.visible = false;
+    home.door.setOpenProgress(0);
+    state = STATES.REST_INSIDE;
+  }
 
   function chooseNextRoamTarget(preferAwayFromHome = false) {
     roamTarget = randomPointInEllipse(
@@ -287,7 +335,16 @@ export function createCharacterController(model, walkArea, home) {
       model.visible = false;
     }
 
-    if (nextState === STATES.OPEN_TO_EXIT) model.visible = false;
+    if (nextState === STATES.OPEN_TO_EXIT || nextState === STATES.JOB_OPEN_TO_EXIT) {
+      model.visible = false;
+    }
+
+    if (nextState === STATES.REST_INSIDE && job) {
+      const finished = job;
+      job = null;
+      axe?.setCarried(false);
+      finished.onReturned?.();
+    }
   }
 
   function stopMoving(delta, damping = 9) {
@@ -344,7 +401,7 @@ export function createCharacterController(model, walkArea, home) {
 
     if (avoidCottage && home?.containsPoint(scratch.nextPosition, 0.34)) {
       stopMoving(delta, 10);
-      chooseNextRoamTarget(true);
+      if (state === STATES.ROAM) chooseNextRoamTarget(true);
       return false;
     }
 
@@ -428,7 +485,7 @@ export function createCharacterController(model, walkArea, home) {
         reachWeight = smootherStep(stateTime / 0.42);
         if (
           stateTime >= 0.42 &&
-          doorReach.getDistance() <= HANDLE_CONTACT_DISTANCE
+          (doorReach.getDistance() <= HANDLE_CONTACT_DISTANCE || stateTime >= 1.35)
         ) {
           transition(STATES.OPEN_TO_ENTER);
         }
@@ -465,7 +522,7 @@ export function createCharacterController(model, walkArea, home) {
       case STATES.REST_INSIDE:
         stopMoving(delta);
         home.door.setOpenProgress(0);
-        if (stateTime >= 2.15) transition(STATES.OPEN_TO_EXIT);
+        axe?.setCarried(false);
         break;
 
       case STATES.OPEN_TO_EXIT:
@@ -508,7 +565,7 @@ export function createCharacterController(model, walkArea, home) {
         reachWeight = smootherStep(stateTime / 0.42);
         if (
           stateTime >= 0.42 &&
-          doorReach.getDistance() <= HANDLE_CONTACT_DISTANCE
+          (doorReach.getDistance() <= HANDLE_CONTACT_DISTANCE || stateTime >= 1.35)
         ) {
           transition(STATES.CLOSE_OUTSIDE);
         }
@@ -538,7 +595,97 @@ export function createCharacterController(model, walkArea, home) {
         break;
 
       default:
-        transition(STATES.ROAM);
+        if (!job) transition(STATES.REST_INSIDE);
+    }
+  }
+
+  function updateJob(delta) {
+    const points = home.points;
+
+    switch (state) {
+      case STATES.JOB_OPEN_TO_EXIT:
+        stopMoving(delta);
+        home.door.setOpenProgress(stateTime / 1.02);
+        if (stateTime >= 1.02) transition(STATES.JOB_EXIT);
+        break;
+
+      case STATES.JOB_EXIT:
+        home.door.setOpenProgress(1);
+        if (moveToward(points.exit, DOOR_WALK_SPEED, delta, false, true)) {
+          model.visible = true;
+          axe?.setCarried(true);
+          transition(STATES.JOB_LEAVE_PORCH);
+        } else if (root.position.distanceTo(points.inside) > 0.12) {
+          model.visible = true;
+          axe?.setCarried(true);
+        }
+        break;
+
+      case STATES.JOB_LEAVE_PORCH:
+        home.door.setOpenProgress(1 - Math.min(stateTime / 0.88, 1));
+        if (moveToward(points.depart, DOOR_WALK_SPEED, delta, false, true)) {
+          home.door.setOpenProgress(0);
+          transition(STATES.JOB_WALK);
+        }
+        break;
+
+      case STATES.JOB_WALK: {
+        home.door.setOpenProgress(0);
+        const waypoint = job.path[job.pathIndex] ?? job.approach;
+        if (moveToward(waypoint, WALK_SPEED, delta, false)) {
+          if (job.pathIndex < job.path.length - 1) {
+            job.pathIndex += 1;
+            stateTime = 0;
+            stateOrigin.copy(root.position);
+          } else {
+            transition(STATES.JOB_ALIGN);
+          }
+        }
+        break;
+      }
+
+      case STATES.JOB_ALIGN: {
+        stopMoving(delta);
+        const remaining = faceToward(job.lookAt, delta);
+        if (stateTime >= 0.28 && remaining < 0.08) {
+          job.chopTime = 0;
+          lastImpactCycle = -1;
+          job.onStartChop?.();
+          transition(STATES.JOB_CHOP);
+        }
+        break;
+      }
+
+      case STATES.JOB_CHOP: {
+        stopMoving(delta, 14);
+        faceToward(job.lookAt, delta);
+        job.chopTime += delta;
+        const progress = THREE.MathUtils.clamp(job.chopTime / job.duration, 0, 1);
+        job.progress = progress;
+        job.onChopProgress?.(progress);
+        if (progress >= 1) {
+          job.onChopDone?.();
+          transition(STATES.JOB_WALK_HOME);
+        }
+        break;
+      }
+
+      case STATES.JOB_WALK_HOME: {
+        const waypoint = job.homePath[job.homePathIndex] ?? points.depart;
+        if (moveToward(waypoint, WALK_SPEED, delta, false)) {
+          if (job.homePathIndex < job.homePath.length - 1) {
+            job.homePathIndex += 1;
+            stateTime = 0;
+            stateOrigin.copy(root.position);
+          } else {
+            transition(STATES.HOME_APPROACH);
+          }
+        }
+        break;
+      }
+
+      default:
+        transition(STATES.JOB_WALK);
     }
   }
 
@@ -551,19 +698,54 @@ export function createCharacterController(model, walkArea, home) {
       delta,
     );
 
-    if (walkAction && mixer) {
-      walkAction.setEffectiveWeight(walkWeight);
-      walkAction.timeScale =
-        movementAmount < 0.035
-          ? 0
-          : THREE.MathUtils.clamp(speed / NATURAL_WALK_SPEED, 0.16, 1.08);
+    const chopping = state === STATES.JOB_CHOP && Boolean(job);
+    if (chopAction) {
+      chopAction.setEffectiveWeight(
+        THREE.MathUtils.damp(chopAction.getEffectiveWeight(), chopping ? 1 : 0, 10, delta),
+      );
+    }
+
+    if (mixer) {
+      if (walkAction) {
+        walkAction.setEffectiveWeight(chopping ? 0 : walkWeight);
+        walkAction.timeScale =
+          chopping || movementAmount < 0.035
+            ? 0
+            : THREE.MathUtils.clamp(speed / NATURAL_WALK_SPEED, 0.16, 1.08);
+      }
+      if (chopAction) {
+        chopAction.timeScale = chopping ? 1 : 0;
+      }
       mixer.update(delta);
     } else if (model.visible) {
       model.position.y = Math.sin(elapsed * 7.5) * 0.012 * movementAmount;
     }
 
-    stabilizeHead(elapsed, movementAmount);
+    stabilizeHead(elapsed, chopping ? 0.2 : movementAmount);
     doorReach.apply(reachWeight);
+
+    const chopDuration = chopClip?.duration || CHOP_CYCLE;
+    if (chopping) {
+      const phase = (job.chopTime % chopDuration) / chopDuration;
+      const cycleIndex = Math.floor(job.chopTime / chopDuration);
+      if (chopAction) {
+        if (cycleIndex !== lastImpactCycle && phase >= 0.52 && phase <= 0.64) {
+          lastImpactCycle = cycleIndex;
+          job.onImpact?.();
+        }
+        if (axe?.isCarried()) axe.applyCarry();
+      } else {
+        const impact = axe?.applyChop(root, job.lookAt, phase) ?? 0;
+        if (impact && cycleIndex !== lastImpactCycle) {
+          lastImpactCycle = cycleIndex;
+          job.onImpact?.();
+        }
+      }
+    } else if (axe?.isCarried()) {
+      axe.applyCarry();
+    } else {
+      axe?.resetSpine();
+    }
   }
 
   function update(delta, elapsed) {
@@ -572,7 +754,11 @@ export function createCharacterController(model, walkArea, home) {
     stateTime += safeDelta;
     reachWeight = 0;
 
-    if (state === STATES.ROAM || !home) {
+    if (JOB_STATES.has(state) && job && home) {
+      updateJob(safeDelta);
+    } else if (state === STATES.REST_INSIDE && home) {
+      updateHomeSequence(safeDelta);
+    } else if (state === STATES.ROAM || !home) {
       updateRoaming(safeDelta);
     } else {
       updateHomeSequence(safeDelta);
@@ -590,10 +776,78 @@ export function createCharacterController(model, walkArea, home) {
     transition(STATES.HOME_APPROACH);
   }
 
+  function isBusy() {
+    return Boolean(job) && state !== STATES.REST_INSIDE;
+  }
+
+  function buildPathAroundCottage(from, to) {
+    const path = [];
+    if (home) {
+      const mid = from.clone().lerp(to, 0.5);
+      if (home.containsPoint(mid, 0.95) || home.containsPoint(to, 0.5)) {
+        const offset = (home.size?.x ?? 2.4) * 0.74 + 0.6;
+        const right = home.root.position.clone();
+        right.setX(right.x + offset);
+        right.y = walkArea.surfaceY;
+        const left = home.root.position.clone();
+        left.setX(left.x - offset);
+        left.y = walkArea.surfaceY;
+        path.push(from.distanceToSquared(right) <= from.distanceToSquared(left) ? right : left);
+      }
+    }
+    path.push(to.clone());
+    return path;
+  }
+
+  function assignJob(nextJob) {
+    if (!home || !nextJob) return false;
+    if (job && state !== STATES.REST_INSIDE) return false;
+
+    const startPoint =
+      state === STATES.REST_INSIDE || !model.visible
+        ? home.points.depart.clone()
+        : root.position.clone();
+
+    job = {
+      ...nextJob,
+      chopTime: 0,
+      progress: 0,
+      duration: Math.max(nextJob.duration ?? 8, 0.5),
+      path: buildPathAroundCottage(startPoint, nextJob.approach),
+      pathIndex: 0,
+      homePath: buildPathAroundCottage(nextJob.approach, home.points.depart),
+      homePathIndex: 0,
+    };
+    lastImpactCycle = -1;
+    axe?.setCarried(false);
+
+    if (state === STATES.REST_INSIDE || state === STATES.CLOSE_INSIDE) {
+      model.visible = false;
+      transition(STATES.JOB_OPEN_TO_EXIT);
+      return true;
+    }
+
+    if (model.visible) {
+      axe?.setCarried(true);
+      transition(STATES.JOB_WALK);
+      return true;
+    }
+
+    transition(STATES.JOB_OPEN_TO_EXIT);
+    return true;
+  }
+
+  function getJobProgress() {
+    return job?.progress ?? 0;
+  }
+
   return {
     root,
     update,
     forceHomeSequence,
+    assignJob,
+    isBusy,
+    getJobProgress,
     getState: () => state,
     getSnapshot: () => ({
       state,

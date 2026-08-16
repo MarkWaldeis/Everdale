@@ -1,7 +1,10 @@
 node_modules/
 dist/
 .playwright-cli/
+.playwright-mcp/
 output/
+harvest-*.png
+everdale-live-*.png
 .DS_Store
 Thumbs.db
 *.log

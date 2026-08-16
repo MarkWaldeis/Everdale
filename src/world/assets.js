@@ -29,6 +29,16 @@ export const ASSETS = Object.freeze({
     url: new URL("../../3d Assets/wooden cottage 3d model.glb", import.meta.url).href,
     height: 3.75,
   },
+  axe: {
+    label: "Axt",
+    url: new URL("../../3d Assets/axe+3d+model.glb", import.meta.url).href,
+    height: 0.3,
+  },
+  chopKit: {
+    label: "Hack-Animation",
+    url: new URL("../../3d Assets/girl_chopping_tree.glb", import.meta.url).href,
+    raw: true,
+  },
 });
 
 export const TREE_WEIGHTS = Object.freeze([

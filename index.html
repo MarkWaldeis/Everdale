@@ -112,22 +112,22 @@
             <small>Waldprototyp</small>
           </span>
         </a>
-        <span class="phase-tag">Phase 03 · Zuhause</span>
+        <span class="phase-tag">Phase 04 · Holzfällen</span>
       </header>
 
       <aside class="world-note panel" aria-label="Information zur Welt">
-        <span class="note-index">02</span>
+        <span class="note-index">04</span>
         <div>
           <p class="eyebrow">Aktueller Baustein</p>
-          <h2>Das erste bewohnte Holzhaus.</h2>
-          <p>Die Bewohnerin öffnet die Tür, geht hinein und kehrt später in die Lichtung zurück.</p>
+          <h2>Tippe auf einen Baum am Waldrand.</h2>
+          <p>Die Bewohnerin bleibt im Haus, bis du sie zum Fällen schickst. Danach kehrt sie zurück.</p>
         </div>
       </aside>
 
       <section class="forest-status panel" aria-label="Verwendete 3D-Assets">
         <div class="status-heading">
           <span class="live-dot" aria-hidden="true"></span>
-          <span>6 Assets aktiv</span>
+          <span>7 Assets aktiv</span>
         </div>
         <ul>
           <li><span class="swatch swatch-ground"></span>Boden</li>
@@ -136,6 +136,7 @@
           <li><span class="swatch swatch-blossom"></span>Blütenbäume</li>
           <li><span class="swatch swatch-character"></span>Bewohnerin</li>
           <li><span class="swatch swatch-cottage"></span>Holzhaus</li>
+          <li><span class="swatch swatch-axe"></span>Axt</li>
         </ul>
       </section>
 
@@ -145,13 +146,13 @@
           <button class="view-button" type="button" data-view="village">
             <span>01</span>Tal
           </button>
-          <button class="view-button" type="button" data-view="clearing">
+          <button class="view-button is-active" type="button" data-view="clearing">
             <span>02</span>Lichtung
           </button>
           <button class="view-button" type="button" data-view="map">
             <span>03</span>Karte
           </button>
-          <button class="view-button is-active" type="button" data-view="cottage">
+          <button class="view-button" type="button" data-view="cottage">
             <span>04</span>Haus
           </button>
         </div>
@@ -163,8 +164,34 @@
 
       <div class="interaction-hint" aria-hidden="true">
         <span class="mouse-symbol"></span>
-        Ziehen zum Drehen <i></i> Scrollen zum Näherkommen
+        Baum antippen <i></i> Ziehen zum Drehen
       </div>
+
+      <div class="harvest-meter" id="harvest-meter" hidden>
+        <svg viewBox="0 0 40 40" aria-hidden="true">
+          <circle class="harvest-meter-track" cx="20" cy="20" r="18"></circle>
+          <circle class="harvest-meter-fill" id="harvest-meter-fill" cx="20" cy="20" r="18"></circle>
+        </svg>
+        <span id="harvest-meter-label">0%</span>
+      </div>
+
+      <aside class="worker-dock" id="worker-dock" hidden>
+        <div class="worker-dock-head">
+          <p class="eyebrow">Arbeiter wählen</p>
+          <strong id="worker-dock-title">Baum fällen</strong>
+          <button class="worker-dock-close" id="worker-dock-close" type="button" aria-label="Auswahl schließen">
+            ×
+          </button>
+        </div>
+        <button class="worker-card" id="worker-assign" type="button">
+          <span class="worker-avatar" aria-hidden="true"></span>
+          <span class="worker-copy">
+            <strong>Bewohnerin</strong>
+            <small id="worker-status">Frei</small>
+          </span>
+          <span class="worker-action">Schicken</span>
+        </button>
+      </aside>
 
       <div class="error-message panel" id="error-message" role="alert" hidden>
         <strong>Die Welt konnte nicht geladen werden.</strong>

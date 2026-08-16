@@ -5,6 +5,7 @@ import { loadWorldAssets } from "./world/asset-loader.js";
 import { buildForestWorld } from "./world/forest.js";
 import { createCharacterController } from "./world/character.js";
 import { createCottage } from "./world/cottage.js";
+import { createHarvestDirector } from "./world/harvest.js";
 import "./styles.css";
 
 const canvas = document.querySelector("#world-canvas");
@@ -101,20 +102,32 @@ const COTTAGE_CLOSE_CAMERA_STATES = new Set([
   "reach-to-close",
   "close-outside",
   "leave-porch",
+  "job-open-to-exit",
+  "job-exit",
+]);
+
+const FOLLOW_CAMERA_STATES = new Set([
+  "job-leave-porch",
+  "job-walk",
+  "job-align",
+  "job-chop",
+  "job-walk-home",
 ]);
 
 const animationState = {
   trees: [],
   character: null,
   cottage: null,
+  harvest: null,
   debugPaused: false,
   windEnabled: !window.matchMedia("(prefers-reduced-motion: reduce)").matches,
   cameraTween: null,
   cottageCameraStage: "entry",
   cameraUserControlled: false,
+  follow: null,
 };
 let previousFrameTime = performance.now();
-let activeCameraView = "cottage";
+let activeCameraView = "clearing";
 
 function setCameraView(name, immediate = false) {
   const view = cameraViews[name];
@@ -149,6 +162,7 @@ function setCameraView(name, immediate = false) {
 function updateCottageCameraStage() {
   const characterState = animationState.character?.getState();
   if (!characterState) return;
+  if (FOLLOW_CAMERA_STATES.has(characterState)) return;
 
   const nextStage = COTTAGE_CLOSE_CAMERA_STATES.has(characterState) ? "close" : "entry";
   if (nextStage === animationState.cottageCameraStage) return;
@@ -192,6 +206,7 @@ function updateCameraTween(now) {
 
 function updateWind(elapsed) {
   animationState.trees.forEach((tree) => {
+    if (tree.userData.lockSway || tree.userData.harvestState === "falling") return;
     const targetX = animationState.windEnabled
       ? Math.sin(elapsed * 0.72 + tree.userData.phase) * tree.userData.sway
       : 0;
@@ -204,10 +219,49 @@ function updateWind(elapsed) {
   });
 }
 
+function setFollowTarget(characterRoot, tree) {
+  animationState.follow = { characterRoot, tree };
+  animationState.cameraUserControlled = false;
+  animationState.cameraTween = null;
+}
+
+function updateFollowCamera() {
+  const follow = animationState.follow;
+  const character = animationState.character;
+  if (!follow || !character || animationState.cameraUserControlled) return;
+  if (animationState.cameraTween) return;
+  if (!FOLLOW_CAMERA_STATES.has(character.getState())) {
+    if (character.getState() === "rest-inside") animationState.follow = null;
+    return;
+  }
+
+  const origin = follow.characterRoot.position;
+  const desiredTarget = new THREE.Vector3(origin.x, origin.y + 0.95, origin.z);
+  if (follow.tree) {
+    desiredTarget.lerp(follow.tree.position, 0.28);
+    desiredTarget.y = origin.y + 1.05;
+  }
+  const desiredPosition = origin.clone().add(new THREE.Vector3(5.4, 4.6, 6.6));
+  camera.position.lerp(desiredPosition, 0.045);
+  controls.target.lerp(desiredTarget, 0.05);
+}
+
 function bindInterface() {
-  controls.addEventListener("start", () => {
-    animationState.cameraUserControlled = true;
-    animationState.cameraTween = null;
+  let orbitPointer = null;
+  canvas.addEventListener("pointerdown", (event) => {
+    if (event.button !== 0) return;
+    orbitPointer = { x: event.clientX, y: event.clientY };
+  });
+  window.addEventListener("pointermove", (event) => {
+    if (!orbitPointer) return;
+    if (Math.hypot(event.clientX - orbitPointer.x, event.clientY - orbitPointer.y) > 8) {
+      animationState.cameraUserControlled = true;
+      animationState.cameraTween = null;
+      orbitPointer = null;
+    }
+  });
+  window.addEventListener("pointerup", () => {
+    orbitPointer = null;
   });
 
   viewButtons.forEach((button) => {
@@ -248,17 +302,19 @@ function animate(now = 0) {
   updateWind(now * 0.001);
   if (!animationState.debugPaused) {
     animationState.character?.update(delta, now * 0.001);
+    animationState.harvest?.update(delta, now * 0.001);
   }
   updateCottageCameraStage();
   updateCameraTween(now);
-  controls.update();
+  updateFollowCamera();
+  if (!animationState.debugPaused) controls.update();
   renderer.render(scene, camera);
 }
 
 async function start() {
   bindInterface();
   window.addEventListener("resize", onResize);
-  setCameraView("cottage", true);
+  setCameraView("clearing", true);
   animate();
 
   try {
@@ -271,17 +327,38 @@ async function start() {
       assets.character,
       world.walkArea,
       animationState.cottage,
+      assets.axe,
+      assets.chopKit,
     );
+    animationState.harvest = createHarvestDirector({
+      trees: world.animatedTrees,
+      camera,
+      canvas,
+      scene: world.root,
+      character: animationState.character,
+      cottage: animationState.cottage,
+      surfaceY: world.walkArea.surfaceY,
+      setFollowTarget,
+    });
     world.root.add(animationState.cottage.root, animationState.character.root);
     scene.add(world.root);
 
     window.__everdaleDebug = {
       character: animationState.character,
       cottage: animationState.cottage,
+      harvest: animationState.harvest,
+      trees: world.animatedTrees,
+      camera,
+      controls,
       setCameraView,
       getSnapshot: () => animationState.character.getSnapshot(),
       setPaused: (paused) => {
         animationState.debugPaused = Boolean(paused);
+      },
+      lockCamera: () => {
+        animationState.follow = null;
+        animationState.cameraTween = null;
+        animationState.cameraUserControlled = true;
       },
     };
 

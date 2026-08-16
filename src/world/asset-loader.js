@@ -41,13 +41,15 @@ export async function loadWorldAssets(manifest, onProgress) {
       const gltf = await loader.loadAsync(definition.url);
       const root = gltf.scene;
       prepareMaterials(root);
-      const bounds = centerOnGround(root);
 
-      if (definition.height) {
-        const size = bounds.getSize(new THREE.Vector3());
-        const scale = definition.height / Math.max(size.y, 0.001);
-        root.scale.multiplyScalar(scale);
-        centerOnGround(root);
+      if (!definition.raw) {
+        const bounds = centerOnGround(root);
+        if (definition.height) {
+          const size = bounds.getSize(new THREE.Vector3());
+          const scale = definition.height / Math.max(size.y, 0.001);
+          root.scale.multiplyScalar(scale);
+          centerOnGround(root);
+        }
       }
 
       root.userData.animationClips = gltf.animations;

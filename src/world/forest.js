@@ -120,29 +120,41 @@ function generateTreePositions(worldWidth, worldDepth) {
     );
   };
 
-  const addTree = (x, z) => {
-    if (!canPlace(x, z)) return;
+  const addTree = (x, z, flags = {}) => {
+    if (!flags.force && !canPlace(x, z)) return;
     points.push({
       x,
       z,
-      scale: 0.84 + random() * 0.27,
-      rotation: random() * Math.PI * 2,
-      assetId: chooseTree(random()),
+      scale: flags.scale ?? 0.84 + random() * 0.27,
+      rotation: flags.rotation ?? random() * Math.PI * 2,
+      assetId: flags.assetId ?? chooseTree(random()),
       phase: random() * Math.PI * 2,
+      enclosure: Boolean(flags.enclosure),
+      showcase: Boolean(flags.showcase),
     });
   };
 
   // A guaranteed outer wall keeps every camera direction enclosed by trees.
   const edgeStep = minimumDistance * 1.08;
   for (let x = -maxX; x <= maxX; x += edgeStep) {
-    addTree(x + (random() - 0.5) * 0.16, -maxZ + random() * 0.26);
-    addTree(x + (random() - 0.5) * 0.16, maxZ - random() * 0.26);
+    addTree(x + (random() - 0.5) * 0.16, -maxZ + random() * 0.26, { enclosure: true });
+    addTree(x + (random() - 0.5) * 0.16, maxZ - random() * 0.26, { enclosure: true });
   }
 
   for (let z = -maxZ + edgeStep; z <= maxZ - edgeStep; z += edgeStep) {
-    addTree(-maxX + random() * 0.26, z + (random() - 0.5) * 0.16);
-    addTree(maxX - random() * 0.26, z + (random() - 0.5) * 0.16);
+    addTree(-maxX + random() * 0.26, z + (random() - 0.5) * 0.16, { enclosure: true });
+    addTree(maxX - random() * 0.26, z + (random() - 0.5) * 0.16, { enclosure: true });
   }
+
+  // A few village-edge trees sit close enough to click like in Everdale.
+  [
+    { x: 3.15, z: -7.35, assetId: "tree", scale: 1.08 },
+    { x: -5.45, z: -6.85, assetId: "appleTree", scale: 1.04 },
+    { x: 6.55, z: -3.2, assetId: "blossomTree", scale: 1.06 },
+    { x: -7.15, z: -1.4, assetId: "tree", scale: 1.02 },
+  ].forEach((spot) => {
+    addTree(spot.x, spot.z, { ...spot, force: true, rotation: 0.4, showcase: true });
+  });
 
   while (points.length < TREE_COUNT && attempts < 10000) {
     attempts += 1;
@@ -166,8 +178,15 @@ function createForest(assets, worldWidth, worldDepth, surfaceY) {
     tree.add(model);
     tree.position.set(point.x, surfaceY - 0.015, point.z);
     tree.rotation.y = point.rotation;
+    tree.userData.id = index;
+    tree.userData.assetId = point.assetId;
     tree.userData.phase = point.phase;
     tree.userData.sway = 0.006 + (index % 5) * 0.0009;
+    tree.userData.enclosure = Boolean(point.enclosure);
+    tree.userData.harvestable = Boolean(point.showcase);
+    tree.userData.harvestState = "idle";
+    tree.userData.isHarvestTree = true;
+    tree.userData.baseYaw = point.rotation;
     animatedTrees.push(tree);
     group.add(tree);
   });
