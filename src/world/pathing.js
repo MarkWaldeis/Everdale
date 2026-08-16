@@ -2,7 +2,7 @@ import * as THREE from "three";
 
 const CELL = 0.34;
 const COTTAGE_MARGIN = 0.58;
-const TREE_RADIUS = 1.05;
+const TREE_RADIUS = 0.62;
 const SAMPLE = 0.12;
 
 const scratchPoint = new THREE.Vector3();
@@ -132,7 +132,7 @@ export function findWalkPath(from, to, walkability, cottage, surfaceY) {
   if (walkability.lineClear(from, to)) return [to.clone()];
 
   const center = cottage?.root.position;
-  const pad = 3.4;
+  const pad = 6.2;
   const minX = Math.min(from.x, to.x, center ? center.x - 5 : from.x) - pad;
   const maxX = Math.max(from.x, to.x, center ? center.x + 5 : from.x) + pad;
   const minZ = Math.min(from.z, to.z, center ? center.z - 5 : from.z) - pad;
@@ -174,7 +174,7 @@ export function findWalkPath(from, to, walkability, cottage, surfaceY) {
   ];
 
   let found = null;
-  for (let guard = 0; open.length && guard < 14000; guard += 1) {
+  for (let guard = 0; open.length && guard < 28000; guard += 1) {
     let bestIndex = 0;
     let bestScore = Infinity;
     for (let i = 0; i < open.length; i += 1) {
@@ -225,7 +225,7 @@ export function resolveStandPoint(preferred, walkability, surfaceY) {
   if (!walkability.blocked(preferred)) return preferred.clone();
 
   const sample = preferred.clone();
-  for (let ring = 1; ring <= 10; ring += 1) {
+  for (let ring = 1; ring <= 14; ring += 1) {
     const radius = ring * 0.18;
     for (let step = 0; step < 12; step += 1) {
       const angle = (step / 12) * Math.PI * 2;
@@ -238,4 +238,146 @@ export function resolveStandPoint(preferred, walkability, surfaceY) {
     }
   }
   return preferred.clone();
+}
+
+export function isInsideClearing(point, radiusX, radiusZ, scale = 0.92) {
+  const nx = point.x / Math.max(radiusX * scale, 0.01);
+  const nz = point.z / Math.max(radiusZ * scale, 0.01);
+  return nx * nx + nz * nz <= 1;
+}
+
+export function clearingGate(from, radiusX, radiusZ, surfaceY, scale = 0.92) {
+  const rx = Math.max(radiusX * scale, 0.01);
+  const rz = Math.max(radiusZ * scale, 0.01);
+  const nx = from.x / rx;
+  const nz = from.z / rz;
+  const magnitude = Math.hypot(nx, nz);
+  if (magnitude <= 1) return new THREE.Vector3(from.x, surfaceY, from.z);
+  return new THREE.Vector3(from.x / magnitude, surfaceY, from.z / magnitude);
+}
+
+function appendUnique(path, point) {
+  if (!path.length || path[path.length - 1].distanceToSquared(point) > 0.04) {
+    path.push(point.clone());
+  }
+}
+
+export function corridorToClearing(from, walkability, radiusX, radiusZ, surfaceY) {
+  const path = [];
+  const cursor = new THREE.Vector3(from.x, surfaceY, from.z);
+  const rx = Math.max(radiusX * 0.92, 0.01);
+  const rz = Math.max(radiusZ * 0.92, 0.01);
+
+  for (let guard = 0; guard < 160; guard += 1) {
+    const magnitude = Math.hypot(cursor.x / rx, cursor.z / rz);
+    if (magnitude <= 1.01) break;
+
+    const length = Math.hypot(cursor.x, cursor.z) || 1;
+    const stepLength = Math.min(1.15, Math.max(0.5, (magnitude - 1) * Math.min(rx, rz) * 0.28));
+    const inward = new THREE.Vector3(
+      cursor.x - (cursor.x / length) * stepLength,
+      surfaceY,
+      cursor.z - (cursor.z / length) * stepLength,
+    );
+    const sideX = -cursor.z / length;
+    const sideZ = cursor.x / length;
+    const offsets = [0, 0.55, -0.55, 1.1, -1.1, 1.75, -1.75, 2.4, -2.4, 3.2, -3.2];
+    let next = null;
+    for (const offset of offsets) {
+      const trial = new THREE.Vector3(
+        inward.x + sideX * offset,
+        surfaceY,
+        inward.z + sideZ * offset,
+      );
+      if (!walkability.blocked(trial)) {
+        next = trial;
+        break;
+      }
+    }
+    if (!next) next = resolveStandPoint(inward, walkability, surfaceY);
+
+    const nextMagnitude = Math.hypot(next.x / rx, next.z / rz);
+    if (nextMagnitude > magnitude + 0.015) {
+      const tighter = new THREE.Vector3(
+        cursor.x - (cursor.x / length) * 0.42,
+        surfaceY,
+        cursor.z - (cursor.z / length) * 0.42,
+      );
+      next = walkability.blocked(tighter)
+        ? resolveStandPoint(tighter, walkability, surfaceY)
+        : tighter;
+    }
+
+    appendUnique(path, next);
+    cursor.copy(next);
+  }
+
+  appendUnique(path, clearingGate(cursor, radiusX, radiusZ, surfaceY));
+  return path;
+}
+
+export function routeViaClearing(
+  from,
+  to,
+  walkability,
+  cottage,
+  surfaceY,
+  radiusX,
+  radiusZ,
+) {
+  const start = resolveStandPoint(from, walkability, surfaceY);
+  const goal = resolveStandPoint(to, walkability, surfaceY);
+  const points = [];
+
+  let cursor = start;
+  if (!isInsideClearing(start, radiusX, radiusZ)) {
+    const inbound = corridorToClearing(start, walkability, radiusX, radiusZ, surfaceY);
+    inbound.forEach((point) => appendUnique(points, point));
+    if (inbound.length) cursor = inbound[inbound.length - 1];
+  }
+
+  if (!isInsideClearing(goal, radiusX, radiusZ)) {
+    const outbound = corridorToClearing(goal, walkability, radiusX, radiusZ, surfaceY);
+    const gate = outbound.length
+      ? outbound[outbound.length - 1]
+      : clearingGate(goal, radiusX, radiusZ, surfaceY);
+    findWalkPath(cursor, gate, walkability, cottage, surfaceY).forEach((point) => {
+      appendUnique(points, point);
+    });
+    for (let index = outbound.length - 2; index >= 0; index -= 1) {
+      appendUnique(points, outbound[index]);
+    }
+    appendUnique(points, goal);
+  } else {
+    findWalkPath(cursor, goal, walkability, cottage, surfaceY).forEach((point) => {
+      appendUnique(points, point);
+    });
+  }
+
+  if (!points.length) points.push(goal.clone());
+  return densifyPath(start, points, walkability, 1.85);
+}
+
+function densifyPath(from, points, walkability, spacing) {
+  const dense = [];
+  let cursor = from;
+  for (const point of points) {
+    const distance = Math.hypot(point.x - cursor.x, point.z - cursor.z);
+    const canSubdivide = !walkability || walkability.lineClear(cursor, point);
+    const steps = canSubdivide
+      ? Math.max(1, Math.ceil(distance / Math.max(spacing, 0.4)))
+      : 1;
+    for (let index = 1; index <= steps; index += 1) {
+      const t = index / steps;
+      const sample = new THREE.Vector3(
+        cursor.x + (point.x - cursor.x) * t,
+        point.y ?? cursor.y,
+        cursor.z + (point.z - cursor.z) * t,
+      );
+      if (walkability?.blocked(sample) && index < steps) continue;
+      appendUnique(dense, sample);
+    }
+    cursor = point;
+  }
+  return dense;
 }

@@ -386,6 +386,7 @@ async function start() {
       renderer,
       scene,
       getSnapshot: () => animationState.character.getSnapshot(),
+      finishChop: () => animationState.character.debugFinishChop?.(),
       setPaused: (paused) => {
         animationState.debugPaused = Boolean(paused);
       },

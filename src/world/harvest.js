@@ -194,9 +194,13 @@ export function createHarvestDirector({
     if (workerStatus) {
       const state = character.getState();
       workerStatus.textContent = busy
-        ? state === "job-walk-storage" || state === "job-align-storage" || state === "job-deposit"
-          ? "Zum Lager"
-          : "Holzfällen"
+        ? state === "job-walk-home" || state === "home-approach" || state === "ascend-porch"
+          ? "Nach Hause"
+          : state === "job-walk-storage" ||
+              state === "job-align-storage" ||
+              state === "job-deposit"
+            ? "Zum Lager"
+            : "Holzfällen"
         : "Frei";
     }
     workerButton?.classList.toggle("is-busy", busy);
@@ -360,6 +364,7 @@ export function createHarvestDirector({
       },
       onChopDone: () => {
         beginFall(tree, character.root.position.clone());
+        setFollowTarget?.(character.root);
       },
       onDeliver: () => {
         const amount = yard?.deposit() ?? 0;
