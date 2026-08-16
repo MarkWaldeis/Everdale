@@ -16,9 +16,9 @@ const viewButtons = [...document.querySelectorAll("[data-view]")];
 
 const scene = new THREE.Scene();
 scene.background = new THREE.Color(0xb9d8e7);
-scene.fog = new THREE.FogExp2(0xb9d8e7, 0.014);
+scene.fog = new THREE.FogExp2(0xb9d8e7, 0.007);
 
-const camera = new THREE.PerspectiveCamera(33, window.innerWidth / window.innerHeight, 0.1, 100);
+const camera = new THREE.PerspectiveCamera(33, window.innerWidth / window.innerHeight, 0.1, 220);
 const renderer = new THREE.WebGLRenderer({
   canvas,
   antialias: true,
@@ -40,22 +40,22 @@ controls.screenSpacePanning = false;
 controls.minPolarAngle = THREE.MathUtils.degToRad(4);
 controls.maxPolarAngle = THREE.MathUtils.degToRad(67);
 controls.minDistance = 7.5;
-controls.maxDistance = 38.9;
+controls.maxDistance = 82;
 controls.target.set(0, 0.45, 0);
 
 const hemisphere = new THREE.HemisphereLight(0xeaf8ff, 0x6f7a3a, 2.3);
 scene.add(hemisphere);
 
 const sun = new THREE.DirectionalLight(0xfff1c8, 4.1);
-sun.position.set(-12, 22, 14);
+sun.position.set(-22, 34, 24);
 sun.castShadow = true;
 sun.shadow.mapSize.set(2048, 2048);
-sun.shadow.camera.left = -19;
-sun.shadow.camera.right = 19;
-sun.shadow.camera.top = 19;
-sun.shadow.camera.bottom = -19;
+sun.shadow.camera.left = -36;
+sun.shadow.camera.right = 36;
+sun.shadow.camera.top = 36;
+sun.shadow.camera.bottom = -36;
 sun.shadow.camera.near = 1;
-sun.shadow.camera.far = 55;
+sun.shadow.camera.far = 90;
 sun.shadow.bias = -0.0004;
 scene.add(sun);
 
@@ -71,15 +71,15 @@ const cameraViews = {
     mobileTarget: new THREE.Vector3(-1.5, 1.2, -1.4),
   },
   village: {
-    position: new THREE.Vector3(23, 19.8, 24.5),
+    position: new THREE.Vector3(48, 38, 50),
     target: new THREE.Vector3(0, 0.45, 0),
   },
   clearing: {
-    position: new THREE.Vector3(16.5, 12.5, 17.5),
+    position: new THREE.Vector3(34, 22, 36),
     target: new THREE.Vector3(0, 0.65, -0.25),
   },
   map: {
-    position: new THREE.Vector3(0.1, 38.3, 0.1),
+    position: new THREE.Vector3(0.1, 92, 0.1),
     target: new THREE.Vector3(0, 0, 0),
   },
 };

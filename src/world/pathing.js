@@ -1,9 +1,9 @@
 import * as THREE from "three";
 
-const CELL = 0.26;
+const CELL = 0.34;
 const COTTAGE_MARGIN = 0.58;
-const TREE_RADIUS = 0.62;
-const SAMPLE = 0.1;
+const TREE_RADIUS = 1.05;
+const SAMPLE = 0.12;
 
 const scratchPoint = new THREE.Vector3();
 
@@ -126,11 +126,11 @@ export function findWalkPath(from, to, walkability, cottage, surfaceY) {
   if (walkability.lineClear(from, to)) return [to.clone()];
 
   const center = cottage?.root.position;
-  const pad = 2.4;
-  const minX = Math.min(from.x, to.x, center ? center.x - 4 : from.x) - pad;
-  const maxX = Math.max(from.x, to.x, center ? center.x + 4 : from.x) + pad;
-  const minZ = Math.min(from.z, to.z, center ? center.z - 4 : from.z) - pad;
-  const maxZ = Math.max(from.z, to.z, center ? center.z + 4 : from.z) + pad;
+  const pad = 3.4;
+  const minX = Math.min(from.x, to.x, center ? center.x - 5 : from.x) - pad;
+  const maxX = Math.max(from.x, to.x, center ? center.x + 5 : from.x) + pad;
+  const minZ = Math.min(from.z, to.z, center ? center.z - 5 : from.z) - pad;
+  const maxZ = Math.max(from.z, to.z, center ? center.z + 5 : from.z) + pad;
 
   const toCell = (x, z) => [
     Math.round((x - minX) / CELL),
@@ -168,7 +168,7 @@ export function findWalkPath(from, to, walkability, cottage, surfaceY) {
   ];
 
   let found = null;
-  for (let guard = 0; open.length && guard < 9000; guard += 1) {
+  for (let guard = 0; open.length && guard < 14000; guard += 1) {
     let bestIndex = 0;
     let bestScore = Infinity;
     for (let i = 0; i < open.length; i += 1) {

@@ -26,7 +26,7 @@ function createGroundMarker() {
   group.visible = false;
 
   const ring = new THREE.Mesh(
-    new THREE.RingGeometry(0.38, 0.52, 56),
+    new THREE.RingGeometry(0.58, 0.8, 56),
     new THREE.MeshBasicMaterial({
       color: 0xf0c14d,
       transparent: true,
@@ -40,7 +40,7 @@ function createGroundMarker() {
   ring.position.y = 0.03;
 
   const inner = new THREE.Mesh(
-    new THREE.RingGeometry(0.18, 0.24, 40),
+    new THREE.RingGeometry(0.28, 0.38, 40),
     new THREE.MeshBasicMaterial({
       color: 0xfff4c8,
       transparent: true,
@@ -140,19 +140,19 @@ export function createHarvestDirector({
     for (const hit of hits) {
       const tree = findTreeFromObject(hit.object);
       if (!tree) continue;
-      if (tree.userData.enclosure || !tree.userData.harvestable) return null;
+      if (!tree.userData.harvestable) return null;
       if (isSelectable(tree)) return tree;
     }
 
     // Generous Everdale-style tap: nearest trunk to the click ray.
     let nearest = null;
-    let nearestDistance = 0.95;
+    let nearestDistance = 1.55;
     const origin = raycaster.ray.origin;
     const direction = raycaster.ray.direction;
     trees.forEach((tree) => {
       if (!isSelectable(tree)) return;
       scratch.world.copy(tree.position);
-      scratch.world.y += 0.9;
+      scratch.world.y += 1.6;
       const toTree = scratch.world.clone().sub(origin);
       const along = toTree.dot(direction);
       if (along < 1.2) return;
@@ -229,7 +229,7 @@ export function createHarvestDirector({
     }
     if (scratch.toward.lengthSq() < 0.0001) scratch.toward.set(0, 0, 1);
     scratch.toward.normalize();
-    const point = tree.position.clone().addScaledVector(scratch.toward, 0.88);
+    const point = tree.position.clone().addScaledVector(scratch.toward, 1.48);
     point.y = surfaceY;
     if (cottage?.containsPoint(point, 0.55)) {
       point.addScaledVector(scratch.toward, -0.85);

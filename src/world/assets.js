@@ -7,17 +7,17 @@ export const ASSETS = Object.freeze({
   tree: {
     label: "Waldbäume",
     url: new URL("../../3d Assets/stylized tree 3d model normal tree.glb", import.meta.url).href,
-    height: 2.35,
+    height: 4.85,
   },
   appleTree: {
     label: "Apfelbäume",
     url: new URL("../../3d Assets/apple tree 3d model.glb", import.meta.url).href,
-    height: 2.25,
+    height: 4.55,
   },
   blossomTree: {
     label: "Blütenbäume",
     url: new URL("../../3d Assets/pink blossom tree 3d model.glb", import.meta.url).href,
-    height: 2.4,
+    height: 5.05,
   },
   character: {
     label: "Dorfbewohnerin",

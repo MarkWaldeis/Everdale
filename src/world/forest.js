@@ -1,10 +1,10 @@
 import * as THREE from "three";
 import { TREE_WEIGHTS } from "./assets.js";
 
-const WORLD_SIZE = 27;
-const TREE_COUNT = 340;
-const CLEARING_SCALE_X = 0.37;
-const CLEARING_SCALE_Z = 0.34;
+const WORLD_SIZE = 60;
+const TREE_COUNT = 720;
+const CLEARING_SCALE_X = 0.34;
+const CLEARING_SCALE_Z = 0.31;
 
 function seededRandom(seed = 7419) {
   let state = seed >>> 0;
@@ -61,7 +61,7 @@ function createGround(groundAsset) {
   // One uninterrupted surface removes every tile seam. Broad, interpolated
   // vertex colors add the quiet tonal variation seen in Everdale-style grass
   // without introducing a visible texture or build grid.
-  const meadowGeometry = new THREE.PlaneGeometry(worldWidth, worldDepth, 56, 56);
+  const meadowGeometry = new THREE.PlaneGeometry(worldWidth, worldDepth, 72, 72);
   meadowGeometry.rotateX(-Math.PI / 2);
 
   const positions = meadowGeometry.attributes.position;
@@ -108,7 +108,7 @@ function generateTreePositions(worldWidth, worldDepth) {
   const maxZ = worldDepth * 0.485;
   const clearingX = worldWidth * CLEARING_SCALE_X;
   const clearingZ = worldDepth * CLEARING_SCALE_Z;
-  const minimumDistance = Math.min(worldWidth, worldDepth) * 0.031;
+  const minimumDistance = Math.max(2.15, Math.min(worldWidth, worldDepth) * 0.036);
   let attempts = 0;
 
   const canPlace = (x, z) => {
@@ -125,7 +125,7 @@ function generateTreePositions(worldWidth, worldDepth) {
     points.push({
       x,
       z,
-      scale: flags.scale ?? 0.84 + random() * 0.27,
+      scale: flags.scale ?? 0.92 + random() * 0.22,
       rotation: flags.rotation ?? random() * Math.PI * 2,
       assetId: flags.assetId ?? chooseTree(random()),
       phase: random() * Math.PI * 2,
@@ -146,17 +146,7 @@ function generateTreePositions(worldWidth, worldDepth) {
     addTree(maxX - random() * 0.26, z + (random() - 0.5) * 0.16, { enclosure: true });
   }
 
-  // A few village-edge trees sit close enough to click like in Everdale.
-  [
-    { x: 3.15, z: -7.35, assetId: "tree", scale: 1.08 },
-    { x: -5.45, z: -6.85, assetId: "appleTree", scale: 1.04 },
-    { x: 6.55, z: -3.2, assetId: "blossomTree", scale: 1.06 },
-    { x: -7.15, z: -1.4, assetId: "tree", scale: 1.02 },
-  ].forEach((spot) => {
-    addTree(spot.x, spot.z, { ...spot, force: true, rotation: 0.4, showcase: true });
-  });
-
-  while (points.length < TREE_COUNT && attempts < 10000) {
+  while (points.length < TREE_COUNT && attempts < 24000) {
     attempts += 1;
     const x = (random() * 2 - 1) * maxX;
     const z = (random() * 2 - 1) * maxZ;
@@ -183,7 +173,7 @@ function createForest(assets, worldWidth, worldDepth, surfaceY) {
     tree.userData.phase = point.phase;
     tree.userData.sway = 0.006 + (index % 5) * 0.0009;
     tree.userData.enclosure = Boolean(point.enclosure);
-    tree.userData.harvestable = Boolean(point.showcase);
+    tree.userData.harvestable = true;
     tree.userData.harvestState = "idle";
     tree.userData.isHarvestTree = true;
     tree.userData.baseYaw = point.rotation;
