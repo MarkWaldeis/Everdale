@@ -29,15 +29,12 @@ export function createWoodYard(models, surfaceY) {
   const size = bounds.getSize(new THREE.Vector3());
   const center = bounds.getCenter(new THREE.Vector3());
 
-  const stand = new THREE.Vector3(
-    center.x - 0.15,
-    surfaceY,
-    center.z + Math.max(size.z * 0.55, 1.15),
-  );
+  const standReach = Math.max(size.z * 0.62, 0.42);
+  const stand = new THREE.Vector3(center.x, surfaceY, center.z + standReach);
   const look = center.clone();
-  look.y = surfaceY + 0.4;
-  const localStand = stand.clone().sub(root.position);
-  const localLook = look.clone().sub(root.position);
+  look.y = surfaceY + Math.max(size.y * 0.45, 0.28);
+  const localStand = root.worldToLocal(stand.clone());
+  const localLook = root.worldToLocal(look.clone());
 
   let wood = 0;
 
@@ -62,10 +59,10 @@ export function createWoodYard(models, surfaceY) {
 
   function refreshAnchors() {
     root.updateWorldMatrix(true, true);
-    stand.copy(root.position).add(localStand);
+    stand.copy(root.localToWorld(localStand.clone()));
     stand.y = surfaceY;
-    look.copy(root.position).add(localLook);
-    look.y = surfaceY + 0.4;
+    look.copy(root.localToWorld(localLook.clone()));
+    look.y = surfaceY + Math.max(size.y * 0.45, 0.28);
   }
 
   function setWorldPosition(x, z) {
@@ -80,7 +77,7 @@ export function createWoodYard(models, surfaceY) {
     refreshAnchors();
   }
 
-  function containsPoint(worldPoint, margin = 0.35) {
+  function containsPoint(worldPoint, margin = 0.18) {
     const local = root.worldToLocal(worldPoint.clone());
     return Math.abs(local.x) <= size.x * 0.5 + margin && Math.abs(local.z) <= size.z * 0.5 + margin;
   }

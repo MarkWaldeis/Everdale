@@ -260,10 +260,20 @@ export function createVillageEditor({
     return !character?.isBusy?.();
   }
 
+  function clearPointer() {
+    state.pointerDown = null;
+    state.dragging = false;
+    controls.enabled = true;
+    canvas.classList.remove("is-over-building");
+  }
+
   function refreshHud() {
     document.body.classList.toggle("is-village-editing", state.active);
     if (ui.toggle) ui.toggle.setAttribute("aria-pressed", String(state.active));
-    if (ui.bar) ui.bar.hidden = !state.active;
+    if (ui.bar) {
+      ui.bar.hidden = !state.active;
+      ui.bar.setAttribute("aria-hidden", String(!state.active));
+    }
     if (!state.active) return;
 
     if (state.holding) {
@@ -387,8 +397,25 @@ export function createVillageEditor({
     setPreview(state.previewCol, state.previewRow);
   }
 
+  function exitEdit() {
+    if (state.holding) cancelHold();
+    state.active = false;
+    state.liftTarget = 0;
+    state.hoverId = null;
+    state.hoverCell = null;
+    clearPointer();
+    overlay.visible = state.fade > 0.01;
+    refreshHud();
+    onModeChange?.(false);
+  }
+
   function setActive(next) {
-    if (next && !canEditNow()) {
+    if (!next) {
+      exitEdit();
+      return;
+    }
+    if (state.active) return;
+    if (!canEditNow()) {
       if (ui.hint && ui.bar) {
         ui.bar.hidden = false;
         if (ui.title) ui.title.textContent = "Noch beschäftigt";
@@ -399,19 +426,23 @@ export function createVillageEditor({
       }
       return;
     }
-    if (next === state.active) return;
-    if (!next) cancelHold();
-    state.active = next;
+    state.active = true;
     overlay.visible = true;
     refreshHud();
-    onModeChange?.(next);
+    onModeChange?.(true);
+  }
+
+  function isHudEvent(event) {
+    return Boolean(
+      event.target?.closest?.(
+        ".panel, .worker-dock, .village-edit-bar, .village-edit-toggle, .village-edit-done, .wind-button",
+      ),
+    );
   }
 
   function onPointerDown(event) {
     if (!state.active || event.button !== 0) return;
-    if (event.target?.closest?.(".panel, .worker-dock, .village-edit-bar, .village-edit-toggle")) {
-      return;
-    }
+    if (isHudEvent(event)) return;
     state.pointerDown = { x: event.clientX, y: event.clientY, building: pickBuilding(event) };
     if (state.holding && !state.pointerDown.building) {
       state.dragging = true;
@@ -446,9 +477,7 @@ export function createVillageEditor({
     state.dragging = false;
     controls.enabled = true;
     if (!down || event.button !== 0) return;
-    if (event.target?.closest?.(".panel, .worker-dock, .village-edit-bar, .village-edit-toggle")) {
-      return;
-    }
+    if (isHudEvent(event)) return;
     const travel = Math.hypot(event.clientX - down.x, event.clientY - down.y);
     if (wasDragging && travel > CLICK_SLOP) return;
 
@@ -465,26 +494,33 @@ export function createVillageEditor({
     }
   }
 
-  ui.toggle?.addEventListener("click", (event) => {
-    event.preventDefault();
-    setActive(!state.active);
-  });
-  ui.done?.addEventListener("click", (event) => {
-    event.preventDefault();
-    setActive(false);
-  });
-  ui.confirm?.addEventListener("click", (event) => {
-    event.preventDefault();
-    confirmHold();
-  });
-  ui.cancel?.addEventListener("click", (event) => {
-    event.preventDefault();
-    cancelHold();
-  });
-  ui.rotate?.addEventListener("click", (event) => {
-    event.preventDefault();
-    rotateHold();
-  });
+  function bindHudAction(element, handler) {
+    if (!element) return;
+    let last = 0;
+    const run = (event) => {
+      event.preventDefault();
+      event.stopPropagation();
+      const now = performance.now();
+      if (now - last < 280) return;
+      last = now;
+      handler(event);
+    };
+    element.addEventListener("pointerdown", (event) => {
+      event.stopPropagation();
+    });
+    element.addEventListener("pointerup", run);
+    element.addEventListener("click", run);
+  }
+
+  ui.bar?.addEventListener("pointerdown", (event) => event.stopPropagation());
+  ui.bar?.addEventListener("pointerup", (event) => event.stopPropagation());
+  ui.bar?.addEventListener("pointermove", (event) => event.stopPropagation());
+
+  bindHudAction(ui.toggle, () => setActive(!state.active));
+  bindHudAction(ui.done, () => setActive(false));
+  bindHudAction(ui.confirm, () => confirmHold());
+  bindHudAction(ui.cancel, () => cancelHold());
+  bindHudAction(ui.rotate, () => rotateHold());
   window.addEventListener("keydown", (event) => {
     if (!state.active) return;
     if (event.key === "r" || event.key === "R") {
@@ -492,8 +528,7 @@ export function createVillageEditor({
       return;
     }
     if (event.key === "Escape") {
-      if (state.holding) cancelHold();
-      else setActive(false);
+      setActive(false);
     }
     if (event.key === "Enter") confirmHold();
   });

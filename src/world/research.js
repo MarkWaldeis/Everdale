@@ -2,7 +2,7 @@ import * as THREE from "three";
 
 const LAB_POSITION = new THREE.Vector3(2.2, 0, 3.3);
 const LAB_YAW = 2.45;
-const LAB_SINK = 0.28;
+const LAB_SINK = 0.4;
 const COLLIDE_SCALE = 0.56;
 
 function pointAlong(anchor, forward, distance, height, lateral = 0) {
@@ -33,18 +33,19 @@ export function createResearchLab(model, surfaceY) {
   forward.y = 0;
   forward.normalize();
 
+  const bodyHalf = Math.max(size.x, size.z) * 0.5 * COLLIDE_SCALE;
   const front = center.clone();
   front.y = surfaceY;
-  front.addScaledVector(forward, size.z * 0.22);
+  front.addScaledVector(forward, bodyHalf * 0.35);
 
   const points = {
-    approach: pointAlong(front, forward, 0.82, surfaceY),
-    threshold: pointAlong(front, forward, 0.08, surfaceY + 0.02),
-    inside: pointAlong(front, forward, -0.72, surfaceY + 0.04),
-    depart: pointAlong(front, forward, 1.45, surfaceY),
+    approach: pointAlong(front, forward, bodyHalf + 0.55, surfaceY),
+    threshold: pointAlong(front, forward, 0.12, surfaceY + 0.02),
+    inside: pointAlong(front, forward, -bodyHalf * 0.45, surfaceY + 0.04),
+    depart: pointAlong(front, forward, bodyHalf + 0.95, surfaceY),
     look: center.clone(),
   };
-  points.look.y = surfaceY + 0.7;
+  points.look.y = surfaceY + Math.max(size.y * 0.28, 0.9);
 
   const local = {
     approach: points.approach.clone().sub(root.position),
@@ -62,13 +63,13 @@ export function createResearchLab(model, surfaceY) {
     const nextCenter = new THREE.Box3().setFromObject(root).getCenter(new THREE.Vector3());
     const nextFront = nextCenter.clone();
     nextFront.y = surfaceY;
-    nextFront.addScaledVector(nextForward, size.z * 0.22);
-    points.approach.copy(pointAlong(nextFront, nextForward, 0.82, surfaceY));
-    points.threshold.copy(pointAlong(nextFront, nextForward, 0.08, surfaceY + 0.02));
-    points.inside.copy(pointAlong(nextFront, nextForward, -0.72, surfaceY + 0.04));
-    points.depart.copy(pointAlong(nextFront, nextForward, 1.45, surfaceY));
+    nextFront.addScaledVector(nextForward, bodyHalf * 0.35);
+    points.approach.copy(pointAlong(nextFront, nextForward, bodyHalf + 0.55, surfaceY));
+    points.threshold.copy(pointAlong(nextFront, nextForward, 0.12, surfaceY + 0.02));
+    points.inside.copy(pointAlong(nextFront, nextForward, -bodyHalf * 0.45, surfaceY + 0.04));
+    points.depart.copy(pointAlong(nextFront, nextForward, bodyHalf + 0.95, surfaceY));
     points.look.copy(nextCenter);
-    points.look.y = surfaceY + 0.7;
+    points.look.y = surfaceY + Math.max(size.y * 0.28, 0.9);
     local.approach.copy(points.approach).sub(root.position);
     local.threshold.copy(points.threshold).sub(root.position);
     local.inside.copy(points.inside).sub(root.position);

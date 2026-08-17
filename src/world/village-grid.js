@@ -2,7 +2,7 @@ import * as THREE from "three";
 
 export const CELL = 2.2;
 export const DEFAULT_PADDING = 1;
-const STORAGE_KEY = "everdale-village-v1";
+const STORAGE_KEY = "everdale-village-v2";
 
 export function cellCenter(col, row) {
   return { x: col * CELL, z: row * CELL };

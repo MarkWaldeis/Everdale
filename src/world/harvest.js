@@ -396,7 +396,14 @@ export function createHarvestDirector({
 
   function yardBlock(storage) {
     if (!storage?.root) return null;
-    return { x: storage.root.position.x, z: storage.root.position.z, radius: 1.15 };
+    const span = Math.max(storage.size?.x ?? 0.8, storage.size?.z ?? 0.8);
+    return { x: storage.root.position.x, z: storage.root.position.z, radius: span * 0.55 + 0.18 };
+  }
+
+  function labBlock() {
+    if (!research?.root) return null;
+    const span = Math.max(research.size?.x ?? 4, research.size?.z ?? 4);
+    return { x: research.root.position.x, z: research.root.position.z, radius: span * 0.28 + 0.35 };
   }
 
   function assignVisit(member) {
@@ -405,7 +412,7 @@ export function createHarvestDirector({
       kind: "visit",
       approach: research.points.approach.clone(),
       lookAt: research.points.look.clone(),
-      storageBlock: [yardBlock(yard), yardBlock(stoneYard)].filter(Boolean),
+      storageBlock: [yardBlock(yard), yardBlock(stoneYard), labBlock()].filter(Boolean),
       onArrived: () => refreshWorkerCard(),
     });
     if (!accepted) return;
@@ -439,7 +446,7 @@ export function createHarvestDirector({
       storageBlock: [
         yardBlock(yard),
         yardBlock(stoneYard),
-        research ? { x: research.root.position.x, z: research.root.position.z, radius: 1.35 } : null,
+        labBlock(),
       ].filter(Boolean),
       hitsNeeded: CHOP_HITS,
       onStartChop: () => {

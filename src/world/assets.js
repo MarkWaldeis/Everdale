@@ -52,32 +52,32 @@ export const ASSETS = Object.freeze({
   storageEmpty: {
     label: "Holzlager leer",
     url: new URL("../../3d Assets/wood storage/wooden storage empty.glb", import.meta.url).href,
-    height: 1.85,
+    height: 0.78,
   },
   storageHalf: {
     label: "Holzlager halb",
     url: new URL("../../3d Assets/wood storage/wooden storage half full.glb", import.meta.url).href,
-    height: 1.85,
+    height: 0.78,
   },
   storageFull: {
     label: "Holzlager voll",
     url: new URL("../../3d Assets/wood storage/wooden log stack 3d model.glb", import.meta.url).href,
-    height: 1.7,
+    height: 0.74,
   },
   stoneStorageEmpty: {
     label: "Steinlager leer",
     url: new URL("../../3d Assets/stone storage/stone+storrage+empty.glb", import.meta.url).href,
-    height: 1.85,
+    height: 0.78,
   },
   stoneStorageHalf: {
     label: "Steinlager halb",
     url: new URL("../../3d Assets/stone storage/stone storage few stones.glb", import.meta.url).href,
-    height: 1.85,
+    height: 0.78,
   },
   stoneStorageFull: {
     label: "Steinlager voll",
     url: new URL("../../3d Assets/stone storage/stone storage full.glb", import.meta.url).href,
-    height: 1.85,
+    height: 0.78,
   },
   stone: {
     label: "Waldstein",
@@ -97,7 +97,7 @@ export const ASSETS = Object.freeze({
   research: {
     label: "Alchemie",
     url: new URL("../../3d Assets/fantasy+alchemy+cottage+3d+model.glb", import.meta.url).href,
-    height: 2.7,
+    height: 4.05,
   },
 });
 

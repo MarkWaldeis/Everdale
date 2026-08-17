@@ -10,6 +10,7 @@ import { createWoodYard } from "./world/wood-yard.js";
 import { createStoneYard } from "./world/stone-yard.js";
 import { createResearchLab } from "./world/research.js";
 import { createVillageEditor } from "./world/village-editor.js";
+import { footprintFromSize } from "./world/village-grid.js";
 import { captureCharacterPortrait } from "./world/capture-portrait.js";
 import "./styles.css";
 
@@ -285,13 +286,22 @@ async function start() {
       refresh: () => animationState.cottage.refreshAnchors(),
       onRelocated: () => villagerFacade.relocateWithHome(),
     });
+    const woodFoot = footprintFromSize(animationState.yard.size.x, animationState.yard.size.z);
+    const stoneFoot = footprintFromSize(
+      animationState.stoneYard.size.x,
+      animationState.stoneYard.size.z,
+    );
+    const labFoot = footprintFromSize(
+      animationState.research.size.x * 0.62,
+      animationState.research.size.z * 0.62,
+    );
     animationState.village.register({
       id: "wood-yard",
       label: "Holzlager",
       root: animationState.yard.root,
       size: animationState.yard.size,
-      w: 2,
-      h: 2,
+      w: woodFoot.w,
+      h: woodFoot.h,
       padding: 1,
       setWorldPosition: (x, z) => animationState.yard.setWorldPosition(x, z),
       setYaw: (yaw) => animationState.yard.setYaw(yaw),
@@ -302,8 +312,8 @@ async function start() {
       label: "Steinlager",
       root: animationState.stoneYard.root,
       size: animationState.stoneYard.size,
-      w: 2,
-      h: 2,
+      w: stoneFoot.w,
+      h: stoneFoot.h,
       padding: 1,
       setWorldPosition: (x, z) => animationState.stoneYard.setWorldPosition(x, z),
       setYaw: (yaw) => animationState.stoneYard.setYaw(yaw),
@@ -314,8 +324,8 @@ async function start() {
       label: "Alchemie",
       root: animationState.research.root,
       size: animationState.research.size,
-      w: 2,
-      h: 2,
+      w: Math.max(labFoot.w, 3),
+      h: Math.max(labFoot.h, 3),
       padding: 1,
       setWorldPosition: (x, z) => animationState.research.setWorldPosition(x, z),
       setYaw: (yaw) => animationState.research.setYaw(yaw),
