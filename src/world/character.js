@@ -353,7 +353,9 @@ export function createCharacterController(
   const axe = axeModel ? createAxeWielder(model, axeModel) : null;
   const pickaxe = extraTools.pickaxe
     ? createAxeWielder(model, extraTools.pickaxe, {
-        targetLength: 0.42,
+        targetLength: 0.36,
+        holdAlong: 0.46,
+        handleAxis: { x: 0, y: 1, z: 0 },
         gripName: "pickaxe-grip",
       })
     : null;
@@ -375,11 +377,11 @@ export function createCharacterController(
   function drawJobTool() {
     if (job?.tool === "pickaxe" && pickaxe) {
       axe?.setCarried(false);
-      pickaxe.setCarried(true, root);
+      pickaxe.setCarried(true);
       return;
     }
     pickaxe?.setCarried(false);
-    axe?.setCarried(true, root);
+    axe?.setCarried(true);
   }
 
   const mixer = new THREE.AnimationMixer(model);

@@ -1,17 +1,20 @@
 import * as THREE from "three";
 
-const TARGET_LENGTH = 0.28;
+const TARGET_LENGTH = 0.33;
 const scratch = {
   box: new THREE.Box3(),
   size: new THREE.Vector3(),
   center: new THREE.Vector3(),
-  worldForward: new THREE.Vector3(),
-  localForward: new THREE.Vector3(),
-  handWorld: new THREE.Quaternion(),
 };
+
+// Wrist bone is at the sleeve; the visible palm sits further along +Y (fingers).
+const PALM_LOCAL = new THREE.Vector3(0.004, 0.102, 0.012);
 
 export function createAxeWielder(model, axeModel, options = {}) {
   const targetLength = options.targetLength ?? TARGET_LENGTH;
+  const holdAlong = options.holdAlong ?? 0.44;
+  const handleAxis = new THREE.Vector3(1, 0, 0);
+  if (options.handleAxis) handleAxis.copy(options.handleAxis);
   const rightHand = model.getObjectByName("R_Hand");
   const grip = new THREE.Group();
   grip.name = options.gripName ?? "axe-grip";
@@ -26,38 +29,33 @@ export function createAxeWielder(model, axeModel, options = {}) {
     }
   });
 
-  // Source axe stands on Y: handle at min.y, blade at max.y.
+  // Fit in isolation so character scale does not leak into the handle length.
+  axe.position.set(0, 0, 0);
+  axe.quaternion.identity();
+  axe.updateMatrixWorld(true);
   scratch.box.setFromObject(axe);
   scratch.box.getCenter(scratch.center);
-  axe.position.set(-scratch.center.x, -scratch.box.min.y, -scratch.center.z);
-  axe.quaternion.identity();
-  grip.add(axe);
-  grip.position.set(0.014, 0.028, 0.006);
-  rightHand?.add(grip);
-
-  model.updateWorldMatrix(true, true);
-  scratch.box.setFromObject(axe);
   scratch.box.getSize(scratch.size);
+  axe.position.set(
+    -scratch.center.x,
+    -scratch.box.min.y - holdAlong * scratch.size.y,
+    -scratch.center.z,
+  );
   const longest = Math.max(scratch.size.x, scratch.size.y, scratch.size.z, 0.001);
+  grip.add(axe);
   grip.scale.setScalar(targetLength / longest);
 
-  function aimBladeForward(characterRoot) {
-    if (!rightHand || !characterRoot) return;
-    characterRoot.updateWorldMatrix(true, true);
-    rightHand.updateWorldMatrix(true, true);
-    scratch.worldForward.set(0, 0, 1).transformDirection(characterRoot.matrixWorld);
-    rightHand.getWorldQuaternion(scratch.handWorld);
-    scratch.localForward.copy(scratch.worldForward).applyQuaternion(scratch.handWorld.invert());
-    if (scratch.localForward.lengthSq() < 0.000001) return;
-    scratch.localForward.normalize();
-    grip.quaternion.setFromUnitVectors(new THREE.Vector3(0, 1, 0), scratch.localForward);
+  if (rightHand) {
+    grip.position.copy(PALM_LOCAL);
+    // Handle across the palm (hand +X). Fingers run along +Y.
+    grip.quaternion.setFromUnitVectors(new THREE.Vector3(0, 1, 0), handleAxis.normalize());
+    rightHand.add(grip);
   }
 
-  function setCarried(carried, characterRoot) {
+  function setCarried(carried) {
     const wanted = Boolean(carried && rightHand);
     grip.userData.wanted = wanted;
     grip.visible = wanted;
-    if (wanted && characterRoot) aimBladeForward(characterRoot);
   }
 
   function updateDraw() {
