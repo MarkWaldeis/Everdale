@@ -6,12 +6,12 @@ import { CELL, cellCenter, createVillageGrid, footprintWorld, worldToMinCorner }
 const CLICK_SLOP = 9;
 const LIFT_HEIGHT = 0.46;
 const COLORS = {
-  idle: new THREE.Color(0xf4e4b2),
-  occupied: new THREE.Color(0xc4a56a),
-  hover: new THREE.Color(0xffe27a),
-  valid: new THREE.Color(0x7ad13a),
-  invalid: new THREE.Color(0xe25b48),
-  hold: new THREE.Color(0xfff1a8),
+  idle: new THREE.Color(0xffffff),
+  occupied: new THREE.Color(0x9fb2c4),
+  hover: new THREE.Color(0xffffff),
+  valid: new THREE.Color(0xffffff),
+  invalid: new THREE.Color(0xff5140),
+  hold: new THREE.Color(0xffffff),
 };
 
 function roundedTileShape(size, radius) {
@@ -35,21 +35,29 @@ function createTileTexture() {
   canvas.height = 128;
   const ctx = canvas.getContext("2d");
   ctx.clearRect(0, 0, 128, 128);
-  const inset = 8;
+  const inset = 7;
+  const size = 128 - inset * 2;
   ctx.beginPath();
-  ctx.roundRect(inset, inset, 128 - inset * 2, 128 - inset * 2, 22);
-  const fill = ctx.createLinearGradient(0, 10, 0, 118);
-  fill.addColorStop(0, "#fff6cc");
-  fill.addColorStop(1, "#f0c45a");
+  ctx.roundRect(inset, inset, size, size, 26);
+  const fill = ctx.createLinearGradient(0, inset, 0, 128 - inset);
+  fill.addColorStop(0, "rgba(255, 255, 255, 0.95)");
+  fill.addColorStop(0.55, "rgba(255, 255, 255, 0.6)");
+  fill.addColorStop(1, "rgba(255, 255, 255, 0.4)");
   ctx.fillStyle = fill;
   ctx.fill();
-  ctx.lineWidth = 8;
-  ctx.strokeStyle = "#a56b22";
-  ctx.stroke();
+  ctx.save();
   ctx.beginPath();
-  ctx.roundRect(inset + 8, inset + 8, 128 - inset * 2 - 16, 128 - inset * 2 - 16, 16);
-  ctx.lineWidth = 3;
-  ctx.strokeStyle = "rgba(255, 255, 230, 0.55)";
+  ctx.roundRect(inset + 8, inset + 8, size - 16, 42, 18);
+  const gloss = ctx.createLinearGradient(0, inset + 8, 0, inset + 50);
+  gloss.addColorStop(0, "rgba(255, 255, 255, 0.85)");
+  gloss.addColorStop(1, "rgba(255, 255, 255, 0)");
+  ctx.fillStyle = gloss;
+  ctx.fill();
+  ctx.restore();
+  ctx.beginPath();
+  ctx.roundRect(inset, inset, size, size, 26);
+  ctx.lineWidth = 5;
+  ctx.strokeStyle = "rgba(255, 255, 255, 0.95)";
   ctx.stroke();
   const texture = new THREE.CanvasTexture(canvas);
   texture.colorSpace = THREE.SRGBColorSpace;
@@ -100,7 +108,7 @@ function createGridLines(cells, surfaceY) {
   const lines = new THREE.LineSegments(
     geometry,
     new THREE.LineBasicMaterial({
-      color: 0x8d5a1e,
+      color: 0xffffff,
       transparent: true,
       opacity: 0,
       depthTest: false,
@@ -328,6 +336,7 @@ export function createVillageEditor({
     state.previewCol = minCol;
     state.previewRow = minRow;
     state.valid = grid.preview(state.holding.id, minCol, minRow);
+    shadow.material.color.set(state.valid ? 0x1b140c : 0x6e1408);
     const world = footprintWorld(minCol, minRow, state.holding.w, state.holding.h);
     shadow.position.x = world.x;
     shadow.position.z = world.z;
@@ -501,9 +510,9 @@ export function createVillageEditor({
     state.fade = THREE.MathUtils.damp(state.fade, fadeTarget, 7.2, delta);
     state.lift = THREE.MathUtils.damp(state.lift, state.liftTarget, 8.5, delta);
     state.shake = Math.max(0, state.shake - delta * 3.4);
-    tiles.material.opacity = state.fade * 0.88;
-    gridLines.material.opacity = state.fade * 0.7;
-    plaza.material.opacity = state.fade * 0.2;
+    tiles.material.opacity = state.fade * 0.55;
+    gridLines.material.opacity = state.fade * 0.4;
+    plaza.material.opacity = state.fade * 0.34;
     plaza.material.depthTest = false;
     shadow.material.opacity = state.fade * state.lift * (state.valid ? 0.28 : 0.16);
     overlay.visible = state.fade > 0.01;
