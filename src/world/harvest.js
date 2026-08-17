@@ -400,19 +400,13 @@ export function createHarvestDirector({
     return { x: storage.root.position.x, z: storage.root.position.z, radius: span * 0.55 + 0.18 };
   }
 
-  function labBlock() {
-    if (!research?.root) return null;
-    const span = Math.max(research.size?.x ?? 4, research.size?.z ?? 4);
-    return { x: research.root.position.x, z: research.root.position.z, radius: span * 0.28 + 0.35 };
-  }
-
   function assignVisit(member) {
     if (!research || !member || member.isBusy() || member.isAtLab?.()) return;
     const accepted = member.assignJob({
       kind: "visit",
       approach: research.points.approach.clone(),
       lookAt: research.points.look.clone(),
-      storageBlock: [yardBlock(yard), yardBlock(stoneYard), labBlock()].filter(Boolean),
+      storageBlock: [yardBlock(yard), yardBlock(stoneYard)].filter(Boolean),
       onArrived: () => refreshWorkerCard(),
     });
     if (!accepted) return;
@@ -443,11 +437,7 @@ export function createHarvestDirector({
       lookAt: tree.position.clone(),
       storageApproach: isStone ? stoneYard?.stand : yard?.stand,
       storageLook: isStone ? stoneYard?.look : yard?.look,
-      storageBlock: [
-        yardBlock(yard),
-        yardBlock(stoneYard),
-        labBlock(),
-      ].filter(Boolean),
+      storageBlock: [yardBlock(yard), yardBlock(stoneYard)].filter(Boolean),
       hitsNeeded: CHOP_HITS,
       onStartChop: () => {
         tree.userData.harvestState = "chopping";

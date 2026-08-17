@@ -385,13 +385,28 @@ export function createCharacterController(
       if (!child.isMesh || !child.material) return;
       const materials = Array.isArray(child.material) ? child.material : [child.material];
       materials.forEach((material) => {
-        material.transparent = true;
+        material.transparent = meshFade < 0.999;
         material.opacity = meshFade;
         material.depthWrite = meshFade > 0.92;
       });
     });
     if (meshFade <= 0.02) model.visible = false;
     else if (meshFade > 0.02) model.visible = true;
+  }
+
+  function poseWalk() {
+    if (!walkAction) return;
+    walkAction.enabled = true;
+    walkAction.setEffectiveWeight(1);
+    walkAction.paused = false;
+    walkAction.play();
+    mixer.update(0);
+  }
+
+  function appearWalking() {
+    applyMeshFade(1);
+    model.visible = true;
+    poseWalk();
   }
 
   function isStationed() {
@@ -422,7 +437,7 @@ export function createCharacterController(
   const walkClip = locomotion.walk ? cleanWalkClip(locomotion.walk) : null;
   const walkAction = walkClip ? mixer.clipAction(walkClip) : null;
   walkAction?.setLoop(THREE.LoopRepeat, Infinity).play();
-  walkAction?.setEffectiveWeight(0);
+  walkAction?.setEffectiveWeight(1);
   const chopClip = plantClip(locomotion.chop, "Hacken");
   const chopAction = chopClip ? mixer.clipAction(chopClip) : null;
   chopAction?.setLoop(THREE.LoopRepeat, Infinity).play();
@@ -557,7 +572,11 @@ export function createCharacterController(
 
     const passingLab =
       lab &&
-      (lab.containsPoint(target, 0.18) || lab.containsPoint(root.position, 0.18));
+      (state === STATES.VISIT_ENTER ||
+        state === STATES.VISIT_EXIT ||
+        state === STATES.VISIT_LEAVE ||
+        lab.containsPoint(target, 0.18) ||
+        lab.containsPoint(root.position, 0.18));
     if (!passingLab && lab?.containsPoint(scratch.nextPosition, 0.34)) {
       const slideX = scratch.nextPosition.clone();
       slideX.z = root.position.z;
@@ -730,10 +749,10 @@ export function createCharacterController(
       case STATES.EXIT:
         driveDoor(1);
         if (moveToward(points.exit, DOOR_WALK_SPEED, delta, false, true)) {
-          model.visible = true;
+          appearWalking();
           transition(STATES.POSITION_TO_CLOSE);
         } else if (root.position.distanceTo(points.inside) > 0.12) {
-          model.visible = true;
+          if (!model.visible || meshFade < 0.99) appearWalking();
         }
         break;
 
@@ -813,11 +832,11 @@ export function createCharacterController(
       case STATES.JOB_EXIT:
         driveDoor(1);
         if (moveToward(points.exit, DOOR_WALK_SPEED, delta, false, true)) {
-          model.visible = true;
+          appearWalking();
           holsterTools();
           transition(STATES.JOB_LEAVE_PORCH);
         } else if (root.position.distanceTo(points.inside) > 0.12) {
-          model.visible = true;
+          if (!model.visible || meshFade < 0.99) appearWalking();
           holsterTools();
         }
         break;
@@ -882,11 +901,16 @@ export function createCharacterController(
 
       case STATES.VISIT_EXIT: {
         holsterTools();
+        if (stateTime <= 0.08) poseWalk();
         model.visible = true;
-        applyMeshFade(smootherStep(Math.min(stateTime / 0.45, 1)));
-        const exitPoint = lab?.points.threshold ?? lab?.points.approach ?? job.approach;
-        if (moveToward(exitPoint, DOOR_WALK_SPEED, delta, false, true) && stateTime >= 0.4) {
-          applyMeshFade(1);
+        applyMeshFade(Math.max(smootherStep(Math.min(stateTime / 0.35, 1)), 0.12));
+        const exitPoint = lab?.points.depart ?? lab?.points.approach ?? job.approach;
+        const arrived = moveToward(exitPoint, WALK_SPEED, delta, false, false);
+        if ((arrived && stateTime >= 0.2) || stateTime >= 2.2) {
+          appearWalking();
+          root.position.x = exitPoint.x;
+          root.position.z = exitPoint.z;
+          root.position.y = walkArea.surfaceY;
           transition(STATES.VISIT_LEAVE);
         }
         break;
@@ -894,13 +918,18 @@ export function createCharacterController(
 
       case STATES.VISIT_LEAVE: {
         holsterTools();
-        applyMeshFade(1);
-        const depart = lab?.points.depart ?? job.approach;
-        if (moveToward(depart, DOOR_WALK_SPEED, delta, false, true)) {
+        if (stateTime <= 0.08) appearWalking();
+        const depart = lab?.points.depart ?? lab?.points.approach ?? job.approach;
+        const arrived = moveToward(depart, WALK_SPEED, delta, false, false);
+        if (arrived || stateTime >= 1.8) {
+          appearWalking();
+          root.position.x = depart.x;
+          root.position.z = depart.z;
+          root.position.y = walkArea.surfaceY;
           if (job?.kind === "visit" && !job.tree) {
             beginWalkHome();
           } else {
-            transition(STATES.JOB_WALK);
+            beginJobWalk();
           }
         }
         break;
@@ -981,15 +1010,10 @@ export function createCharacterController(
 
   function updateAnimation(delta, elapsed) {
     const movementAmount = THREE.MathUtils.clamp(speed / WALK_SPEED, 0, 1);
-    walkWeight = THREE.MathUtils.damp(
-      walkWeight,
-      model.visible ? THREE.MathUtils.smoothstep(movementAmount, 0.03, 0.42) : 0,
-      9,
-      delta,
-    );
+    const atWork = Boolean(job) && state === STATES.JOB_CHOP;
+    const useWalk = model.visible && !atWork;
+    walkWeight = THREE.MathUtils.damp(walkWeight, useWalk ? 1 : 0, 12, delta);
 
-    const atWork =
-      Boolean(job) && (state === STATES.JOB_CHOP || state === STATES.JOB_ALIGN);
     if (chopAction) {
       if (atWork) {
         chopAction.setEffectiveWeight(
@@ -1002,11 +1026,19 @@ export function createCharacterController(
 
     if (mixer) {
       if (walkAction) {
-        walkAction.setEffectiveWeight(atWork ? 0 : walkWeight);
-        walkAction.timeScale =
-          atWork || movementAmount < 0.035
-            ? 0
-            : THREE.MathUtils.clamp(speed / NATURAL_WALK_SPEED, 0.16, 1.08);
+        walkAction.enabled = true;
+        walkAction.setEffectiveWeight(useWalk ? 1 : 0);
+        if (atWork || !model.visible) {
+          walkAction.timeScale = 0;
+        } else if (movementAmount < 0.04) {
+          walkAction.timeScale = 0.22;
+        } else {
+          walkAction.timeScale = THREE.MathUtils.clamp(
+            speed / NATURAL_WALK_SPEED,
+            0.28,
+            1.08,
+          );
+        }
       }
       if (chopAction) {
         chopAction.timeScale = atWork ? 1 : 0;
@@ -1125,18 +1157,34 @@ export function createCharacterController(
 
   function beginCarryToStorage() {
     holsterTools();
+    appearWalking();
     if (!job) return;
     if (job.storageApproach) {
       job.storagePath = pathViaMeadow(root.position, job.storageApproach, job.walkability);
       job.storagePathIndex = 0;
       job.stuckTime = 0;
+      job.skipRepath = false;
       transition(STATES.JOB_WALK_STORAGE);
       return;
     }
     beginWalkHome();
   }
 
+  function beginJobWalk() {
+    if (!job) {
+      transition(STATES.ROAM);
+      return;
+    }
+    appearWalking();
+    job.path = pathViaMeadow(root.position, job.approach, job.walkability);
+    job.pathIndex = 0;
+    job.stuckTime = 0;
+    job.skipRepath = false;
+    transition(STATES.JOB_WALK);
+  }
+
   function beginWalkHome() {
+    appearWalking();
     if (!job || !home) {
       transition(STATES.HOME_APPROACH);
       return;
@@ -1144,16 +1192,49 @@ export function createCharacterController(
     job.homePath = pathViaMeadow(root.position, home.points.depart, job.walkability);
     job.homePathIndex = 0;
     job.stuckTime = 0;
+    job.skipRepath = false;
     transition(STATES.JOB_WALK_HOME);
   }
 
   function followWaypoints(path, indexKey, destination, onDone, delta) {
-    const points = path ?? [];
-    while (
-      job[indexKey] < points.length &&
-      job.walkability?.blocked(points[job[indexKey]])
-    ) {
+    let points = path ?? [];
+    const destDist = destination
+      ? Math.hypot(destination.x - root.position.x, destination.z - root.position.z)
+      : Infinity;
+    if (destination && destDist < 0.32) {
+      onDone();
+      return;
+    }
+    const skipped = [];
+    while (job[indexKey] < points.length) {
+      const candidate = points[job[indexKey]];
+      const blocked = job.walkability?.blocked(candidate);
+      const farther =
+        destination &&
+        Math.hypot(destination.x - candidate.x, destination.z - candidate.z) >
+          destDist + 0.22;
+      if (!blocked && !farther) break;
+      skipped.push(job[indexKey]);
       job[indexKey] += 1;
+    }
+    if (
+      skipped.length &&
+      (job[indexKey] >= points.length || skipped.length >= 3) &&
+      !job.skipRepath
+    ) {
+      job.skipRepath = true;
+      const rebuilt = pathViaMeadow(root.position, destination, job.walkability);
+      if (indexKey === "storagePathIndex") {
+        job.storagePath = rebuilt;
+        job.storagePathIndex = 0;
+      } else if (indexKey === "homePathIndex") {
+        job.homePath = rebuilt;
+        job.homePathIndex = 0;
+      } else {
+        job.path = rebuilt;
+        job.pathIndex = 0;
+      }
+      points = rebuilt;
     }
     const waypoint = points[job[indexKey]] ?? destination;
     if (!waypoint) {
@@ -1282,6 +1363,7 @@ export function createCharacterController(
 
     if (model.visible) {
       holsterTools();
+      appearWalking();
       transition(STATES.JOB_WALK);
       return true;
     }
@@ -1342,6 +1424,17 @@ export function createCharacterController(
       walkWeightLive: walkAction?.getEffectiveWeight() ?? 0,
       chopWeightLive: chopAction?.getEffectiveWeight() ?? 0,
     }),
+    debugWarp: (nextState, point) => {
+      if (point) root.position.copy(point);
+      if (nextState === STATES.VISIT_INSIDE) {
+        model.visible = false;
+        applyMeshFade(0);
+        holsterTools();
+      } else {
+        appearWalking();
+      }
+      transition(nextState);
+    },
     debugFinishChop: () => {
       if (!job || (state !== STATES.JOB_CHOP && state !== STATES.JOB_ALIGN)) return false;
       job.hits = job.hitsNeeded;
