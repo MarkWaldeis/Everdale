@@ -327,6 +327,15 @@ export function createCharacterController(
     pickaxe?.setCarried(false);
   }
 
+  function driveDoor(progress, force = false) {
+    if (!home) return;
+    if (typeof home.setDoorProgress === "function") {
+      home.setDoorProgress(villagerId, progress, force);
+      return;
+    }
+    home.door.setOpenProgress(progress);
+  }
+
   function drawJobTool() {
     if (job?.tool === "pickaxe" && pickaxe) {
       axe?.setCarried(false);
@@ -373,7 +382,7 @@ export function createCharacterController(
   if (home) {
     root.position.copy(home.points.inside);
     model.visible = false;
-    home.door.setOpenProgress(0);
+    driveDoor(0);
     state = STATES.REST_INSIDE;
   }
 
@@ -551,14 +560,14 @@ export function createCharacterController(
           stopMoving(delta);
           break;
         }
-        home.door.setOpenProgress(0);
+        driveDoor(0);
         if (moveToward(points.steps, WALK_SPEED, delta)) {
           transition(STATES.ASCEND_PORCH);
         }
         break;
 
       case STATES.ASCEND_PORCH:
-        home.door.setOpenProgress(0);
+        driveDoor(0);
         if (moveToward(points.approach, DOOR_WALK_SPEED, delta, false, true)) {
           transition(STATES.ALIGN_AT_DOOR);
         }
@@ -576,7 +585,7 @@ export function createCharacterController(
       case STATES.REACH_TO_ENTER:
         stopMoving(delta);
         faceToward(points.threshold, delta);
-        home.door.setOpenProgress(0);
+        driveDoor(0);
         reachWeight = smootherStep(stateTime / 0.42);
         if (
           stateTime >= 0.42 &&
@@ -593,12 +602,12 @@ export function createCharacterController(
           stateTime < 0.5
             ? 1
             : 1 - smootherStep((stateTime - 0.5) / 0.28);
-        home.door.setOpenProgress(stateTime / 0.96);
+        driveDoor(stateTime / 0.96);
         if (stateTime >= 1.14) transition(STATES.ENTER);
         break;
 
       case STATES.ENTER: {
-        home.door.setOpenProgress(1);
+        driveDoor(1);
         const distanceInside = root.position.distanceTo(points.inside);
         if (distanceInside < 0.12) model.visible = false;
         if (moveToward(points.inside, DOOR_WALK_SPEED, delta, false, true)) {
@@ -610,7 +619,7 @@ export function createCharacterController(
 
       case STATES.CLOSE_INSIDE:
         stopMoving(delta);
-        home.door.setOpenProgress(1 - stateTime / 0.92);
+        driveDoor(1 - stateTime / 0.92);
         if (stateTime >= 0.92) {
           home.releaseDoor?.(villagerId);
           transition(STATES.REST_INSIDE);
@@ -619,18 +628,18 @@ export function createCharacterController(
 
       case STATES.REST_INSIDE:
         stopMoving(delta);
-        home.door.setOpenProgress(0);
+        driveDoor(0);
         holsterTools();
         break;
 
       case STATES.OPEN_TO_EXIT:
         stopMoving(delta);
-        home.door.setOpenProgress(stateTime / 1.02);
+        driveDoor(stateTime / 1.02);
         if (stateTime >= 1.02) transition(STATES.EXIT);
         break;
 
       case STATES.EXIT:
-        home.door.setOpenProgress(1);
+        driveDoor(1);
         if (moveToward(points.exit, DOOR_WALK_SPEED, delta, false, true)) {
           model.visible = true;
           transition(STATES.POSITION_TO_CLOSE);
@@ -640,7 +649,7 @@ export function createCharacterController(
         break;
 
       case STATES.POSITION_TO_CLOSE:
-        home.door.setOpenProgress(1);
+        driveDoor(1);
         if (moveToward(points.close, DOOR_WALK_SPEED, delta, false, true)) {
           transition(STATES.ALIGN_TO_CLOSE);
         }
@@ -648,7 +657,7 @@ export function createCharacterController(
 
       case STATES.ALIGN_TO_CLOSE: {
         stopMoving(delta);
-        home.door.setOpenProgress(1);
+        driveDoor(1);
         const angleRemaining = faceToward(points.threshold, delta);
         if (stateTime >= 0.42 && angleRemaining < 0.055) {
           transition(STATES.REACH_TO_CLOSE);
@@ -659,7 +668,7 @@ export function createCharacterController(
       case STATES.REACH_TO_CLOSE:
         stopMoving(delta);
         faceToward(points.threshold, delta);
-        home.door.setOpenProgress(1);
+        driveDoor(1);
         reachWeight = smootherStep(stateTime / 0.42);
         if (
           stateTime >= 0.42 &&
@@ -676,15 +685,15 @@ export function createCharacterController(
           stateTime < 0.5
             ? 1
             : 1 - smootherStep((stateTime - 0.5) / 0.28);
-        home.door.setOpenProgress(1 - stateTime / 0.96);
+        driveDoor(1 - stateTime / 0.96);
         if (stateTime >= 1.22) {
-          home.door.setOpenProgress(0);
+          driveDoor(0);
           transition(STATES.LEAVE_PORCH);
         }
         break;
 
       case STATES.LEAVE_PORCH:
-        home.door.setOpenProgress(0);
+        driveDoor(0);
         if (moveToward(points.depart, DOOR_WALK_SPEED, delta, false, true)) {
           chooseNextRoamTarget(true);
           homeCountdown = 10 + Math.random() * 5;
@@ -708,12 +717,12 @@ export function createCharacterController(
           break;
         }
         stopMoving(delta);
-        home.door.setOpenProgress(stateTime / 1.02);
+        driveDoor(stateTime / 1.02);
         if (stateTime >= 1.02) transition(STATES.JOB_EXIT);
         break;
 
       case STATES.JOB_EXIT:
-        home.door.setOpenProgress(1);
+        driveDoor(1);
         if (moveToward(points.exit, DOOR_WALK_SPEED, delta, false, true)) {
           model.visible = true;
           holsterTools();
@@ -725,16 +734,16 @@ export function createCharacterController(
         break;
 
       case STATES.JOB_LEAVE_PORCH:
-        home.door.setOpenProgress(1 - Math.min(stateTime / 0.88, 1));
+        driveDoor(1 - Math.min(stateTime / 0.88, 1));
         if (moveToward(points.depart, DOOR_WALK_SPEED, delta, false, true)) {
-          home.door.setOpenProgress(0);
+          driveDoor(0);
           home.releaseDoor?.(villagerId);
           transition(STATES.JOB_WALK);
         }
         break;
 
       case STATES.JOB_WALK: {
-        home.door.setOpenProgress(0);
+        driveDoor(0);
         followWaypoints(job.path, "pathIndex", job.approach, () => {
           transition(STATES.JOB_ALIGN);
         }, delta);
@@ -903,7 +912,7 @@ export function createCharacterController(
   function forceHomeSequence() {
     if (!home) return;
     model.visible = true;
-    home.door.setOpenProgress(0);
+    driveDoor(0);
     homeCountdown = 0;
     waitTime = 0;
     transition(STATES.HOME_APPROACH);
@@ -1120,7 +1129,7 @@ export function createCharacterController(
       if (home) {
         root.position.copy(home.points.inside);
         model.visible = false;
-        home.door.setOpenProgress(0);
+        driveDoor(0, true);
         transition(STATES.REST_INSIDE);
       }
     },

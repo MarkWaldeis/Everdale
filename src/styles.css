@@ -281,6 +281,7 @@ a:focus-visible {
 .swatch-character { background: #7885c5; }
 .swatch-cottage { background: #9b5b32; }
 .swatch-axe { background: #c47a3a; }
+.swatch-stone { background: #6b675f; }
 
 #world-canvas.is-over-tree,
 #world-canvas.is-over-building {
@@ -627,8 +628,10 @@ a:focus-visible {
 
 .worker-plank {
   position: relative;
-  min-height: 158px;
-  padding: 18px 28px 14px;
+  display: flex;
+  flex-direction: column;
+  min-height: 178px;
+  padding: 18px 28px 16px;
   background:
     linear-gradient(180deg, rgba(255, 214, 150, 0.35), transparent 18px),
     url("./ui/panel-wood.jpg") center / cover no-repeat,
@@ -643,8 +646,10 @@ a:focus-visible {
   display: flex;
   align-items: flex-end;
   justify-content: center;
-  gap: 12px;
-  min-height: 126px;
+  gap: 18px;
+  min-height: 148px;
+  max-width: 420px;
+  margin-inline: auto;
 }
 
 .worker-card,
@@ -660,9 +665,9 @@ a:focus-visible {
 .worker-frame {
   position: relative;
   display: block;
-  width: 78px;
-  height: 102px;
-  padding: 6px;
+  width: 96px;
+  height: 126px;
+  padding: 5px;
   border-radius: 16px;
   background:
     linear-gradient(180deg, #b6ef55, #4ea31f);
@@ -745,8 +750,16 @@ a:focus-visible {
   cursor: not-allowed;
 }
 
+.worker-card.is-busy .worker-frame {
+  background: linear-gradient(180deg, #c4a36a, #8a6a3a);
+  box-shadow:
+    inset 0 2px 0 rgba(255, 228, 180, 0.35),
+    0 6px 0 #5a4018,
+    0 10px 16px rgba(40, 22, 6, 0.28);
+}
+
 .worker-card.is-busy .worker-portrait {
-  filter: saturate(0.86);
+  filter: saturate(0.55) brightness(0.82);
 }
 
 .worker-card.is-busy .worker-state {
@@ -804,7 +817,8 @@ a:focus-visible {
 
 .has-worker-dock .view-controls,
 .has-worker-dock .interaction-hint,
-.has-worker-dock .world-note {
+.has-worker-dock .world-note,
+.has-worker-dock .village-edit-toggle {
   opacity: 0;
   pointer-events: none;
 }
@@ -837,12 +851,31 @@ a:focus-visible {
   }
 
   .worker-plank {
-    padding: 26px 12px 12px;
-    min-height: 156px;
+    padding: 26px 12px max(12px, env(safe-area-inset-bottom));
+    min-height: 168px;
+  }
+
+  .worker-row {
+    gap: 12px;
+    min-height: 132px;
+  }
+
+  .worker-frame {
+    width: 86px;
+    height: 112px;
   }
 
   .dock-task {
-    display: none;
+    display: block;
+    position: static;
+    order: 1;
+    text-align: center;
+    margin: 0 40px 6px;
+    font-size: 0.95rem;
+  }
+
+  .worker-row {
+    order: 2;
   }
 
   .brand-panel {

@@ -120,6 +120,12 @@ export function createCottage(cottageModel, surfaceY) {
     if (doorOwner === ownerId) doorOwner = null;
   }
 
+  function setDoorProgress(ownerId, progress, force = false) {
+    if (!force && doorOwner && doorOwner !== ownerId) return false;
+    door.setOpenProgress(progress);
+    return true;
+  }
+
   function containsPoint(worldPoint, margin = 0) {
     root.updateWorldMatrix(true, false);
     const localPoint = root.worldToLocal(worldPoint.clone());
@@ -141,5 +147,6 @@ export function createCottage(cottageModel, surfaceY) {
     setWorldPosition,
     claimDoor,
     releaseDoor,
+    setDoorProgress,
   };
 }

@@ -421,6 +421,7 @@ export function createHarvestDirector({
 
     if (!accepted) return;
     tree.userData.harvestState = "assigned";
+    tree.userData.assignedWorkerId = member.getId();
     tree.userData.lockSway = true;
     placeMarker(null);
     refreshWorkerCard();
@@ -528,7 +529,9 @@ export function createHarvestDirector({
 
     const chopping = trees.find((tree) => tree.userData.harvestState === "chopping");
     if (chopping) {
-      const worker = roster.find((member) => member.getState() === "job-chop");
+      const worker =
+        roster.find((member) => member.getId() === chopping.userData.assignedWorkerId) ??
+        roster.find((member) => member.getState() === "job-chop");
       projectMeter(chopping, worker?.getJobProgress() ?? 0);
     } else if (meter && !chopping) {
       const assigned = trees.find((tree) => tree.userData.harvestState === "assigned");
