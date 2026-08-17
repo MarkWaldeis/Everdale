@@ -58,6 +58,8 @@ controls.enableDamping = true;
 controls.dampingFactor = 0.055;
 controls.enablePan = false;
 controls.screenSpacePanning = false;
+// Feste Schrägansicht wie in CoC/Everdale: nur Zoomen, kein Drehen.
+controls.enableRotate = false;
 controls.minPolarAngle = THREE.MathUtils.degToRad(4);
 controls.maxPolarAngle = THREE.MathUtils.degToRad(67);
 controls.minDistance = 7.5;

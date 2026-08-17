@@ -386,7 +386,7 @@ export function createVillageEditor({
       if (ui.hint && ui.bar) {
         ui.bar.hidden = false;
         if (ui.title) ui.title.textContent = "Noch beschäftigt";
-        ui.hint.textContent = "Warte, bis die Bewohnerin zu Hause ist.";
+        ui.hint.textContent = "Warte, bis alle Bewohner zu Hause sind.";
         window.setTimeout(() => {
           if (!state.active && ui.bar) ui.bar.hidden = true;
         }, 1600);
@@ -397,7 +397,6 @@ export function createVillageEditor({
     if (!next) cancelHold();
     state.active = next;
     overlay.visible = true;
-    controls.enableRotate = !next;
     if (next) {
       setCameraView?.("arrange");
     } else {
@@ -445,7 +444,6 @@ export function createVillageEditor({
     const wasDragging = state.dragging;
     state.dragging = false;
     controls.enabled = true;
-    controls.enableRotate = !state.active;
     if (!down || event.button !== 0) return;
     if (event.target?.closest?.(".panel, .worker-dock, .village-edit-bar, .village-edit-toggle")) {
       return;
@@ -526,11 +524,11 @@ export function createVillageEditor({
         walkArea.surfaceY + state.lift * LIFT_HEIGHT + bob,
         world.z,
       );
-      if (character?.isIndoors?.() && state.holding.id === "cottage") {
+      if (state.holding.id === "cottage") {
         const lift = state.lift * LIFT_HEIGHT + bob;
         if (character.liftIndoors) {
           character.liftIndoors(lift);
-        } else {
+        } else if (character?.isIndoors?.()) {
           character.relocateWithHome();
           character.root.position.y += lift;
         }
