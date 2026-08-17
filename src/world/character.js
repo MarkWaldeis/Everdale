@@ -110,14 +110,50 @@ function extractNamedClip(model, preferredName) {
   return fuzzy ?? null;
 }
 
-function extractChopClip(model, chopKit) {
+function clipNetTravel(clip, pattern) {
+  const track = clip?.tracks.find((item) => pattern.test(item.name));
+  if (!track || track.times.length < 2) return 0;
+  const size = track.getValueSize();
+  if (size < 3) return 0;
+  const last = track.times.length - 1;
+  return Math.hypot(
+    track.values[last * size] - track.values[0],
+    track.values[last * size + 1] - track.values[1],
+    track.values[last * size + 2] - track.values[2],
+  );
+}
+
+function classifyCharacterClips(model, chopKit) {
   const own = model?.userData.animationClips ?? [];
-  const named =
+  const namedChop =
     extractNamedClip(model, "hacken") ||
     own.find((clip) => /hacken|chop|hack/i.test(clip.name));
-  if (named) return named;
-  if (own.length > 1) return own[1];
-  return extractNamedClip(chopKit, "AN_Girl_ChopTree") ?? extractNamedClip(chopKit, "hacken");
+  const scored = own.map((clip) => ({
+    clip,
+    travel: Math.max(
+      clipNetTravel(clip, /(^|\/)Hip\.position$/i),
+      clipNetTravel(clip, /(^|\/)Root\.position$/i),
+    ),
+  }));
+  const byTravel = [...scored].sort((left, right) => right.travel - left.travel);
+  const travelGap = (byTravel[0]?.travel ?? 0) - (byTravel[1]?.travel ?? 0);
+  const byDuration = [...scored].sort((left, right) => left.clip.duration - right.clip.duration);
+  const walk =
+    travelGap >= 0.08
+      ? byTravel[0]?.clip
+      : byDuration[0]?.clip ?? own[0] ?? null;
+  let chop = (travelGap >= 0.08 ? byTravel : byDuration).find(
+    (entry) => entry.clip !== walk,
+  )?.clip ?? null;
+
+  if (namedChop && namedChop !== walk) {
+    chop = namedChop;
+  } else if (!chop) {
+    chop =
+      extractNamedClip(chopKit, "AN_Girl_ChopTree") ?? extractNamedClip(chopKit, "hacken");
+  }
+
+  return { walk, chop };
 }
 
 function plantClip(sourceClip, name) {
@@ -346,15 +382,13 @@ export function createCharacterController(
     axe?.setCarried(true, root);
   }
 
-  const clips = model.userData.animationClips ?? [];
   const mixer = new THREE.AnimationMixer(model);
-  const chopSource = extractChopClip(model, chopKit);
-  const walkSource = clips.find((clip) => clip !== chopSource) ?? clips[0];
-  const walkClip = walkSource ? cleanWalkClip(walkSource) : null;
+  const locomotion = classifyCharacterClips(model, chopKit);
+  const walkClip = locomotion.walk ? cleanWalkClip(locomotion.walk) : null;
   const walkAction = walkClip ? mixer.clipAction(walkClip) : null;
   walkAction?.setLoop(THREE.LoopRepeat, Infinity).play();
   walkAction?.setEffectiveWeight(0);
-  const chopClip = plantClip(chopSource, "Hacken");
+  const chopClip = plantClip(locomotion.chop, "Hacken");
   const chopAction = chopClip ? mixer.clipAction(chopClip) : null;
   chopAction?.setLoop(THREE.LoopRepeat, Infinity).play();
   chopAction?.setEffectiveWeight(0);
@@ -832,35 +866,40 @@ export function createCharacterController(
       delta,
     );
 
-    const chopping = state === STATES.JOB_CHOP && Boolean(job);
+    const atWork =
+      Boolean(job) && (state === STATES.JOB_CHOP || state === STATES.JOB_ALIGN);
     if (chopAction) {
-      chopAction.setEffectiveWeight(
-        THREE.MathUtils.damp(chopAction.getEffectiveWeight(), chopping ? 1 : 0, 10, delta),
-      );
+      if (atWork) {
+        chopAction.setEffectiveWeight(
+          THREE.MathUtils.damp(chopAction.getEffectiveWeight(), 1, 10, delta),
+        );
+      } else {
+        chopAction.setEffectiveWeight(0);
+      }
     }
 
     if (mixer) {
       if (walkAction) {
-        walkAction.setEffectiveWeight(chopping ? 0 : walkWeight);
+        walkAction.setEffectiveWeight(atWork ? 0 : walkWeight);
         walkAction.timeScale =
-          chopping || movementAmount < 0.035
+          atWork || movementAmount < 0.035
             ? 0
             : THREE.MathUtils.clamp(speed / NATURAL_WALK_SPEED, 0.16, 1.08);
       }
       if (chopAction) {
-        chopAction.timeScale = chopping ? 1 : 0;
+        chopAction.timeScale = atWork ? 1 : 0;
       }
       mixer.update(delta);
     } else if (model.visible) {
       model.position.y = Math.sin(elapsed * 7.5) * 0.012 * movementAmount;
     }
 
-    if (!chopping) stabilizeHead(elapsed, movementAmount);
+    if (!atWork) stabilizeHead(elapsed, movementAmount);
     doorReach.apply(reachWeight);
     axe?.updateDraw(delta);
     pickaxe?.updateDraw(delta);
 
-    if (chopping) {
+    if (state === STATES.JOB_CHOP && job) {
       const hand = model.getObjectByName("R_Hand");
       if (hand) {
         hand.getWorldPosition(scratch.nextPosition);
@@ -1150,6 +1189,10 @@ export function createCharacterController(
       delivered: Boolean(job?.delivered),
       storagePathLength: job?.storagePath?.length ?? 0,
       homePathLength: job?.homePath?.length ?? 0,
+      walkClip: locomotion.walk?.name ?? null,
+      chopClip: locomotion.chop?.name ?? null,
+      walkWeightLive: walkAction?.getEffectiveWeight() ?? 0,
+      chopWeightLive: chopAction?.getEffectiveWeight() ?? 0,
     }),
     debugFinishChop: () => {
       if (!job || (state !== STATES.JOB_CHOP && state !== STATES.JOB_ALIGN)) return false;
