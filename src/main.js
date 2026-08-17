@@ -7,6 +7,7 @@ import { createCharacterController } from "./world/character.js";
 import { createCottage } from "./world/cottage.js";
 import { createHarvestDirector } from "./world/harvest.js";
 import { createWoodYard } from "./world/wood-yard.js";
+import { createStoneYard } from "./world/stone-yard.js";
 import { createVillageEditor } from "./world/village-editor.js";
 import { captureCharacterPortrait } from "./world/capture-portrait.js";
 import "./styles.css";
@@ -16,6 +17,23 @@ const errorMessage = document.querySelector("#error-message");
 const errorDetail = document.querySelector("#error-detail");
 const windToggle = document.querySelector("#wind-toggle");
 const viewButtons = [...document.querySelectorAll("[data-view]")];
+const loadingScreen = document.querySelector("#loading-screen");
+const loadingBarFill = document.querySelector("#loading-bar-fill");
+const loadingLabel = document.querySelector("#loading-label");
+const loadingPercent = document.querySelector("#loading-percent");
+
+function updateLoadingScreen({ ratio = 0, label = "" } = {}) {
+  const percent = Math.round(Math.min(Math.max(ratio, 0), 1) * 100);
+  if (loadingBarFill) loadingBarFill.style.width = `${percent}%`;
+  if (loadingPercent) loadingPercent.textContent = `${percent} %`;
+  if (loadingLabel && label) loadingLabel.textContent = `${label} wird geladen …`;
+}
+
+function dismissLoadingScreen() {
+  if (!loadingScreen) return;
+  loadingScreen.classList.add("is-done");
+  window.setTimeout(() => loadingScreen.remove(), 900);
+}
 
 const scene = new THREE.Scene();
 scene.background = new THREE.Color(0xb9d8e7);
@@ -130,7 +148,9 @@ const animationState = {
   trees: [],
   stones: [],
   character: null,
+  villagers: [],
   cottage: null,
+  stoneYard: null,
   harvest: null,
   village: null,
   debugPaused: false,
@@ -174,11 +194,16 @@ function setCameraView(name, immediate = false) {
 }
 
 function updateCottageCameraStage() {
-  const characterState = animationState.character?.getState();
-  if (!characterState) return;
-  if (FOLLOW_CAMERA_STATES.has(characterState)) return;
-
-  const nextStage = COTTAGE_CLOSE_CAMERA_STATES.has(characterState) ? "close" : "entry";
+  if (animationState.follow) return;
+  const members = animationState.villagers.length
+    ? animationState.villagers
+    : animationState.character
+      ? [animationState.character]
+      : [];
+  if (!members.length) return;
+  const nextStage = members.some((member) => COTTAGE_CLOSE_CAMERA_STATES.has(member.getState()))
+    ? "close"
+    : "entry";
   if (nextStage === animationState.cottageCameraStage) return;
   animationState.cottageCameraStage = nextStage;
 
@@ -233,19 +258,20 @@ function updateWind(elapsed) {
   });
 }
 
-function setFollowTarget(characterRoot, tree) {
-  animationState.follow = { characterRoot, tree };
+function setFollowTarget(characterRoot, tree, actor = null) {
+  animationState.follow = { characterRoot, tree, actor };
   animationState.cameraUserControlled = false;
   animationState.cameraTween = null;
 }
 
 function updateFollowCamera() {
   const follow = animationState.follow;
-  const character = animationState.character;
-  if (!follow || !character || animationState.cameraUserControlled) return;
+  if (!follow || animationState.cameraUserControlled) return;
+  const actor = follow.actor ?? animationState.character;
+  if (!actor) return;
   if (animationState.cameraTween) return;
-  if (!FOLLOW_CAMERA_STATES.has(character.getState())) {
-    if (character.getState() === "rest-inside") animationState.follow = null;
+  if (!FOLLOW_CAMERA_STATES.has(actor.getState())) {
+    if (actor.getState() === "rest-inside") animationState.follow = null;
     return;
   }
 
@@ -315,7 +341,11 @@ function animate(now = 0) {
   previousFrameTime = now;
   updateWind(now * 0.001);
   if (!animationState.debugPaused) {
-    animationState.character?.update(delta, now * 0.001);
+    if (animationState.villagers.length) {
+      animationState.villagers.forEach((member) => member.update(delta, now * 0.001));
+    } else {
+      animationState.character?.update(delta, now * 0.001);
+    }
     animationState.harvest?.update(delta, now * 0.001);
     animationState.village?.update(delta, now * 0.001);
     updateCottageCameraStage();
@@ -338,15 +368,22 @@ async function start() {
   animate();
 
   try {
-    const assets = await loadWorldAssets(ASSETS);
-    const portrait = document.querySelector("#worker-portrait");
-    if (portrait) {
+    const assets = await loadWorldAssets(ASSETS, updateLoadingScreen);
+    if (loadingLabel) loadingLabel.textContent = "Welt wird aufgebaut …";
+    const portraitMap = {
+      lena: assets.character,
+      john: assets.characterJohn,
+      sophie: assets.characterSophie,
+    };
+    Object.entries(portraitMap).forEach(([id, model]) => {
+      const image = document.querySelector(`[data-portrait="${id}"]`);
+      if (!image || !model) return;
       try {
-        portrait.src = captureCharacterPortrait(assets.character);
+        image.src = captureCharacterPortrait(model);
       } catch (error) {
-        console.warn("Porträt konnte nicht aus dem 3D-Modell erzeugt werden.", error);
+        console.warn(`Porträt ${id} konnte nicht erzeugt werden.`, error);
       }
-    }
+    });
 
     const world = buildForestWorld(assets);
     animationState.trees = world.animatedTrees;
@@ -361,23 +398,58 @@ async function start() {
       },
       world.walkArea.surfaceY,
     );
-    animationState.character = createCharacterController(
-      assets.character,
-      world.walkArea,
-      animationState.cottage,
-      assets.axe,
-      assets.chopKit,
-      harvestables,
-      { pickaxe: assets.pickaxe },
+    animationState.stoneYard = createStoneYard(
+      {
+        empty: assets.stoneStorageEmpty,
+        half: assets.stoneStorageHalf,
+        full: assets.stoneStorageFull,
+      },
+      world.walkArea.surfaceY,
     );
+    const makeVillager = (model, id, label) =>
+      createCharacterController(
+        model,
+        world.walkArea,
+        animationState.cottage,
+        assets.axe,
+        assets.chopKit,
+        harvestables,
+        { pickaxe: assets.pickaxe, id, label, rootName: `resident-${id}` },
+      );
+    animationState.villagers = [
+      makeVillager(assets.character, "lena", "Lena"),
+      makeVillager(assets.characterJohn, "john", "John"),
+      makeVillager(assets.characterSophie, "sophie", "Sophie"),
+    ];
+    animationState.character = animationState.villagers[0];
+    const villagerFacade = {
+      root: animationState.character.root,
+      isBusy: () => animationState.villagers.some((member) => member.isBusy()),
+      isIndoors: () => animationState.villagers.every((member) => member.isIndoors()),
+      relocateWithHome: () => {
+        animationState.villagers.forEach((member) => member.relocateWithHome());
+      },
+      liftIndoors: (dy) => {
+        animationState.villagers.forEach((member) => {
+          if (!member.isIndoors()) return;
+          member.relocateWithHome();
+          member.root.position.y += dy;
+        });
+      },
+      getState: () =>
+        animationState.villagers.find((member) => member.isBusy())?.getState() ??
+        animationState.character.getState(),
+    };
     animationState.harvest = createHarvestDirector({
       trees: harvestables,
       camera,
       canvas,
       scene: world.root,
       character: animationState.character,
+      villagers: animationState.villagers,
       cottage: animationState.cottage,
       yard: animationState.yard,
+      stoneYard: animationState.stoneYard,
       surfaceY: world.walkArea.surfaceY,
       setFollowTarget,
       isPlacementActive: () => Boolean(animationState.village?.isActive()),
@@ -387,7 +459,7 @@ async function start() {
       camera,
       canvas,
       walkArea: world.walkArea,
-      character: animationState.character,
+      character: villagerFacade,
       controls,
       setCameraView,
       onModeChange: (active) => {
@@ -404,7 +476,7 @@ async function start() {
       padding: 1,
       setWorldPosition: (x, z) => animationState.cottage.setWorldPosition(x, z),
       refresh: () => animationState.cottage.refreshAnchors(),
-      onRelocated: () => animationState.character.relocateWithHome(),
+      onRelocated: () => villagerFacade.relocateWithHome(),
     });
     animationState.village.register({
       id: "wood-yard",
@@ -417,16 +489,33 @@ async function start() {
       setWorldPosition: (x, z) => animationState.yard.setWorldPosition(x, z),
       refresh: () => animationState.yard.refreshAnchors(),
     });
+    animationState.village.register({
+      id: "stone-yard",
+      label: "Steinlager",
+      root: animationState.stoneYard.root,
+      size: animationState.stoneYard.size,
+      w: 2,
+      h: 2,
+      padding: 1,
+      setWorldPosition: (x, z) => animationState.stoneYard.setWorldPosition(x, z),
+      refresh: () => animationState.stoneYard.refreshAnchors(),
+    });
     world.root.add(
       animationState.cottage.root,
       animationState.yard.root,
-      animationState.character.root,
+      animationState.stoneYard.root,
+      ...animationState.villagers.map((member) => member.root),
     );
     scene.add(world.root);
 
+    updateLoadingScreen({ ratio: 1, label: "Fertig" });
+    dismissLoadingScreen();
+
     window.__everdaleDebug = {
       character: animationState.character,
+      villagers: animationState.villagers,
       cottage: animationState.cottage,
+      stoneYard: animationState.stoneYard,
       harvest: animationState.harvest,
       village: animationState.village,
       yard: animationState.yard,
@@ -437,7 +526,13 @@ async function start() {
       renderer,
       scene,
       getSnapshot: () => animationState.character.getSnapshot(),
-      finishChop: () => animationState.character.debugFinishChop?.(),
+      finishChop: () =>
+        animationState.villagers
+          .find((member) => {
+            const state = member.getState();
+            return state === "job-chop" || state === "job-align";
+          })
+          ?.debugFinishChop?.(),
       setPaused: (paused) => {
         animationState.debugPaused = Boolean(paused);
       },
@@ -465,6 +560,7 @@ async function start() {
     console.error(error);
     errorDetail.textContent = error?.message || "Unbekannter Ladefehler";
     errorMessage.hidden = false;
+    dismissLoadingScreen();
   }
 }
 

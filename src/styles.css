@@ -643,7 +643,7 @@ a:focus-visible {
   display: flex;
   align-items: flex-end;
   justify-content: center;
-  gap: 16px;
+  gap: 12px;
   min-height: 126px;
 }
 
@@ -660,8 +660,8 @@ a:focus-visible {
 .worker-frame {
   position: relative;
   display: block;
-  width: 92px;
-  height: 118px;
+  width: 78px;
+  height: 102px;
   padding: 6px;
   border-radius: 16px;
   background:
@@ -926,4 +926,112 @@ a:focus-visible {
     animation-iteration-count: 1 !important;
     transition-duration: 0.01ms !important;
   }
+}
+
+.loading-screen {
+  position: fixed;
+  inset: 0;
+  z-index: 50;
+  display: grid;
+  place-items: center;
+  padding: 24px;
+  background:
+    radial-gradient(120% 90% at 50% 110%, rgba(156, 207, 91, 0.85) 0%, rgba(156, 207, 91, 0) 55%),
+    linear-gradient(180deg, #a8cfe4 0%, var(--sky) 45%, #cfe3bd 100%);
+  opacity: 1;
+  transition: opacity 0.65s ease;
+}
+
+.loading-screen.is-done {
+  opacity: 0;
+  pointer-events: none;
+}
+
+.loading-card {
+  width: min(360px, calc(100vw - 64px));
+  padding: 34px 32px 28px;
+  display: grid;
+  justify-items: center;
+  text-align: center;
+  border-radius: 28px;
+  border: 1px solid rgba(255, 255, 255, 0.68);
+  background: rgba(247, 244, 232, 0.82);
+  box-shadow: var(--shadow);
+  backdrop-filter: blur(18px) saturate(1.12);
+  -webkit-backdrop-filter: blur(18px) saturate(1.12);
+}
+
+.loading-logo {
+  width: 58px;
+  height: 58px;
+  padding: 13px;
+  border-radius: 18px;
+  color: var(--paper-strong);
+  background: var(--forest);
+  fill: currentColor;
+  animation: loading-breathe 2.2s ease-in-out infinite;
+}
+
+@keyframes loading-breathe {
+  0%,
+  100% {
+    transform: scale(1);
+  }
+  50% {
+    transform: scale(1.08);
+  }
+}
+
+.loading-title {
+  margin-top: 16px;
+  font-family: "Fredoka", sans-serif;
+  font-size: 2rem;
+  font-weight: 600;
+  line-height: 1;
+}
+
+.loading-subtitle {
+  margin-top: 4px;
+  color: var(--ink-soft);
+  font-family: "DM Mono", monospace;
+  font-size: 0.68rem;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+}
+
+.loading-bar {
+  width: 100%;
+  height: 12px;
+  margin-top: 24px;
+  overflow: hidden;
+  border-radius: 999px;
+  background: rgba(29, 53, 39, 0.12);
+  box-shadow: inset 0 1px 3px rgba(29, 53, 39, 0.18);
+}
+
+.loading-bar-fill {
+  display: block;
+  width: 0%;
+  height: 100%;
+  border-radius: inherit;
+  background: linear-gradient(90deg, var(--forest), var(--meadow));
+  transition: width 0.25s ease;
+}
+
+.loading-status {
+  width: 100%;
+  margin: 12px 0 0;
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 12px;
+  color: var(--ink-soft);
+  font-size: 0.82rem;
+}
+
+.loading-percent {
+  font-family: "DM Mono", monospace;
+  font-size: 0.78rem;
+  font-weight: 500;
+  color: var(--ink);
 }

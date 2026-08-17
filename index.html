@@ -102,6 +102,23 @@
     <main class="experience" aria-label="Interaktive 3D-Waldwelt">
       <canvas id="world-canvas" aria-label="3D-Ansicht der Waldlichtung"></canvas>
 
+      <div class="loading-screen" id="loading-screen" role="status" aria-live="polite">
+        <div class="loading-card">
+          <svg class="loading-logo" viewBox="0 0 34 34" aria-hidden="true">
+            <path d="M17 3 7.7 14h5.1L6 23h8v8h6v-8h8l-6.8-9h5.1L17 3Z" />
+          </svg>
+          <strong class="loading-title">Everdale</strong>
+          <span class="loading-subtitle">Waldprototyp</span>
+          <div class="loading-bar">
+            <span class="loading-bar-fill" id="loading-bar-fill"></span>
+          </div>
+          <p class="loading-status">
+            <span id="loading-label">Welt wird vorbereitet …</span>
+            <span class="loading-percent" id="loading-percent">0&nbsp;%</span>
+          </p>
+        </div>
+      </div>
+
       <header class="brand-panel panel">
         <a class="brand" href="#" aria-label="Zurück zur Standardansicht" id="brand-home">
           <svg viewBox="0 0 34 34" aria-hidden="true">
@@ -131,24 +148,23 @@
         <span class="note-index">04</span>
         <div>
           <p class="eyebrow">Aktueller Baustein</p>
-          <h2>Fälle Bäume und haue Steine.</h2>
-          <p>Steine stehen im Wald, nicht auf der Lichtung. Tippe einen Stein an und schicke sie mit der Spitzhacke.</p>
+          <h2>Drei Bewohner, zwei Lager.</h2>
+          <p>Wähle Lena, John oder Sophie für eine Aufgabe. Steine kommen ins Steinlager, Holz ins Holzlager.</p>
         </div>
       </aside>
 
       <section class="forest-status panel" aria-label="Verwendete 3D-Assets">
         <div class="status-heading">
           <span class="live-dot" aria-hidden="true"></span>
-          <span>7 Assets aktiv</span>
+          <span>Dorf aktiv</span>
         </div>
         <ul>
           <li><span class="swatch swatch-ground"></span>Boden</li>
-          <li><span class="swatch swatch-forest"></span>Waldbäume</li>
-          <li><span class="swatch swatch-apple"></span>Apfelbäume</li>
-          <li><span class="swatch swatch-blossom"></span>Blütenbäume</li>
-          <li><span class="swatch swatch-character"></span>Bewohnerin</li>
+          <li><span class="swatch swatch-forest"></span>Wald & Steine</li>
+          <li><span class="swatch swatch-character"></span>Lena, John, Sophie</li>
           <li><span class="swatch swatch-cottage"></span>Holzhaus</li>
-          <li><span class="swatch swatch-axe"></span>Axt</li>
+          <li><span class="swatch swatch-axe"></span>Holzlager</li>
+          <li><span class="swatch swatch-blossom"></span>Steinlager</li>
         </ul>
       </section>
 
@@ -199,7 +215,7 @@
 
       <div class="interaction-hint" aria-hidden="true">
         <span class="mouse-symbol"></span>
-        Baum antippen <i></i> Anordnen für Gebäude
+        Baum oder Stein antippen <i></i> Anordnen für Gebäude
       </div>
 
       <div class="harvest-meter" id="harvest-meter" hidden>
@@ -213,24 +229,29 @@
       <aside class="worker-dock" id="worker-dock" hidden>
         <div class="worker-plank">
           <div class="worker-row">
-            <button class="worker-card" id="worker-assign" type="button">
+            <button class="worker-card" type="button" data-villager="lena">
               <span class="worker-frame">
-                <img
-                  class="worker-portrait"
-                  id="worker-portrait"
-                  src="./ui/portrait-bewohnerin.jpg"
-                  alt=""
-                  width="160"
-                  height="214"
-                />
-                <span class="task-pin" id="worker-task-pin" hidden data-task="chop"></span>
+                <img class="worker-portrait" data-portrait="lena" src="./ui/portrait-bewohnerin.jpg" alt="" width="160" height="214" />
+                <span class="task-pin" hidden data-task="chop"></span>
               </span>
-              <span class="worker-name">Bewohnerin</span>
-              <small class="worker-state" id="worker-status">Frei</small>
+              <span class="worker-name">Lena</span>
+              <small class="worker-state">Frei</small>
             </button>
-            <button class="hire-card" id="worker-hire" type="button" disabled>
-              <img src="./ui/btn-hire.jpg" alt="" width="128" height="128" />
-              <span>Mehr bald</span>
+            <button class="worker-card" type="button" data-villager="john">
+              <span class="worker-frame">
+                <img class="worker-portrait" data-portrait="john" src="./ui/portrait-bewohnerin.jpg" alt="" width="160" height="214" />
+                <span class="task-pin" hidden data-task="chop"></span>
+              </span>
+              <span class="worker-name">John</span>
+              <small class="worker-state">Frei</small>
+            </button>
+            <button class="worker-card" type="button" data-villager="sophie">
+              <span class="worker-frame">
+                <img class="worker-portrait" data-portrait="sophie" src="./ui/portrait-bewohnerin.jpg" alt="" width="160" height="214" />
+                <span class="task-pin" hidden data-task="chop"></span>
+              </span>
+              <span class="worker-name">Sophie</span>
+              <small class="worker-state">Frei</small>
             </button>
           </div>
           <p class="dock-task" id="worker-dock-title">Baum fällen</p>

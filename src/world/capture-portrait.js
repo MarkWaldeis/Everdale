@@ -10,7 +10,7 @@ export function captureCharacterPortrait(sourceModel, width = 256, height = 336)
   clone.position.set(0, 0, 0);
   clone.rotation.set(0, 0.42, 0);
   clone.traverse((child) => {
-    if (child.name === "axe-grip" || child.name === "carried-axe") {
+    if (child.name === "axe-grip" || child.name === "pickaxe-grip" || child.name === "carried-axe") {
       child.visible = false;
     }
     if (child.isMesh) {

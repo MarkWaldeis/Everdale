@@ -34,11 +34,25 @@ export async function loadWorldAssets(manifest, onProgress) {
   const result = {};
   let completed = 0;
 
+  const report = (label, assetRatio = 0) => {
+    onProgress?.({
+      completed,
+      total: entries.length,
+      label,
+      ratio: Math.min((completed + assetRatio) / entries.length, 1),
+    });
+  };
+
   await Promise.all(
     entries.map(async ([id, definition]) => {
       // Manifest URLs are produced by `new URL(..., import.meta.url)`, so Vite
       // already escapes them and can fingerprint the GLBs for production.
-      const gltf = await loader.loadAsync(definition.url);
+      report(definition.label);
+      const gltf = await loader.loadAsync(definition.url, (event) => {
+        if (event.total > 0) {
+          report(definition.label, Math.min(event.loaded / event.total, 0.99));
+        }
+      });
       const root = gltf.scene;
       prepareMaterials(root);
 
@@ -55,7 +69,7 @@ export async function loadWorldAssets(manifest, onProgress) {
       root.userData.animationClips = gltf.animations;
       result[id] = root;
       completed += 1;
-      onProgress?.({ completed, total: entries.length, label: definition.label });
+      report(definition.label);
     }),
   );
 

@@ -20,8 +20,18 @@ export const ASSETS = Object.freeze({
     height: 5.05,
   },
   character: {
-    label: "Dorfbewohnerin",
-    url: new URL("../../3d Assets/medieval+girl+3d+model (2).glb", import.meta.url).href,
+    label: "Lena",
+    url: new URL("../../3d Assets/player/medieval+girl+3d+model (2).glb", import.meta.url).href,
+    height: 1.08,
+  },
+  characterJohn: {
+    label: "John",
+    url: new URL("../../3d Assets/player/charackter+john.glb", import.meta.url).href,
+    height: 1.08,
+  },
+  characterSophie: {
+    label: "Sophie",
+    url: new URL("../../3d Assets/player/girl+sophie.glb", import.meta.url).href,
     height: 1.08,
   },
   cottage: {
@@ -41,18 +51,33 @@ export const ASSETS = Object.freeze({
   },
   storageEmpty: {
     label: "Holzlager leer",
-    url: new URL("../../3d Assets/wooden storage empty.glb", import.meta.url).href,
+    url: new URL("../../3d Assets/wood storage/wooden storage empty.glb", import.meta.url).href,
     height: 1.85,
   },
   storageHalf: {
     label: "Holzlager halb",
-    url: new URL("../../3d Assets/wooden storage half full.glb", import.meta.url).href,
+    url: new URL("../../3d Assets/wood storage/wooden storage half full.glb", import.meta.url).href,
     height: 1.85,
   },
   storageFull: {
     label: "Holzlager voll",
-    url: new URL("../../3d Assets/wooden log stack 3d model.glb", import.meta.url).href,
+    url: new URL("../../3d Assets/wood storage/wooden log stack 3d model.glb", import.meta.url).href,
     height: 1.7,
+  },
+  stoneStorageEmpty: {
+    label: "Steinlager leer",
+    url: new URL("../../3d Assets/stone storage/stone+storrage+empty.glb", import.meta.url).href,
+    height: 1.85,
+  },
+  stoneStorageHalf: {
+    label: "Steinlager halb",
+    url: new URL("../../3d Assets/stone storage/stone storage few stones.glb", import.meta.url).href,
+    height: 1.85,
+  },
+  stoneStorageFull: {
+    label: "Steinlager voll",
+    url: new URL("../../3d Assets/stone storage/stone storage full.glb", import.meta.url).href,
+    height: 1.85,
   },
   stone: {
     label: "Waldstein",

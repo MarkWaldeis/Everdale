@@ -108,6 +108,18 @@ export function createCottage(cottageModel, surfaceY) {
     refreshAnchors();
   }
 
+  let doorOwner = null;
+
+  function claimDoor(ownerId) {
+    if (doorOwner && doorOwner !== ownerId) return false;
+    doorOwner = ownerId;
+    return true;
+  }
+
+  function releaseDoor(ownerId) {
+    if (doorOwner === ownerId) doorOwner = null;
+  }
+
   function containsPoint(worldPoint, margin = 0) {
     root.updateWorldMatrix(true, false);
     const localPoint = root.worldToLocal(worldPoint.clone());
@@ -127,5 +139,7 @@ export function createCottage(cottageModel, surfaceY) {
     surfaceY,
     refreshAnchors,
     setWorldPosition,
+    claimDoor,
+    releaseDoor,
   };
 }

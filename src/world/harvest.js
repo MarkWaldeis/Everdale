@@ -89,8 +89,10 @@ export function createHarvestDirector({
   canvas,
   scene,
   character,
+  villagers,
   cottage,
   yard,
+  stoneYard,
   surfaceY,
   setFollowTarget,
   isPlacementActive,
@@ -99,10 +101,8 @@ export function createHarvestDirector({
   const marker = createGroundMarker();
   const chips = createChipBurst();
   const tray = document.querySelector("#worker-dock");
-  const workerButton = document.querySelector("#worker-assign");
-  const workerStatus = document.querySelector("#worker-status");
+  const workerButtons = [...document.querySelectorAll("[data-villager]")];
   const trayTitle = document.querySelector("#worker-dock-title");
-  const taskPin = document.querySelector("#worker-task-pin");
   const woodCount = document.querySelector("#wood-count");
   const stoneCount = document.querySelector("#stone-count");
   const meter = document.querySelector("#harvest-meter");
@@ -112,7 +112,7 @@ export function createHarvestDirector({
 
   scene.add(marker);
   chips.forEach((chip) => scene.add(chip.mesh));
-  let gatheredStone = 0;
+  const roster = villagers ?? (character ? [character] : []);
 
   const pointerState = {
     down: null,
@@ -189,33 +189,48 @@ export function createHarvestDirector({
     tray.classList.toggle("is-open", open);
     document.body.classList.toggle("has-worker-dock", open);
     if (open) {
-      workerButton?.focus();
+      workerButtons.find((button) => !button.disabled)?.focus();
     }
   }
 
+  function statusFor(member) {
+    if (!member.isBusy()) return "Frei";
+    const state = member.getState();
+    if (state === "job-walk-home" || state === "home-approach" || state === "ascend-porch") {
+      return "Nach Hause";
+    }
+    if (state === "job-walk-storage" || state === "job-align-storage" || state === "job-deposit") {
+      return "Zum Lager";
+    }
+    if (state.includes("chop") || state === "job-align" || state === "job-walk") {
+      return "Arbeit";
+    }
+    return "Unterwegs";
+  }
+
   function refreshWorkerCard() {
-    const busy = character.isBusy();
-    if (workerButton) workerButton.disabled = busy;
-    if (workerStatus) {
-      const state = character.getState();
-      workerStatus.textContent = busy
-        ? state === "job-walk-home" || state === "home-approach" || state === "ascend-porch"
-          ? "Nach Hause"
-          : state === "job-walk-storage" ||
-              state === "job-align-storage" ||
-              state === "job-deposit"
-            ? "Zum Lager"
-            : pointerState.selected?.userData.harvestKind === "stone"
-              ? "Steine hauen"
-              : "Holzfällen"
-        : "Frei";
-    }
-    workerButton?.classList.toggle("is-busy", busy);
-    if (taskPin) {
-      taskPin.hidden = !busy;
-      taskPin.dataset.task =
-        pointerState.selected?.userData.harvestKind === "stone" ? "mine" : "chop";
-    }
+    const selected = pointerState.selected;
+    const canAssign = Boolean(
+      selected &&
+        selected.userData.harvestState !== "gone" &&
+        selected.userData.harvestState !== "falling" &&
+        selected.userData.harvestState !== "assigned" &&
+        selected.userData.harvestState !== "chopping",
+    );
+    workerButtons.forEach((button) => {
+      const member = roster.find((entry) => entry.getId() === button.dataset.villager);
+      if (!member) return;
+      const busy = member.isBusy();
+      button.disabled = busy || !canAssign;
+      button.classList.toggle("is-busy", busy);
+      const status = button.querySelector(".worker-state");
+      if (status) status.textContent = statusFor(member);
+      const pin = button.querySelector(".task-pin");
+      if (pin) {
+        pin.hidden = !busy;
+        pin.dataset.task = member.getJobTool?.() === "pickaxe" ? "mine" : "chop";
+      }
+    });
   }
 
   function selectTree(tree) {
@@ -343,26 +358,31 @@ export function createHarvestDirector({
     if (meter) meter.hidden = true;
   }
 
-  function assignSelectedWorker() {
+  function yardBlock(storage) {
+    if (!storage?.root) return null;
+    return { x: storage.root.position.x, z: storage.root.position.z, radius: 1.15 };
+  }
+
+  function assignWorker(member) {
     const tree = pointerState.selected;
-    if (!tree || character.isBusy()) return;
+    if (!tree || !member || member.isBusy()) return;
     if (tree.userData.harvestState === "gone" || tree.userData.harvestState === "falling") {
+      return;
+    }
+    if (tree.userData.harvestState === "assigned" || tree.userData.harvestState === "chopping") {
       return;
     }
 
     const approach = approachPoint(tree);
     const isStone = tree.userData.harvestKind === "stone";
-    const accepted = character.assignJob({
+    const accepted = member.assignJob({
       tree,
       tool: isStone ? "pickaxe" : "axe",
       approach,
       lookAt: tree.position.clone(),
-      storageApproach: isStone ? null : yard?.stand,
-      storageLook: isStone ? null : yard?.look,
-      storageBlock:
-        !isStone && yard
-          ? { x: yard.root.position.x, z: yard.root.position.z, radius: 1.15 }
-          : null,
+      storageApproach: isStone ? stoneYard?.stand : yard?.stand,
+      storageLook: isStone ? stoneYard?.look : yard?.look,
+      storageBlock: [yardBlock(yard), yardBlock(stoneYard)].filter(Boolean),
       hitsNeeded: CHOP_HITS,
       onStartChop: () => {
         tree.userData.harvestState = "chopping";
@@ -374,23 +394,23 @@ export function createHarvestDirector({
         origin.y = surfaceY;
         spawnChips(origin, isStone ? "stone" : "wood");
         tree.userData.impactPulse = 1;
-        projectMeter(tree, character.getJobProgress());
+        projectMeter(tree, member.getJobProgress());
       },
       onChopProgress: (progress) => {
         projectMeter(tree, progress);
       },
       onChopDone: () => {
-        beginFall(tree, character.root.position.clone());
-        setFollowTarget?.(character.root);
-        if (isStone) {
-          gatheredStone = Math.min(20, gatheredStone + 5);
-          if (stoneCount) stoneCount.textContent = String(gatheredStone);
-        }
+        beginFall(tree, member.root.position.clone());
+        setFollowTarget?.(member.root, null, member);
       },
       onDeliver: () => {
-        if (isStone) return;
-        const amount = yard?.deposit() ?? 0;
-        if (woodCount) woodCount.textContent = String(amount);
+        if (isStone) {
+          const amount = stoneYard?.deposit() ?? 0;
+          if (stoneCount) stoneCount.textContent = String(amount);
+        } else {
+          const amount = yard?.deposit() ?? 0;
+          if (woodCount) woodCount.textContent = String(amount);
+        }
         refreshWorkerCard();
       },
       onReturned: () => {
@@ -405,7 +425,12 @@ export function createHarvestDirector({
     placeMarker(null);
     refreshWorkerCard();
     setTrayOpen(true);
-    setFollowTarget?.(character.root, tree);
+    setFollowTarget?.(member.root, tree, member);
+  }
+
+  function assignSelectedWorker() {
+    const free = roster.find((member) => !member.isBusy());
+    assignWorker(free);
   }
 
   function updateMarker(elapsed) {
@@ -503,11 +528,13 @@ export function createHarvestDirector({
 
     const chopping = trees.find((tree) => tree.userData.harvestState === "chopping");
     if (chopping) {
-      projectMeter(chopping, character.getJobProgress());
+      const worker = roster.find((member) => member.getState() === "job-chop");
+      projectMeter(chopping, worker?.getJobProgress() ?? 0);
     } else if (meter && !chopping) {
       const assigned = trees.find((tree) => tree.userData.harvestState === "assigned");
       if (!assigned) meter.hidden = true;
     }
+    refreshWorkerCard();
   }
 
   function onPointerDown(event) {
@@ -549,9 +576,12 @@ export function createHarvestDirector({
     pointerState.down = null;
   });
 
-  workerButton?.addEventListener("click", (event) => {
-    event.preventDefault();
-    assignSelectedWorker();
+  workerButtons.forEach((button) => {
+    button.addEventListener("click", (event) => {
+      event.preventDefault();
+      const member = roster.find((entry) => entry.getId() === button.dataset.villager);
+      assignWorker(member);
+    });
   });
 
   closeButton?.addEventListener("click", (event) => {

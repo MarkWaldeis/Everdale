@@ -308,8 +308,10 @@ export function createCharacterController(
   trees = [],
   extraTools = {},
 ) {
+  const villagerId = extraTools.id ?? "villager";
+  const villagerLabel = extraTools.label ?? "Bewohnerin";
   const root = new THREE.Group();
-  root.name = "village-resident";
+  root.name = extraTools.rootName ?? `village-resident-${villagerId}`;
   root.position.set(-0.72, walkArea.surfaceY, 1.15);
   root.add(model);
   const axe = axeModel ? createAxeWielder(model, axeModel) : null;
@@ -545,6 +547,10 @@ export function createCharacterController(
 
     switch (state) {
       case STATES.HOME_APPROACH:
+        if (!home.claimDoor?.(villagerId)) {
+          stopMoving(delta);
+          break;
+        }
         home.door.setOpenProgress(0);
         if (moveToward(points.steps, WALK_SPEED, delta)) {
           transition(STATES.ASCEND_PORCH);
@@ -605,7 +611,10 @@ export function createCharacterController(
       case STATES.CLOSE_INSIDE:
         stopMoving(delta);
         home.door.setOpenProgress(1 - stateTime / 0.92);
-        if (stateTime >= 0.92) transition(STATES.REST_INSIDE);
+        if (stateTime >= 0.92) {
+          home.releaseDoor?.(villagerId);
+          transition(STATES.REST_INSIDE);
+        }
         break;
 
       case STATES.REST_INSIDE:
@@ -693,6 +702,11 @@ export function createCharacterController(
 
     switch (state) {
       case STATES.JOB_OPEN_TO_EXIT:
+        if (!home.claimDoor?.(villagerId)) {
+          stopMoving(delta);
+          stateTime = 0;
+          break;
+        }
         stopMoving(delta);
         home.door.setOpenProgress(stateTime / 1.02);
         if (stateTime >= 1.02) transition(STATES.JOB_EXIT);
@@ -714,6 +728,7 @@ export function createCharacterController(
         home.door.setOpenProgress(1 - Math.min(stateTime / 0.88, 1));
         if (moveToward(points.depart, DOOR_WALK_SPEED, delta, false, true)) {
           home.door.setOpenProgress(0);
+          home.releaseDoor?.(villagerId);
           transition(STATES.JOB_WALK);
         }
         break;
@@ -1011,7 +1026,11 @@ export function createCharacterController(
       state === STATES.REST_INSIDE || !model.visible
         ? home.points.depart.clone()
         : root.position.clone();
-    const extras = nextJob.storageBlock ? [nextJob.storageBlock] : [];
+    const extras = Array.isArray(nextJob.storageBlock)
+      ? nextJob.storageBlock.filter(Boolean)
+      : nextJob.storageBlock
+        ? [nextJob.storageBlock]
+        : [];
     const walkability = createWalkability(home, trees, {
       ignoreTree: nextJob.tree,
       extras,
@@ -1090,10 +1109,14 @@ export function createCharacterController(
     isIndoors,
     relocateWithHome,
     getJobProgress,
+    getId: () => villagerId,
+    getLabel: () => villagerLabel,
+    getJobTool: () => job?.tool ?? null,
     getState: () => state,
     debugResetToHome: () => {
       job = null;
       holsterTools();
+      home?.releaseDoor?.(villagerId);
       if (home) {
         root.position.copy(home.points.inside);
         model.visible = false;

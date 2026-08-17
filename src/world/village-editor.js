@@ -527,8 +527,13 @@ export function createVillageEditor({
         world.z,
       );
       if (character?.isIndoors?.() && state.holding.id === "cottage") {
-        character.relocateWithHome();
-        character.root.position.y += state.lift * LIFT_HEIGHT + bob;
+        const lift = state.lift * LIFT_HEIGHT + bob;
+        if (character.liftIndoors) {
+          character.liftIndoors(lift);
+        } else {
+          character.relocateWithHome();
+          character.root.position.y += lift;
+        }
       }
     } else {
       grid.list().forEach((building) => {
