@@ -107,6 +107,7 @@ export function createVillageGrid({ radiusX, radiusZ, surfaceY }) {
   function applyWorld(building) {
     const world = footprintWorld(building.col, building.row, building.w, building.h);
     building.setWorldPosition?.(world.x, world.z);
+    building.setYaw?.(building.yaw);
     building.refresh?.();
     building.onRelocated?.();
   }
@@ -125,6 +126,7 @@ export function createVillageGrid({ radiusX, radiusZ, surfaceY }) {
       col: 0,
       row: 0,
       setWorldPosition: spec.setWorldPosition,
+      setYaw: spec.setYaw,
       refresh: spec.refresh,
       onRelocated: spec.onRelocated,
     };
@@ -133,6 +135,7 @@ export function createVillageGrid({ radiusX, radiusZ, surfaceY }) {
       : worldToMinCorner(spec.root.position.x, spec.root.position.z, record.w, record.h);
     buildings.set(record.id, record);
     const saved = readSave()[record.id];
+    if (Number.isFinite(saved?.yaw)) record.yaw = saved.yaw;
     const start = saved
       ? nearestValid(record.id, saved.col, saved.row) ?? preferred
       : nearestValid(record.id, preferred.col, preferred.row) ?? preferred;
@@ -149,6 +152,24 @@ export function createVillageGrid({ radiusX, radiusZ, surfaceY }) {
     if (!building || !canPlace(id, minCol, minRow)) return false;
     building.col = minCol;
     building.row = minRow;
+    applyWorld(building);
+    writeSave();
+    return true;
+  }
+
+  function rotate(id, turns = 1) {
+    const building = buildings.get(id);
+    if (!building) return false;
+    const steps = ((turns % 4) + 4) % 4;
+    if (!steps) return true;
+    for (let index = 0; index < steps; index += 1) {
+      building.yaw += Math.PI * 0.5;
+      const nextW = building.h;
+      const nextH = building.w;
+      building.w = nextW;
+      building.h = nextH;
+    }
+    if (building.yaw > Math.PI * 2) building.yaw -= Math.PI * 2;
     applyWorld(building);
     writeSave();
     return true;
@@ -182,7 +203,7 @@ export function createVillageGrid({ radiusX, radiusZ, surfaceY }) {
   function writeSave() {
     const payload = {};
     buildings.forEach((building) => {
-      payload[building.id] = { col: building.col, row: building.row };
+      payload[building.id] = { col: building.col, row: building.row, yaw: building.yaw };
     });
     try {
       localStorage.setItem(STORAGE_KEY, JSON.stringify(payload));
@@ -197,6 +218,7 @@ export function createVillageGrid({ radiusX, radiusZ, surfaceY }) {
     register,
     canPlace,
     commit,
+    rotate,
     preview,
     restore,
     nearestValid,

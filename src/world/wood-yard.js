@@ -75,6 +75,11 @@ export function createWoodYard(models, surfaceY) {
     refreshAnchors();
   }
 
+  function setYaw(yaw) {
+    root.rotation.y = yaw;
+    refreshAnchors();
+  }
+
   function containsPoint(worldPoint, margin = 0.35) {
     const local = root.worldToLocal(worldPoint.clone());
     return Math.abs(local.x) <= size.x * 0.5 + margin && Math.abs(local.z) <= size.z * 0.5 + margin;
@@ -91,6 +96,8 @@ export function createWoodYard(models, surfaceY) {
     containsPoint,
     refreshAnchors,
     setWorldPosition,
+    setYaw,
+    getYaw: () => root.rotation.y,
     max: WOOD_MAX,
     perTree: WOOD_PER_TREE,
   };

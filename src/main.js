@@ -8,6 +8,7 @@ import { createCottage } from "./world/cottage.js";
 import { createHarvestDirector } from "./world/harvest.js";
 import { createWoodYard } from "./world/wood-yard.js";
 import { createStoneYard } from "./world/stone-yard.js";
+import { createResearchLab } from "./world/research.js";
 import { createVillageEditor } from "./world/village-editor.js";
 import { captureCharacterPortrait } from "./world/capture-portrait.js";
 import "./styles.css";
@@ -58,13 +59,26 @@ controls.enableDamping = true;
 controls.dampingFactor = 0.055;
 controls.enablePan = false;
 controls.screenSpacePanning = false;
-// Feste Schrägansicht wie in CoC/Everdale: nur Zoomen, kein Drehen.
+// Supercell-style: almost top-down, slight tilt, zoom only.
+const PLAY_POLAR = THREE.MathUtils.degToRad(34);
+const PLAY_YAW = 0.58;
 controls.enableRotate = false;
-controls.minPolarAngle = THREE.MathUtils.degToRad(4);
-controls.maxPolarAngle = THREE.MathUtils.degToRad(67);
-controls.minDistance = 7.5;
-controls.maxDistance = 82;
-controls.target.set(0, 0.45, 0);
+controls.minPolarAngle = PLAY_POLAR;
+controls.maxPolarAngle = PLAY_POLAR;
+controls.minDistance = 9;
+controls.maxDistance = 78;
+controls.target.set(0, 0.25, 0);
+
+function cameraOffset(distance) {
+  const horiz = Math.sin(PLAY_POLAR) * distance;
+  const height = Math.cos(PLAY_POLAR) * distance;
+  return new THREE.Vector3(Math.sin(PLAY_YAW) * horiz, height, Math.cos(PLAY_YAW) * horiz);
+}
+
+function makeView(tx, ty, tz, distance) {
+  const target = new THREE.Vector3(tx, ty, tz);
+  return { position: target.clone().add(cameraOffset(distance)), target };
+}
 
 const hemisphere = new THREE.HemisphereLight(0xeaf8ff, 0x6f7a3a, 2.3);
 scene.add(hemisphere);
@@ -88,37 +102,23 @@ scene.add(fill);
 
 const cameraViews = {
   cottage: {
-    position: new THREE.Vector3(0.35, 4.05, 8.3),
-    target: new THREE.Vector3(-1.55, 1.2, -1.85),
-    mobilePosition: new THREE.Vector3(5.5, 6.2, 13),
-    mobileTarget: new THREE.Vector3(-1.5, 1.2, -1.4),
+    ...makeView(-1.6, 0.35, -2.2, 16),
+    mobilePosition: makeView(-1.6, 0.35, -2.2, 20).position,
+    mobileTarget: new THREE.Vector3(-1.6, 0.35, -2.2),
   },
-  village: {
-    position: new THREE.Vector3(48, 38, 50),
-    target: new THREE.Vector3(0, 0.45, 0),
-  },
-  clearing: {
-    position: new THREE.Vector3(34, 22, 36),
-    target: new THREE.Vector3(0, 0.65, -0.25),
-  },
-  map: {
-    position: new THREE.Vector3(0.1, 92, 0.1),
-    target: new THREE.Vector3(0, 0, 0),
-  },
+  village: makeView(0, 0.2, 0, 46),
+  clearing: makeView(0.2, 0.22, 0.1, 28),
+  map: makeView(0, 0.15, 0, 64),
   arrange: {
-    position: new THREE.Vector3(22, 28, 26),
-    target: new THREE.Vector3(0.4, 0.15, -0.8),
-    mobilePosition: new THREE.Vector3(18, 24, 22),
-    mobileTarget: new THREE.Vector3(0.2, 0.2, -0.4),
+    ...makeView(0.3, 0.12, -0.4, 24),
+    mobilePosition: makeView(0.3, 0.12, -0.4, 22).position,
+    mobileTarget: new THREE.Vector3(0.3, 0.12, -0.4),
   },
 };
 
 const cottageActionViews = {
   entry: cameraViews.cottage,
-  close: {
-    position: new THREE.Vector3(-6.0, 4.05, 8.3),
-    target: new THREE.Vector3(-1.55, 1.2, -1.85),
-  },
+  close: makeView(-1.6, 0.35, -2.2, 16),
 };
 
 const COTTAGE_CLOSE_CAMERA_STATES = new Set([
@@ -144,6 +144,11 @@ const FOLLOW_CAMERA_STATES = new Set([
   "job-align-storage",
   "job-deposit",
   "job-walk-home",
+  "visit-walk",
+  "visit-align",
+  "visit-enter",
+  "visit-exit",
+  "visit-leave",
 ]);
 
 const animationState = {
@@ -153,6 +158,7 @@ const animationState = {
   villagers: [],
   cottage: null,
   stoneYard: null,
+  research: null,
   harvest: null,
   village: null,
   debugPaused: false,
@@ -278,12 +284,12 @@ function updateFollowCamera() {
   }
 
   const origin = follow.characterRoot.position;
-  const desiredTarget = new THREE.Vector3(origin.x, origin.y + 0.95, origin.z);
+  const desiredTarget = new THREE.Vector3(origin.x, origin.y + 0.25, origin.z);
   if (follow.tree) {
-    desiredTarget.lerp(follow.tree.position, 0.28);
-    desiredTarget.y = origin.y + 1.05;
+    desiredTarget.lerp(follow.tree.position, 0.22);
+    desiredTarget.y = origin.y + 0.28;
   }
-  const desiredPosition = origin.clone().add(new THREE.Vector3(5.4, 4.6, 6.6));
+  const desiredPosition = origin.clone().add(cameraOffset(16));
   camera.position.lerp(desiredPosition, 0.045);
   controls.target.lerp(desiredTarget, 0.05);
 }
@@ -408,6 +414,7 @@ async function start() {
       },
       world.walkArea.surfaceY,
     );
+    animationState.research = createResearchLab(assets.research, world.walkArea.surfaceY);
     const makeVillager = (model, id, label) =>
       createCharacterController(
         model,
@@ -416,7 +423,13 @@ async function start() {
         assets.axe,
         assets.chopKit,
         harvestables,
-        { pickaxe: assets.pickaxe, id, label, rootName: `resident-${id}` },
+        {
+          pickaxe: assets.pickaxe,
+          lab: animationState.research,
+          id,
+          label,
+          rootName: `resident-${id}`,
+        },
       );
     animationState.villagers = [
       makeVillager(assets.character, "lena", "Lena"),
@@ -452,6 +465,7 @@ async function start() {
       cottage: animationState.cottage,
       yard: animationState.yard,
       stoneYard: animationState.stoneYard,
+      research: animationState.research,
       surfaceY: world.walkArea.surfaceY,
       setFollowTarget,
       isPlacementActive: () => Boolean(animationState.village?.isActive()),
@@ -477,6 +491,7 @@ async function start() {
       h: 2,
       padding: 1,
       setWorldPosition: (x, z) => animationState.cottage.setWorldPosition(x, z),
+      setYaw: (yaw) => animationState.cottage.setYaw(yaw),
       refresh: () => animationState.cottage.refreshAnchors(),
       onRelocated: () => villagerFacade.relocateWithHome(),
     });
@@ -489,6 +504,7 @@ async function start() {
       h: 2,
       padding: 1,
       setWorldPosition: (x, z) => animationState.yard.setWorldPosition(x, z),
+      setYaw: (yaw) => animationState.yard.setYaw(yaw),
       refresh: () => animationState.yard.refreshAnchors(),
     });
     animationState.village.register({
@@ -500,12 +516,27 @@ async function start() {
       h: 2,
       padding: 1,
       setWorldPosition: (x, z) => animationState.stoneYard.setWorldPosition(x, z),
+      setYaw: (yaw) => animationState.stoneYard.setYaw(yaw),
       refresh: () => animationState.stoneYard.refreshAnchors(),
+    });
+    animationState.village.register({
+      id: "research",
+      label: "Alchemie",
+      root: animationState.research.root,
+      size: animationState.research.size,
+      w: 2,
+      h: 2,
+      padding: 1,
+      setWorldPosition: (x, z) => animationState.research.setWorldPosition(x, z),
+      setYaw: (yaw) => animationState.research.setYaw(yaw),
+      refresh: () => animationState.research.refreshAnchors(),
+      onRelocated: () => villagerFacade.relocateWithHome(),
     });
     world.root.add(
       animationState.cottage.root,
       animationState.yard.root,
       animationState.stoneYard.root,
+      animationState.research.root,
       ...animationState.villagers.map((member) => member.root),
     );
     scene.add(world.root);
@@ -518,6 +549,7 @@ async function start() {
       villagers: animationState.villagers,
       cottage: animationState.cottage,
       stoneYard: animationState.stoneYard,
+      research: animationState.research,
       harvest: animationState.harvest,
       village: animationState.village,
       yard: animationState.yard,

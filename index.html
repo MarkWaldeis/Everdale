@@ -149,7 +149,7 @@
         <div>
           <p class="eyebrow">Im Holzhaus</p>
           <h2>Lena, John und Sophie wohnen hier.</h2>
-          <p>Tippe einen Baum oder Stein, dann eine freie Person. Holz kommt ins Holzlager, Steine ins Steinlager.</p>
+          <p>Tippe Baum, Stein oder das Alchemie-Labor. Wer im Labor ist, kommt wieder raus, wenn du ihn woanders hinsendest.</p>
         </div>
       </aside>
 
@@ -165,6 +165,7 @@
           <li><span class="swatch swatch-cottage"></span>Holzhaus</li>
           <li><span class="swatch swatch-axe"></span>Holzlager</li>
           <li><span class="swatch swatch-stone"></span>Steinlager</li>
+          <li><span class="swatch swatch-cottage"></span>Alchemie</li>
         </ul>
       </section>
 
@@ -205,6 +206,9 @@
             <button class="village-edit-action is-cancel" id="village-edit-cancel" type="button" aria-label="Abbrechen">
               <img src="./ui/btn-cancel.jpg" alt="" width="96" height="96" />
             </button>
+            <button class="village-edit-action is-rotate" id="village-edit-rotate" type="button" aria-label="Drehen">
+              ↻
+            </button>
             <button class="village-edit-action is-confirm" id="village-edit-confirm" type="button" aria-label="Hierhin stellen">
               <img src="./ui/btn-confirm.jpg" alt="" width="96" height="96" />
             </button>
@@ -215,7 +219,7 @@
 
       <div class="interaction-hint" aria-hidden="true">
         <span class="mouse-symbol"></span>
-        Baum oder Stein antippen <i></i> Anordnen für Gebäude
+        Baum, Stein oder Labor antippen <i></i> Anordnen zum Drehen
       </div>
 
       <div class="harvest-meter" id="harvest-meter" hidden>

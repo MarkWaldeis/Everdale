@@ -93,6 +93,7 @@ export function createHarvestDirector({
   cottage,
   yard,
   stoneYard,
+  research,
   surfaceY,
   setFollowTarget,
   isPlacementActive,
@@ -118,6 +119,7 @@ export function createHarvestDirector({
     down: null,
     hovered: null,
     selected: null,
+    mode: "harvest",
     falling: [],
   };
 
@@ -194,11 +196,13 @@ export function createHarvestDirector({
   }
 
   function statusFor(member) {
+    if (member.isAtLab?.()) return "Im Labor";
     if (!member.isBusy()) return "Frei";
     const state = member.getState();
     if (state === "job-walk-home" || state === "home-approach" || state === "ascend-porch") {
       return "Nach Hause";
     }
+    if (state.startsWith("visit-")) return "Zum Labor";
     if (state === "job-walk-storage" || state === "job-align-storage" || state === "job-deposit") {
       return "Zum Lager";
     }
@@ -210,18 +214,22 @@ export function createHarvestDirector({
 
   function refreshWorkerCard() {
     const selected = pointerState.selected;
-    const canAssign = Boolean(
-      selected &&
-        selected.userData.harvestState !== "gone" &&
-        selected.userData.harvestState !== "falling" &&
-        selected.userData.harvestState !== "assigned" &&
-        selected.userData.harvestState !== "chopping",
-    );
+    const visitingLab = pointerState.mode === "research";
+    const canAssign = visitingLab
+      ? true
+      : Boolean(
+          selected &&
+            selected.userData.harvestState !== "gone" &&
+            selected.userData.harvestState !== "falling" &&
+            selected.userData.harvestState !== "assigned" &&
+            selected.userData.harvestState !== "chopping",
+        );
     workerButtons.forEach((button) => {
       const member = roster.find((entry) => entry.getId() === button.dataset.villager);
       if (!member) return;
       const busy = member.isBusy();
-      button.disabled = busy || !canAssign;
+      const alreadyInLab = visitingLab && member.isAtLab?.();
+      button.disabled = busy || !canAssign || alreadyInLab;
       button.classList.toggle("is-busy", busy);
       const status = button.querySelector(".worker-state");
       if (status) status.textContent = statusFor(member);
@@ -249,9 +257,12 @@ export function createHarvestDirector({
     }
 
     if (!tree) {
+      pointerState.mode = "harvest";
       setTrayOpen(false);
       return;
     }
+
+    pointerState.mode = "harvest";
 
     const label = TREE_LABELS[tree.userData.assetId] ?? "Baum";
     const action = tree.userData.harvestKind === "stone" ? "abbauen" : "fällen";
@@ -361,12 +372,52 @@ export function createHarvestDirector({
     if (meter) meter.hidden = true;
   }
 
+  function selectResearch() {
+    if (pointerState.selected?.userData.harvestState === "selected") {
+      pointerState.selected.userData.harvestState = "idle";
+    }
+    pointerState.selected = null;
+    pointerState.mode = "research";
+    placeMarker(null);
+    if (trayTitle) trayTitle.textContent = "Alchemie · Forschen";
+    refreshWorkerCard();
+    setTrayOpen(true);
+  }
+
+  function pickResearch(clientX, clientY) {
+    if (!research?.root) return null;
+    const bounds = canvas.getBoundingClientRect();
+    scratch.pointer.x = ((clientX - bounds.left) / bounds.width) * 2 - 1;
+    scratch.pointer.y = -((clientY - bounds.top) / bounds.height) * 2 + 1;
+    raycaster.setFromCamera(scratch.pointer, camera);
+    const hits = raycaster.intersectObject(research.root, true);
+    return hits.length ? research : null;
+  }
+
   function yardBlock(storage) {
     if (!storage?.root) return null;
     return { x: storage.root.position.x, z: storage.root.position.z, radius: 1.15 };
   }
 
+  function assignVisit(member) {
+    if (!research || !member || member.isBusy() || member.isAtLab?.()) return;
+    const accepted = member.assignJob({
+      kind: "visit",
+      approach: research.points.approach.clone(),
+      lookAt: research.points.look.clone(),
+      storageBlock: [yardBlock(yard), yardBlock(stoneYard)].filter(Boolean),
+      onArrived: () => refreshWorkerCard(),
+    });
+    if (!accepted) return;
+    refreshWorkerCard();
+    setFollowTarget?.(member.root, research.root, member);
+  }
+
   function assignWorker(member) {
+    if (pointerState.mode === "research") {
+      assignVisit(member);
+      return;
+    }
     const tree = pointerState.selected;
     if (!tree || !member || member.isBusy()) return;
     if (tree.userData.harvestState === "gone" || tree.userData.harvestState === "falling") {
@@ -385,7 +436,11 @@ export function createHarvestDirector({
       lookAt: tree.position.clone(),
       storageApproach: isStone ? stoneYard?.stand : yard?.stand,
       storageLook: isStone ? stoneYard?.look : yard?.look,
-      storageBlock: [yardBlock(yard), yardBlock(stoneYard)].filter(Boolean),
+      storageBlock: [
+        yardBlock(yard),
+        yardBlock(stoneYard),
+        research ? { x: research.root.position.x, z: research.root.position.z, radius: 1.35 } : null,
+      ].filter(Boolean),
       hitsNeeded: CHOP_HITS,
       onStartChop: () => {
         tree.userData.harvestState = "chopping";
@@ -555,8 +610,9 @@ export function createHarvestDirector({
       return;
     }
     const tree = pickTree(event.clientX, event.clientY);
-    pointerState.hovered = tree;
-    canvas.classList.toggle("is-over-tree", Boolean(tree));
+    const labHit = !tree && pickResearch(event.clientX, event.clientY);
+    pointerState.hovered = tree || labHit;
+    canvas.classList.toggle("is-over-tree", Boolean(tree || labHit));
   }
 
   function onPointerUp(event) {
@@ -570,8 +626,16 @@ export function createHarvestDirector({
     if (travel > CLICK_SLOP) return;
     if (event.target?.closest?.(".panel, .worker-dock, .harvest-meter")) return;
 
+    const labHit = pickResearch(event.clientX, event.clientY);
+    if (labHit) {
+      if (pointerState.mode === "research") {
+        selectTree(null);
+        return;
+      }
+      selectResearch();
+      return;
+    }
     const tree = pickTree(event.clientX, event.clientY);
-    // Erneutes Antippen des gewählten Baums schließt das Menü wieder.
     if (tree && tree === pointerState.selected) {
       selectTree(null);
       return;
@@ -615,6 +679,7 @@ export function createHarvestDirector({
     update,
     getSelected: () => pointerState.selected,
     selectTree,
+    selectResearch,
     assignSelectedWorker,
   };
 }

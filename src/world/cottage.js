@@ -108,6 +108,11 @@ export function createCottage(cottageModel, surfaceY) {
     refreshAnchors();
   }
 
+  function setYaw(yaw) {
+    root.rotation.y = yaw;
+    refreshAnchors();
+  }
+
   let doorOwner = null;
 
   function claimDoor(ownerId) {
@@ -145,6 +150,8 @@ export function createCottage(cottageModel, surfaceY) {
     surfaceY,
     refreshAnchors,
     setWorldPosition,
+    setYaw,
+    getYaw: () => root.rotation.y,
     claimDoor,
     releaseDoor,
     setDoorProgress,

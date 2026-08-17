@@ -39,6 +39,12 @@ const STATES = Object.freeze({
   JOB_ALIGN_STORAGE: "job-align-storage",
   JOB_DEPOSIT: "job-deposit",
   JOB_WALK_HOME: "job-walk-home",
+  VISIT_WALK: "visit-walk",
+  VISIT_ALIGN: "visit-align",
+  VISIT_ENTER: "visit-enter",
+  VISIT_INSIDE: "visit-inside",
+  VISIT_EXIT: "visit-exit",
+  VISIT_LEAVE: "visit-leave",
 });
 
 const JOB_STATES = new Set([
@@ -52,6 +58,11 @@ const JOB_STATES = new Set([
   STATES.JOB_ALIGN_STORAGE,
   STATES.JOB_DEPOSIT,
   STATES.JOB_WALK_HOME,
+  STATES.VISIT_WALK,
+  STATES.VISIT_ALIGN,
+  STATES.VISIT_ENTER,
+  STATES.VISIT_EXIT,
+  STATES.VISIT_LEAVE,
 ]);
 
 const DEPOSIT_TIME = 1.2;
@@ -351,6 +362,7 @@ export function createCharacterController(
   root.position.set(-0.72, walkArea.surfaceY, 1.15);
   root.add(model);
   const axe = axeModel ? createAxeWielder(model, axeModel) : null;
+  const lab = extraTools.lab ?? null;
   const pickaxe = extraTools.pickaxe
     ? createAxeWielder(model, extraTools.pickaxe, {
         targetLength: 0.36,
@@ -363,6 +375,27 @@ export function createCharacterController(
   function holsterTools() {
     axe?.setCarried(false);
     pickaxe?.setCarried(false);
+  }
+
+  let meshFade = 1;
+
+  function applyMeshFade(value) {
+    meshFade = THREE.MathUtils.clamp(value, 0, 1);
+    model.traverse((child) => {
+      if (!child.isMesh || !child.material) return;
+      const materials = Array.isArray(child.material) ? child.material : [child.material];
+      materials.forEach((material) => {
+        material.transparent = true;
+        material.opacity = meshFade;
+        material.depthWrite = meshFade > 0.92;
+      });
+    });
+    if (meshFade <= 0.02) model.visible = false;
+    else if (meshFade > 0.02) model.visible = true;
+  }
+
+  function isStationed() {
+    return state === STATES.REST_INSIDE || state === STATES.VISIT_INSIDE;
   }
 
   function driveDoor(progress, force = false) {
@@ -781,8 +814,75 @@ export function createCharacterController(
       case STATES.JOB_WALK: {
         driveDoor(0);
         followWaypoints(job.path, "pathIndex", job.approach, () => {
-          transition(STATES.JOB_ALIGN);
+          transition(job?.kind === "visit" ? STATES.VISIT_ALIGN : STATES.JOB_ALIGN);
         }, delta);
+        break;
+      }
+
+      case STATES.VISIT_WALK: {
+        holsterTools();
+        followWaypoints(job.path, "pathIndex", job.approach, () => {
+          transition(STATES.VISIT_ALIGN);
+        }, delta);
+        break;
+      }
+
+      case STATES.VISIT_ALIGN: {
+        stopMoving(delta);
+        holsterTools();
+        const remaining = faceToward(job.lookAt ?? job.approach, delta);
+        if (stateTime >= 0.28 && remaining < 0.1) {
+          applyMeshFade(1);
+          model.visible = true;
+          transition(STATES.VISIT_ENTER);
+        }
+        break;
+      }
+
+      case STATES.VISIT_ENTER: {
+        holsterTools();
+        const inside = lab?.points.inside ?? job.approach;
+        const arrived = moveToward(inside, DOOR_WALK_SPEED, delta, false, true);
+        applyMeshFade(1 - smootherStep(Math.min(stateTime / 1.6, 1)));
+        if (arrived || stateTime >= 3.4) {
+          applyMeshFade(0);
+          model.visible = false;
+          job.onArrived?.();
+          transition(STATES.VISIT_INSIDE);
+        }
+        break;
+      }
+
+      case STATES.VISIT_INSIDE:
+        stopMoving(delta);
+        holsterTools();
+        applyMeshFade(0);
+        model.visible = false;
+        break;
+
+      case STATES.VISIT_EXIT: {
+        holsterTools();
+        model.visible = true;
+        applyMeshFade(smootherStep(Math.min(stateTime / 0.45, 1)));
+        const exitPoint = lab?.points.threshold ?? lab?.points.approach ?? job.approach;
+        if (moveToward(exitPoint, DOOR_WALK_SPEED, delta, false, true) && stateTime >= 0.4) {
+          applyMeshFade(1);
+          transition(STATES.VISIT_LEAVE);
+        }
+        break;
+      }
+
+      case STATES.VISIT_LEAVE: {
+        holsterTools();
+        applyMeshFade(1);
+        const depart = lab?.points.depart ?? job.approach;
+        if (moveToward(depart, DOOR_WALK_SPEED, delta, false, true)) {
+          if (job?.kind === "visit" && !job.tree) {
+            beginWalkHome();
+          } else {
+            transition(STATES.JOB_WALK);
+          }
+        }
         break;
       }
 
@@ -937,7 +1037,11 @@ export function createCharacterController(
     stateTime += safeDelta;
     reachWeight = 0;
 
-    if (JOB_STATES.has(state) && job && home) {
+    if (state === STATES.VISIT_INSIDE) {
+      holsterTools();
+      applyMeshFade(0);
+      model.visible = false;
+    } else if (JOB_STATES.has(state) && job && home) {
       updateJob(safeDelta);
     } else if (state === STATES.REST_INSIDE && home) {
       updateHomeSequence(safeDelta);
@@ -960,12 +1064,17 @@ export function createCharacterController(
   }
 
   function isBusy() {
-    return Boolean(job) && state !== STATES.REST_INSIDE;
+    return Boolean(job) && !isStationed();
+  }
+
+  function isAtLab() {
+    return state === STATES.VISIT_INSIDE;
   }
 
   function isIndoors() {
     return (
       !model.visible ||
+      state === STATES.VISIT_INSIDE ||
       state === STATES.REST_INSIDE ||
       state === STATES.CLOSE_INSIDE ||
       state === STATES.ENTER
@@ -973,7 +1082,12 @@ export function createCharacterController(
   }
 
   function relocateWithHome() {
-    if (!home || !isIndoors()) return;
+    if (!isIndoors()) return;
+    if (state === STATES.VISIT_INSIDE && lab) {
+      root.position.copy(lab.points.inside);
+      return;
+    }
+    if (!home) return;
     root.position.copy(home.points.inside);
   }
 
@@ -1073,9 +1187,11 @@ export function createCharacterController(
 
   function buildJobPaths(nextJob) {
     const startPoint =
-      state === STATES.REST_INSIDE || !model.visible
-        ? home.points.depart.clone()
-        : root.position.clone();
+      state === STATES.VISIT_INSIDE && lab
+        ? lab.points.depart.clone()
+        : state === STATES.REST_INSIDE || !model.visible
+          ? home.points.depart.clone()
+          : root.position.clone();
     const extras = Array.isArray(nextJob.storageBlock)
       ? nextJob.storageBlock.filter(Boolean)
       : nextJob.storageBlock
@@ -1104,7 +1220,7 @@ export function createCharacterController(
 
   function assignJob(nextJob) {
     if (!home || !nextJob) return false;
-    if (job && state !== STATES.REST_INSIDE) return false;
+    if (job && !isStationed()) return false;
 
     const routes = buildJobPaths(nextJob);
     job = {
@@ -1129,6 +1245,13 @@ export function createCharacterController(
     };
     lastImpactCycle = -1;
     holsterTools();
+
+    if (state === STATES.VISIT_INSIDE) {
+      model.visible = false;
+      applyMeshFade(0);
+      transition(STATES.VISIT_EXIT);
+      return true;
+    }
 
     if (state === STATES.REST_INSIDE || state === STATES.CLOSE_INSIDE) {
       model.visible = false;
@@ -1162,10 +1285,12 @@ export function createCharacterController(
     getId: () => villagerId,
     getLabel: () => villagerLabel,
     getJobTool: () => job?.tool ?? null,
+    isAtLab,
     getState: () => state,
     debugResetToHome: () => {
       job = null;
       holsterTools();
+      applyMeshFade(1);
       home?.releaseDoor?.(villagerId);
       if (home) {
         root.position.copy(home.points.inside);

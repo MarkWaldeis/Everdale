@@ -201,6 +201,7 @@ export function createVillageEditor({
     actions: document.querySelector("#village-edit-actions"),
     confirm: document.querySelector("#village-edit-confirm"),
     cancel: document.querySelector("#village-edit-cancel"),
+    rotate: document.querySelector("#village-edit-rotate"),
     done: document.querySelector("#village-edit-done"),
   };
 
@@ -270,7 +271,7 @@ export function createVillageEditor({
       if (ui.title) ui.title.textContent = state.holding.label;
       if (ui.hint) {
         ui.hint.textContent = state.valid
-          ? "Tippe ein Feld oder ziehe das Gebäude dorthin."
+          ? "Ziehe es auf ein Feld oder drehe es mit ↻."
           : "Zu nah an einem anderen Gebäude oder außerhalb des Dorfs.";
       }
       if (ui.actions) ui.actions.hidden = false;
@@ -381,6 +382,12 @@ export function createVillageEditor({
     refreshHud();
   }
 
+  function rotateHold() {
+    if (!state.holding) return;
+    grid.rotate(state.holding.id, 1);
+    setPreview(state.previewCol, state.previewRow);
+  }
+
   function setActive(next) {
     if (next && !canEditNow()) {
       if (ui.hint && ui.bar) {
@@ -480,8 +487,16 @@ export function createVillageEditor({
     event.preventDefault();
     cancelHold();
   });
+  ui.rotate?.addEventListener("click", (event) => {
+    event.preventDefault();
+    rotateHold();
+  });
   window.addEventListener("keydown", (event) => {
     if (!state.active) return;
+    if (event.key === "r" || event.key === "R") {
+      rotateHold();
+      return;
+    }
     if (event.key === "Escape") {
       if (state.holding) cancelHold();
       else setActive(false);
@@ -524,7 +539,7 @@ export function createVillageEditor({
         walkArea.surfaceY + state.lift * LIFT_HEIGHT + bob,
         world.z,
       );
-      if (state.holding.id === "cottage") {
+      if (state.holding.id === "cottage" || state.holding.id === "research") {
         const lift = state.lift * LIFT_HEIGHT + bob;
         if (character.liftIndoors) {
           character.liftIndoors(lift);
