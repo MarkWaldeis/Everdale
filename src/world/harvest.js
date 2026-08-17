@@ -255,7 +255,10 @@ export function createHarvestDirector({
 
     const label = TREE_LABELS[tree.userData.assetId] ?? "Baum";
     const action = tree.userData.harvestKind === "stone" ? "abbauen" : "fällen";
-    if (trayTitle) trayTitle.textContent = `${label} ${action}`;
+    const inArbeit = tree.userData.harvestState === "assigned" || tree.userData.harvestState === "chopping";
+    if (trayTitle) {
+      trayTitle.textContent = inArbeit ? `${label} ist bereits in Arbeit` : `${label} ${action}`;
+    }
     refreshWorkerCard();
     setTrayOpen(true);
   }
@@ -423,9 +426,8 @@ export function createHarvestDirector({
     tree.userData.harvestState = "assigned";
     tree.userData.assignedWorkerId = member.getId();
     tree.userData.lockSway = true;
-    placeMarker(null);
     refreshWorkerCard();
-    setTrayOpen(true);
+    selectTree(null);
     setFollowTarget?.(member.root, tree, member);
   }
 
@@ -569,6 +571,11 @@ export function createHarvestDirector({
     if (event.target?.closest?.(".panel, .worker-dock, .harvest-meter")) return;
 
     const tree = pickTree(event.clientX, event.clientY);
+    // Erneutes Antippen des gewählten Baums schließt das Menü wieder.
+    if (tree && tree === pointerState.selected) {
+      selectTree(null);
+      return;
+    }
     selectTree(tree);
   }
 
