@@ -129,7 +129,6 @@ export function createVillageEditor({
   character,
   controls,
   onModeChange,
-  setCameraView,
 }) {
   const grid = createVillageGrid({
     radiusX: walkArea.radiusX,
@@ -404,11 +403,6 @@ export function createVillageEditor({
     if (!next) cancelHold();
     state.active = next;
     overlay.visible = true;
-    if (next) {
-      setCameraView?.("arrange");
-    } else {
-      setCameraView?.("clearing");
-    }
     refreshHud();
     onModeChange?.(next);
   }
@@ -534,9 +528,10 @@ export function createVillageEditor({
       const world = footprintWorld(state.previewCol, state.previewRow, state.holding.w, state.holding.h);
       const bob = Math.sin(elapsed * 3.1) * 0.03 * state.lift;
       const shakeX = Math.sin(elapsed * 38) * 0.05 * state.shake;
+      const groundY = state.holding.root.userData.groundY ?? walkArea.surfaceY;
       state.holding.root.position.set(
         world.x + shakeX,
-        walkArea.surfaceY + state.lift * LIFT_HEIGHT + bob,
+        groundY + state.lift * LIFT_HEIGHT + bob,
         world.z,
       );
       if (state.holding.id === "cottage" || state.holding.id === "research") {
@@ -550,7 +545,7 @@ export function createVillageEditor({
       }
     } else {
       grid.list().forEach((building) => {
-        building.root.position.y = walkArea.surfaceY;
+        building.root.position.y = building.root.userData.groundY ?? walkArea.surfaceY;
       });
     }
 

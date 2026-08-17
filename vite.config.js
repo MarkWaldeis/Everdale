@@ -7,7 +7,7 @@ export default defineConfig({
     watch: {
       // Large binary source assets do not need hot-module reloading and can be
       // temporarily locked while the user copies new models into the folder.
-      ignored: ["**/*.glb", "**/*.gltf"],
+      ignored: ["**/*.glb", "**/*.gltf", "**/temp_animations/**"],
     },
   },
   build: {

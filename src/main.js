@@ -17,7 +17,6 @@ const canvas = document.querySelector("#world-canvas");
 const errorMessage = document.querySelector("#error-message");
 const errorDetail = document.querySelector("#error-detail");
 const windToggle = document.querySelector("#wind-toggle");
-const viewButtons = [...document.querySelectorAll("[data-view]")];
 const loadingScreen = document.querySelector("#loading-screen");
 const loadingBarFill = document.querySelector("#loading-bar-fill");
 const loadingLabel = document.querySelector("#loading-label");
@@ -57,28 +56,16 @@ renderer.shadowMap.type = THREE.PCFSoftShadowMap;
 const controls = new OrbitControls(camera, renderer.domElement);
 controls.enableDamping = true;
 controls.dampingFactor = 0.055;
-controls.enablePan = false;
-controls.screenSpacePanning = false;
-// Supercell-style: almost top-down, slight tilt, zoom only.
-const PLAY_POLAR = THREE.MathUtils.degToRad(34);
-const PLAY_YAW = 0.58;
-controls.enableRotate = false;
-controls.minPolarAngle = PLAY_POLAR;
-controls.maxPolarAngle = PLAY_POLAR;
-controls.minDistance = 9;
-controls.maxDistance = 78;
-controls.target.set(0, 0.25, 0);
-
-function cameraOffset(distance) {
-  const horiz = Math.sin(PLAY_POLAR) * distance;
-  const height = Math.cos(PLAY_POLAR) * distance;
-  return new THREE.Vector3(Math.sin(PLAY_YAW) * horiz, height, Math.cos(PLAY_YAW) * horiz);
-}
-
-function makeView(tx, ty, tz, distance) {
-  const target = new THREE.Vector3(tx, ty, tz);
-  return { position: target.clone().add(cameraOffset(distance)), target };
-}
+controls.enablePan = true;
+controls.screenSpacePanning = true;
+controls.enableRotate = true;
+controls.minPolarAngle = THREE.MathUtils.degToRad(8);
+controls.maxPolarAngle = THREE.MathUtils.degToRad(78);
+controls.minDistance = 4;
+controls.maxDistance = 90;
+controls.target.set(0.4, 0.45, 0.2);
+camera.position.set(16, 14, 18);
+camera.lookAt(controls.target);
 
 const hemisphere = new THREE.HemisphereLight(0xeaf8ff, 0x6f7a3a, 2.3);
 scene.add(hemisphere);
@@ -100,57 +87,6 @@ const fill = new THREE.DirectionalLight(0xaed8ff, 0.9);
 fill.position.set(10, 7, -9);
 scene.add(fill);
 
-const cameraViews = {
-  cottage: {
-    ...makeView(-1.6, 0.35, -2.2, 16),
-    mobilePosition: makeView(-1.6, 0.35, -2.2, 20).position,
-    mobileTarget: new THREE.Vector3(-1.6, 0.35, -2.2),
-  },
-  village: makeView(0, 0.2, 0, 46),
-  clearing: makeView(0.2, 0.22, 0.1, 28),
-  map: makeView(0, 0.15, 0, 64),
-  arrange: {
-    ...makeView(0.3, 0.12, -0.4, 24),
-    mobilePosition: makeView(0.3, 0.12, -0.4, 22).position,
-    mobileTarget: new THREE.Vector3(0.3, 0.12, -0.4),
-  },
-};
-
-const cottageActionViews = {
-  entry: cameraViews.cottage,
-  close: makeView(-1.6, 0.35, -2.2, 16),
-};
-
-const COTTAGE_CLOSE_CAMERA_STATES = new Set([
-  "close-inside",
-  "rest-inside",
-  "open-to-exit",
-  "exit",
-  "position-to-close",
-  "align-to-close",
-  "reach-to-close",
-  "close-outside",
-  "leave-porch",
-  "job-open-to-exit",
-  "job-exit",
-]);
-
-const FOLLOW_CAMERA_STATES = new Set([
-  "job-leave-porch",
-  "job-walk",
-  "job-align",
-  "job-chop",
-  "job-walk-storage",
-  "job-align-storage",
-  "job-deposit",
-  "job-walk-home",
-  "visit-walk",
-  "visit-align",
-  "visit-enter",
-  "visit-exit",
-  "visit-leave",
-]);
-
 const animationState = {
   trees: [],
   stones: [],
@@ -163,93 +99,8 @@ const animationState = {
   village: null,
   debugPaused: false,
   windEnabled: !window.matchMedia("(prefers-reduced-motion: reduce)").matches,
-  cameraTween: null,
-  cottageCameraStage: "entry",
-  cameraUserControlled: false,
-  follow: null,
 };
 let previousFrameTime = performance.now();
-let activeCameraView = "clearing";
-
-function setCameraView(name, immediate = false) {
-  const view = cameraViews[name];
-  if (!view) return;
-  activeCameraView = name;
-  animationState.cameraUserControlled = false;
-  const useMobileView = window.innerWidth < 640 && view.mobilePosition && view.mobileTarget;
-  const stagedView =
-    name === "cottage" && !useMobileView
-      ? cottageActionViews[animationState.cottageCameraStage]
-      : view;
-  const endPosition = useMobileView ? view.mobilePosition : stagedView.position;
-  const endTarget = useMobileView ? view.mobileTarget : stagedView.target;
-
-  viewButtons.forEach((button) => {
-    button.classList.toggle("is-active", button.dataset.view === name);
-  });
-
-  const duration = immediate || window.matchMedia("(prefers-reduced-motion: reduce)").matches ? 0 : 780;
-  animationState.cameraTween = {
-    startedAt: performance.now(),
-    duration,
-    startPosition: camera.position.clone(),
-    startTarget: controls.target.clone(),
-    endPosition: endPosition.clone(),
-    endTarget: endTarget.clone(),
-  };
-
-  if (duration === 0) updateCameraTween(performance.now());
-}
-
-function updateCottageCameraStage() {
-  if (animationState.follow) return;
-  const members = animationState.villagers.length
-    ? animationState.villagers
-    : animationState.character
-      ? [animationState.character]
-      : [];
-  if (!members.length) return;
-  const nextStage = members.some((member) => COTTAGE_CLOSE_CAMERA_STATES.has(member.getState()))
-    ? "close"
-    : "entry";
-  if (nextStage === animationState.cottageCameraStage) return;
-  animationState.cottageCameraStage = nextStage;
-
-  if (
-    activeCameraView !== "cottage" ||
-    window.innerWidth < 640 ||
-    animationState.cameraUserControlled
-  ) {
-    return;
-  }
-
-  const view = cottageActionViews[nextStage];
-  const duration = window.matchMedia("(prefers-reduced-motion: reduce)").matches
-    ? 0
-    : 1350;
-  animationState.cameraTween = {
-    startedAt: performance.now(),
-    duration,
-    startPosition: camera.position.clone(),
-    startTarget: controls.target.clone(),
-    endPosition: view.position.clone(),
-    endTarget: view.target.clone(),
-  };
-
-  if (duration === 0) updateCameraTween(performance.now());
-}
-
-function updateCameraTween(now) {
-  const tween = animationState.cameraTween;
-  if (!tween) return;
-
-  const progress = tween.duration === 0 ? 1 : Math.min((now - tween.startedAt) / tween.duration, 1);
-  const eased = 1 - (1 - progress) ** 3;
-  camera.position.lerpVectors(tween.startPosition, tween.endPosition, eased);
-  controls.target.lerpVectors(tween.startTarget, tween.endTarget, eased);
-
-  if (progress >= 1) animationState.cameraTween = null;
-}
 
 function updateWind(elapsed) {
   animationState.trees.forEach((tree) => {
@@ -266,72 +117,17 @@ function updateWind(elapsed) {
   });
 }
 
-function setFollowTarget(characterRoot, tree, actor = null) {
-  animationState.follow = { characterRoot, tree, actor };
-  animationState.cameraUserControlled = false;
-  animationState.cameraTween = null;
-}
-
-function updateFollowCamera() {
-  const follow = animationState.follow;
-  if (!follow || animationState.cameraUserControlled) return;
-  const actor = follow.actor ?? animationState.character;
-  if (!actor) return;
-  if (animationState.cameraTween) return;
-  if (!FOLLOW_CAMERA_STATES.has(actor.getState())) {
-    if (actor.getState() === "rest-inside") animationState.follow = null;
-    return;
-  }
-
-  const origin = follow.characterRoot.position;
-  const desiredTarget = new THREE.Vector3(origin.x, origin.y + 0.25, origin.z);
-  if (follow.tree) {
-    desiredTarget.lerp(follow.tree.position, 0.22);
-    desiredTarget.y = origin.y + 0.28;
-  }
-  const desiredPosition = origin.clone().add(cameraOffset(16));
-  camera.position.lerp(desiredPosition, 0.045);
-  controls.target.lerp(desiredTarget, 0.05);
-}
+function setFollowTarget() {}
 
 function bindInterface() {
-  let orbitPointer = null;
-  canvas.addEventListener("pointerdown", (event) => {
-    if (event.button !== 0) return;
-    orbitPointer = { x: event.clientX, y: event.clientY };
-  });
-  window.addEventListener("pointermove", (event) => {
-    if (!orbitPointer) return;
-    if (Math.hypot(event.clientX - orbitPointer.x, event.clientY - orbitPointer.y) > 8) {
-      animationState.cameraUserControlled = true;
-      animationState.cameraTween = null;
-      orbitPointer = null;
-    }
-  });
-  window.addEventListener("pointerup", () => {
-    orbitPointer = null;
-  });
-
-  viewButtons.forEach((button) => {
-    button.addEventListener("click", () => setCameraView(button.dataset.view));
-  });
-
   document.querySelector("#brand-home").addEventListener("click", (event) => {
     event.preventDefault();
-    setCameraView("village");
   });
 
   windToggle.setAttribute("aria-pressed", String(animationState.windEnabled));
   windToggle.addEventListener("click", () => {
     animationState.windEnabled = !animationState.windEnabled;
     windToggle.setAttribute("aria-pressed", String(animationState.windEnabled));
-  });
-
-  window.addEventListener("keydown", (event) => {
-    if (event.key === "1") setCameraView("village");
-    if (event.key === "2") setCameraView("clearing");
-    if (event.key === "3") setCameraView("map");
-    if (event.key === "4") setCameraView("cottage");
   });
 }
 
@@ -340,7 +136,6 @@ function onResize() {
   camera.updateProjectionMatrix();
   renderer.setSize(window.innerWidth, window.innerHeight);
   renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
-  setCameraView(activeCameraView, true);
 }
 
 function animate(now = 0) {
@@ -356,9 +151,6 @@ function animate(now = 0) {
     }
     animationState.harvest?.update(delta, now * 0.001);
     animationState.village?.update(delta, now * 0.001);
-    updateCottageCameraStage();
-    updateCameraTween(now);
-    updateFollowCamera();
     controls.update();
   }
   if (animationState.frozenCamera) {
@@ -372,7 +164,6 @@ function animate(now = 0) {
 async function start() {
   bindInterface();
   window.addEventListener("resize", onResize);
-  setCameraView("clearing", true);
   animate();
 
   try {
@@ -477,7 +268,6 @@ async function start() {
       walkArea: world.walkArea,
       character: villagerFacade,
       controls,
-      setCameraView,
       onModeChange: (active) => {
         if (active) animationState.harvest?.selectTree(null);
       },

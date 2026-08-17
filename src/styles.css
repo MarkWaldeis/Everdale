@@ -437,7 +437,6 @@ a:focus-visible {
 }
 
 .is-village-editing .world-note,
-.is-village-editing .view-controls,
 .is-village-editing .interaction-hint,
 .is-village-editing .forest-status,
 .is-village-editing .worker-dock,
@@ -450,72 +449,24 @@ a:focus-visible {
   cursor: default;
 }
 
-.view-controls {
-  right: 24px;
-  bottom: 24px;
-  width: 336px;
-  padding: 14px;
-  border-radius: 22px;
-}
-
-.view-controls .eyebrow {
-  padding: 0 4px;
-}
-
-.view-buttons {
-  display: grid;
-  grid-template-columns: repeat(4, 1fr);
-  gap: 6px;
-}
-
-.view-button,
 .wind-button {
   border: 0;
   color: var(--ink);
   cursor: pointer;
-}
-
-.view-button {
-  min-height: 56px;
+  position: fixed;
+  right: 24px;
+  bottom: 24px;
+  z-index: 6;
+  width: auto;
+  margin-top: 0;
+  padding: 10px 14px;
   border-radius: 14px;
-  background: rgba(29, 53, 39, 0.055);
-  font-size: 0.67rem;
-  font-weight: 700;
-  transition: transform 180ms ease, background 180ms ease, color 180ms ease;
-}
-
-.view-button span {
-  display: block;
-  margin-bottom: 3px;
+  background: rgba(255, 253, 244, 0.88);
   color: var(--ink-soft);
-  font-family: "DM Mono", monospace;
-  font-size: 0.54rem;
-}
-
-.view-button:hover {
-  transform: translateY(-2px);
-}
-
-.view-button.is-active {
-  color: #fffdf4;
-  background: var(--forest);
-  box-shadow: inset 0 -4px 0 rgba(0, 0, 0, 0.11);
-}
-
-.view-button.is-active span {
-  color: rgba(255, 253, 244, 0.66);
-}
-
-.wind-button {
-  width: 100%;
-  margin-top: 7px;
-  padding: 9px 12px;
-  border-radius: 12px;
-  background: transparent;
-  color: var(--ink-soft);
-  font-size: 0.68rem;
+  font-size: 0.72rem;
   font-weight: 700;
   text-align: left;
+  box-shadow: 0 10px 28px rgba(52, 83, 56, 0.12);
 }
 
 .wind-button:hover {
@@ -830,7 +781,7 @@ a:focus-visible {
   line-height: 1;
 }
 
-.has-worker-dock .view-controls,
+.has-worker-dock .wind-button,
 .has-worker-dock .interaction-hint,
 .has-worker-dock .world-note,
 .has-worker-dock .village-edit-toggle {
@@ -938,10 +889,9 @@ a:focus-visible {
     width: calc(100vw - 28px);
   }
 
-  .view-controls {
+  .wind-button {
     right: 14px;
     bottom: 14px;
-    width: calc(100vw - 28px);
   }
 }
 

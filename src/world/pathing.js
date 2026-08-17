@@ -31,6 +31,7 @@ export function createWalkability(cottage, trees = [], options = {}) {
 
   function blocked(point) {
     if (cottage?.containsPoint(point, cottageMargin)) return true;
+    if (options.lab?.containsPoint(point, options.labMargin ?? 0.32)) return true;
     for (const tree of trees) {
       if (tree === ignoreTree) continue;
       if (!tree.visible || tree.userData.harvestState === "gone") continue;

@@ -2,6 +2,8 @@ import * as THREE from "three";
 
 const LAB_POSITION = new THREE.Vector3(2.2, 0, 3.3);
 const LAB_YAW = 2.45;
+const LAB_SINK = 0.28;
+const COLLIDE_SCALE = 0.56;
 
 function pointAlong(anchor, forward, distance, height, lateral = 0) {
   const point = anchor.clone().addScaledVector(forward, distance);
@@ -18,7 +20,8 @@ export function createResearchLab(model, surfaceY) {
   root.name = "research-lab";
   root.add(model);
   root.position.copy(LAB_POSITION);
-  root.position.y = surfaceY;
+  root.position.y = surfaceY - LAB_SINK;
+  root.userData.groundY = surfaceY - LAB_SINK;
   root.rotation.y = LAB_YAW;
   root.updateWorldMatrix(true, true);
 
@@ -75,7 +78,8 @@ export function createResearchLab(model, surfaceY) {
 
   function setWorldPosition(x, z) {
     root.position.x = x;
-    root.position.y = surfaceY;
+    root.position.y = surfaceY - LAB_SINK;
+    root.userData.groundY = surfaceY - LAB_SINK;
     root.position.z = z;
     refreshAnchors();
   }
@@ -89,8 +93,8 @@ export function createResearchLab(model, surfaceY) {
     root.updateWorldMatrix(true, false);
     const localPoint = root.worldToLocal(worldPoint.clone());
     return (
-      Math.abs(localPoint.x) <= size.x * 0.5 + margin &&
-      Math.abs(localPoint.z) <= size.z * 0.5 + margin
+      Math.abs(localPoint.x) <= size.x * 0.5 * COLLIDE_SCALE + margin &&
+      Math.abs(localPoint.z) <= size.z * 0.5 * COLLIDE_SCALE + margin
     );
   }
 

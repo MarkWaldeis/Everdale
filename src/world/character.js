@@ -430,7 +430,8 @@ export function createCharacterController(
 
   const stabilizeHead = createHeadStabilizer(model);
   const doorReach = createArmReacher(model, home?.door.handleAnchor);
-  const isRoamPointAllowed = (point) => !home?.containsPoint(point, 0.72);
+  const isRoamPointAllowed = (point) =>
+    !home?.containsPoint(point, 0.72) && !lab?.containsPoint(point, 0.55);
   let roamTarget = randomPointInEllipse(
     walkArea.radiusX,
     walkArea.radiusZ,
@@ -552,6 +553,25 @@ export function createCharacterController(
       stopMoving(delta, 10);
       if (state === STATES.ROAM) chooseNextRoamTarget(true);
       return false;
+    }
+
+    const passingLab =
+      lab &&
+      (lab.containsPoint(target, 0.18) || lab.containsPoint(root.position, 0.18));
+    if (!passingLab && lab?.containsPoint(scratch.nextPosition, 0.34)) {
+      const slideX = scratch.nextPosition.clone();
+      slideX.z = root.position.z;
+      const slideZ = scratch.nextPosition.clone();
+      slideZ.x = root.position.x;
+      if (!lab.containsPoint(slideX, 0.34)) {
+        scratch.nextPosition.copy(slideX);
+      } else if (!lab.containsPoint(slideZ, 0.34)) {
+        scratch.nextPosition.copy(slideZ);
+      } else {
+        stopMoving(delta, 10);
+        if (state === STATES.ROAM) chooseNextRoamTarget(true);
+        return false;
+      }
     }
 
     if (
@@ -1201,6 +1221,7 @@ export function createCharacterController(
       ignoreTree: nextJob.tree,
       extras,
       treeRadius: 0.55,
+      lab,
     });
     const start = resolveStandPoint(startPoint, walkability, walkArea.surfaceY);
     const approach = resolveStandPoint(nextJob.approach, walkability, walkArea.surfaceY);
