@@ -257,12 +257,16 @@ export function createHarvestDirector({
     workerButtons.forEach((button) => {
       const member = roster.find((entry) => entry.getId() === button.dataset.villager);
       if (!member) return;
-      const busy = member.isBusy();
+      const busy = Boolean(member.hasJob?.() || member.isBusy());
       const alreadyInLab = visitingLab && member.isAtLab?.();
-      button.disabled = busy || !canAssign || alreadyInLab;
+      const canTake = canAssign && !alreadyInLab;
+      button.disabled = !busy && !canTake;
       button.classList.toggle("is-busy", busy);
+      button.classList.toggle("can-cancel", busy);
       const status = button.querySelector(".worker-state");
-      if (status) status.textContent = statusFor(member);
+      if (status) {
+        status.textContent = busy ? `${statusFor(member)} · Abbrechen` : statusFor(member);
+      }
       const pin = button.querySelector(".task-pin");
       if (pin) {
         pin.hidden = !busy;
@@ -276,7 +280,44 @@ export function createHarvestDirector({
                 ? "mine"
                 : "chop";
       }
+      const cancel = button.querySelector(".worker-cancel");
+      if (cancel) cancel.hidden = !busy;
     });
+  }
+
+  function cancelWorker(member) {
+    if (!member) return false;
+    const cancelled = member.cancelJob?.();
+    if (!cancelled && !member.hasJob?.()) {
+      if (!member.isAtLab?.()) return false;
+      member.cancelJob?.();
+    }
+    const tree = cancelled?.tree;
+    if (
+      tree &&
+      tree.userData.harvestState !== "falling" &&
+      tree.userData.harvestState !== "gone"
+    ) {
+      tree.userData.harvestState = "idle";
+      tree.userData.assignedWorkerId = null;
+      tree.userData.lockSway = false;
+    }
+    const id = member.getId();
+    game?.clearBuildingWorker?.("kitchen", id);
+    game?.clearBuildingWorker?.("pumpkin-patch", id);
+    game?.clearBuildingWorker?.("clayPit", id);
+    game?.clearBuildingWorker?.("study", id);
+    game?.setVillagerState?.(id, "IDLE", {
+      assignedBuildingId: null,
+      assignedTaskId: null,
+    });
+    studyLoop?.releaseScholar?.(id);
+    kitchen?.setCooking?.(false);
+    pumpkinField?.finishPick?.();
+    clayPit?.setDigging?.(false);
+    if (meter) meter.hidden = true;
+    refreshWorkerCard();
+    return true;
   }
 
   function selectTree(tree) {
@@ -547,6 +588,17 @@ export function createHarvestDirector({
   }
 
   function assignWorker(member) {
+    if (!member) return;
+    if (member.hasJob?.() || member.isBusy() || member.isAtLab?.()) {
+      const sameTarget = Boolean(
+        pointerState.selected && member.getJobKind && pointerState.selected.userData?.assignedWorkerId === member.getId(),
+      );
+      cancelWorker(member);
+      if (sameTarget) {
+        refreshWorkerCard();
+        return;
+      }
+    }
     if (pointerState.mode === "research") {
       if (!game?.isPlaced?.("study")) return;
       const accepted = studyLoop?.assignScholar?.(member);
@@ -872,5 +924,6 @@ export function createHarvestDirector({
     selectPatch,
     selectClay,
     assignSelectedWorker,
+    cancelWorker,
   };
 }

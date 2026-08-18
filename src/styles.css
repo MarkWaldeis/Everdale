@@ -789,9 +789,13 @@ a:focus-visible {
   transform: translateY(-3px);
 }
 
-.worker-card:disabled,
-.worker-card.is-busy {
+.worker-card:disabled {
   cursor: not-allowed;
+}
+
+.worker-card.is-busy,
+.worker-card.can-cancel {
+  cursor: pointer;
 }
 
 .worker-card.is-busy .worker-frame {
@@ -802,12 +806,29 @@ a:focus-visible {
     0 10px 16px rgba(40, 22, 6, 0.28);
 }
 
-.worker-card.is-busy .worker-portrait {
-  filter: saturate(0.55) brightness(0.82);
-}
-
 .worker-card.is-busy .worker-state {
   color: #ffd08a;
+}
+
+.worker-cancel {
+  position: absolute;
+  right: 4px;
+  bottom: 4px;
+  width: 22px;
+  height: 22px;
+  display: grid;
+  place-items: center;
+  border-radius: 50%;
+  background: #b14520;
+  color: #fff8dc;
+  font-size: 0.72rem;
+  font-weight: 700;
+  box-shadow: 0 2px 0 #7a2a10;
+  pointer-events: none;
+}
+
+.worker-cancel[hidden] {
+  display: none;
 }
 
 .hire-card {

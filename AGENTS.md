@@ -27,3 +27,7 @@ npm run build
 ```
 
 Do not open `index.html` as a file. Use the Vite server or the GitHub Pages build.
+
+## GitHub
+
+After any change that should stay, commit and push to `origin` on the current branch. Do not wait to be asked. Never force-push. Do not commit leftover screenshots, debug captures, or secrets.

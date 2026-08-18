@@ -31,6 +31,15 @@ export function createStudyLoop({ game, study, villagers }) {
     return true;
   }
 
+  function releaseScholar(memberId) {
+    assigned.delete(memberId);
+    game.clearBuildingWorker("study", memberId);
+    game.setVillagerState(memberId, "IDLE", {
+      assignedBuildingId: null,
+      assignedTaskId: null,
+    });
+  }
+
   function update(delta) {
     if (!game.isPlaced("study")) return;
     const researcher = villagers.find(
@@ -43,6 +52,7 @@ export function createStudyLoop({ game, study, villagers }) {
 
   return {
     assignScholar,
+    releaseScholar,
     update,
   };
 }

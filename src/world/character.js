@@ -1458,6 +1458,39 @@ export function createCharacterController(
     };
   }
 
+  function hasJob() {
+    return Boolean(job);
+  }
+
+  function cancelJob() {
+    const cancelled = job;
+    if (!cancelled && state !== STATES.VISIT_INSIDE && state !== STATES.VISIT_ENTER) {
+      return null;
+    }
+    job = null;
+    lastImpactCycle = -1;
+    holsterTools();
+    home?.releaseDoor?.(villagerId);
+    appearWalking();
+    const fromLab =
+      lab &&
+      (state === STATES.VISIT_INSIDE ||
+        state === STATES.VISIT_ENTER ||
+        state === STATES.VISIT_ALIGN ||
+        state === STATES.VISIT_WALK);
+    const outdoor = fromLab
+      ? (lab.points.depart ?? lab.points.approach)
+      : !model.visible || state === STATES.REST_INSIDE || state === STATES.CLOSE_INSIDE
+        ? (home?.points.depart ?? home?.points.approach)
+        : null;
+    if (outdoor) {
+      root.position.copy(outdoor);
+      root.position.y = walkArea.surfaceY;
+    }
+    transition(STATES.ROAM);
+    return cancelled;
+  }
+
   function assignJob(nextJob) {
     if (!home || !nextJob) return false;
     if (job && !isStationed()) return false;
@@ -1519,6 +1552,8 @@ export function createCharacterController(
     update,
     forceHomeSequence,
     assignJob,
+    cancelJob,
+    hasJob,
     chainJob,
     isBusy,
     isIndoors,

@@ -192,10 +192,13 @@ async function start() {
       sophie: assets.characterSophie,
     };
     Object.entries(portraitMap).forEach(([id, model]) => {
-      const image = document.querySelector(`[data-portrait="${id}"]`);
-      if (!image || !model) return;
+      const images = document.querySelectorAll(`[data-portrait="${id}"]`);
+      if (!images.length || !model) return;
       try {
-        image.src = captureCharacterPortrait(model);
+        const url = captureCharacterPortrait(model);
+        images.forEach((image) => {
+          image.src = url;
+        });
       } catch (error) {
         console.warn(`Porträt ${id} konnte nicht erzeugt werden.`, error);
       }
@@ -519,6 +522,9 @@ async function start() {
     const focusVillager = (id) => {
       const member = animationState.villagers.find((entry) => entry.getId() === id);
       if (!member) return;
+      if (member.hasJob?.() || member.isBusy?.() || member.isAtLab?.()) {
+        animationState.harvest?.cancelWorker?.(member);
+      }
       controls.target.copy(member.root.position);
       controls.target.y += 0.6;
     };
