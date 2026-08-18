@@ -66,7 +66,7 @@ export function createClayLoop({
         refreshHud();
       },
       nextJob: () => {
-        if (isFull()) {
+        if (isFull() || !game.canCollectResource?.("clay")) {
           game.clearBuildingWorker("clayPit", member.getId());
           game.setVillagerState(member.getId(), "IDLE", {
             assignedBuildingId: null,
@@ -81,6 +81,7 @@ export function createClayLoop({
 
   function assignDigger(member) {
     if (!member || member.isBusy()) return false;
+    if (!game.canCollectResource?.("clay")) return false;
     if (isFull()) return false;
     const accepted = member.assignJob(makeDigJob(member));
     if (!accepted) return false;

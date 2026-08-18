@@ -5,9 +5,9 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <meta
       name="description"
-      content="Ein sauberer Three.js-Prototyp für eine Everdale-inspirierte Waldwelt."
+      content="Everdale — friedliches Dorfbau-Spiel im Browser."
     />
-    <title>Everdale · Waldprototyp</title>
+    <title>Everdale</title>
     <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'%3E%3Crect width='32' height='32' rx='9' fill='%2339704a'/%3E%3Cpath fill='%23fffdf4' d='m16 5-8 10h4l-5 7h7v6h4v-6h7l-5-7h4L16 5Z'/%3E%3C/svg%3E" />
     <link rel="preconnect" href="https://fonts.googleapis.com" />
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
@@ -108,7 +108,7 @@
             <path d="M17 3 7.7 14h5.1L6 23h8v8h6v-8h8l-6.8-9h5.1L17 3Z" />
           </svg>
           <strong class="loading-title">Everdale</strong>
-          <span class="loading-subtitle">Waldprototyp</span>
+          <span class="loading-subtitle">Dorf</span>
           <div class="loading-bar">
             <span class="loading-bar-fill" id="loading-bar-fill"></span>
           </div>
@@ -119,81 +119,83 @@
         </div>
       </div>
 
-      <header class="brand-panel panel">
-        <a class="brand" href="#" aria-label="Everdale" id="brand-home">
-          <svg viewBox="0 0 34 34" aria-hidden="true">
-            <path d="M17 3 7.7 14h5.1L6 23h8v8h6v-8h8l-6.8-9h5.1L17 3Z" />
-          </svg>
-          <span>
-            <strong>Everdale</strong>
-            <small>Waldprototyp</small>
-          </span>
-        </a>
-        <span class="phase-tag">Phase 05 · Dorf</span>
-        <div class="resource-counters">
-          <div class="wood-counter" id="wood-counter" aria-label="Holzvorrat">
-            <span class="wood-counter-icon" aria-hidden="true"></span>
-            <strong id="wood-count">0</strong>
-            <span class="wood-counter-max">/20</span>
-          </div>
-          <div class="wood-counter stone-counter" id="stone-counter" aria-label="Steinvorrat">
-            <span class="wood-counter-icon stone-counter-icon" aria-hidden="true"></span>
-            <strong id="stone-count">0</strong>
-            <span class="wood-counter-max">/20</span>
-          </div>
-          <div class="wood-counter soup-counter" id="soup-counter" aria-label="Suppenvorrat">
-            <span class="wood-counter-icon soup-counter-icon" aria-hidden="true"></span>
-            <strong id="soup-count">2</strong>
-            <span class="wood-counter-max" id="soup-cap">/10</span>
-          </div>
-          <div class="wood-counter pumpkin-counter" id="pumpkin-counter" aria-label="Kürbisvorrat">
-            <span class="wood-counter-icon pumpkin-counter-icon" aria-hidden="true"></span>
-            <strong id="pumpkin-count">3</strong>
-          </div>
-          <div class="wood-counter clay-counter" id="clay-counter" aria-label="Lehmvorrat">
-            <span class="wood-counter-icon clay-counter-icon" aria-hidden="true"></span>
-            <strong id="clay-count">0</strong>
-            <span class="wood-counter-max">/20</span>
-          </div>
+      <header class="game-hud-top" aria-label="Dorfstatus">
+        <button class="hud-level" id="hud-level-wrap" type="button" aria-label="Stufe und Inventar">
+          <span class="hud-level-mark">Lvl</span>
+          <strong id="hud-level">1</strong>
+          <small id="hud-xp">0 EP</small>
+        </button>
+        <div class="hud-currencies">
+          <span class="hud-pill" aria-label="Gold">🪙 <strong id="hud-gold">0</strong></span>
+          <span class="hud-pill" aria-label="Diamanten">💎 <strong id="hud-gems">0</strong></span>
+          <span class="hud-pill" aria-label="Ruf">❤ <strong id="hud-rep">0</strong></span>
         </div>
+        <button class="hud-icon-btn" id="btn-settings" type="button" aria-label="Einstellungen">
+          <img src="./ui/btn-settings.jpg" alt="" width="72" height="72" />
+        </button>
       </header>
 
-      <aside class="world-note panel" aria-label="Information zur Welt">
-        <span class="note-index">04</span>
-        <div>
-          <p class="eyebrow">Im Dorf</p>
-          <h2>Suppe hält die Arbeit am Laufen.</h2>
-          <p>Tippe die Lehmgrube, damit jemand gräbt. Volle Lager halten die Sammler an.</p>
+      <p class="game-hud-quest" id="hud-quest">Sammle 10 Holz und baue die Studierstube.</p>
+
+      <div class="game-hud-bottom">
+        <div class="hud-soup-row">
+          <div class="hud-pill soup" aria-label="Suppe">🍲 <strong id="hud-soup">2</strong><span id="hud-soup-cap">/10</span></div>
+          <div class="hud-pill" aria-label="Holz">🪵 <strong id="hud-wood">0</strong><span id="hud-wood-cap">/20</span></div>
+          <div class="hud-pill" aria-label="Stein">🪨 <strong id="hud-stone">0</strong></div>
+          <div class="hud-pill" aria-label="Lehm">🧱 <strong id="hud-clay">0</strong></div>
+          <div class="hud-pill" aria-label="Schriftrollen">📜 <strong id="hud-scrolls">0</strong></div>
+          <button class="hud-valley" id="btn-valley" type="button" disabled>Zum Tal</button>
+        </div>
+        <div class="hud-villager-row">
+          <button class="hud-villager" type="button" data-hud-villager="lena" data-villager-chip="lena">
+            <img data-portrait="lena" src="./ui/portrait-bewohnerin.jpg" alt="Lena" width="56" height="72" />
+            <span>Lena</span>
+          </button>
+          <button class="hud-villager" type="button" data-hud-villager="john" data-villager-chip="john">
+            <img data-portrait="john" src="./ui/portrait-bewohnerin.jpg" alt="John" width="56" height="72" />
+            <span>John</span>
+          </button>
+          <button class="hud-villager" type="button" data-hud-villager="sophie" hidden>
+            <img data-portrait="sophie" src="./ui/portrait-bewohnerin.jpg" alt="Sophie" width="56" height="72" />
+            <span>Sophie</span>
+          </button>
+        </div>
+        <div class="hud-actions">
+          <button class="hud-icon-btn" id="btn-build" type="button" aria-label="Bauen">
+            <img src="./ui/btn-build.jpg" alt="" width="72" height="72" />
+            <span>Bauen</span>
+          </button>
+          <button class="hud-icon-btn" id="btn-inventory" type="button" aria-label="Lager">
+            <img src="./ui/btn-inventory.jpg" alt="" width="72" height="72" />
+            <span>Lager</span>
+          </button>
+          <button class="hud-icon-btn" id="btn-research" type="button" aria-label="Forschung">
+            <img src="./ui/btn-research.jpg" alt="" width="72" height="72" />
+            <span>Forschung</span>
+          </button>
+          <button class="hud-icon-btn" id="btn-arrange" type="button" aria-label="Anordnen">
+            <img src="./ui/btn-arrange.jpg" alt="" width="72" height="72" />
+            <span>Anordnen</span>
+          </button>
+        </div>
+      </div>
+
+      <aside class="game-sheet" id="game-sheet" hidden>
+        <div class="game-sheet-plank">
+          <header class="game-sheet-head">
+            <h2 id="sheet-title">Menü</h2>
+            <button class="sheet-close" id="sheet-close" type="button" aria-label="Schließen">×</button>
+          </header>
+          <div class="game-sheet-body" id="sheet-body"></div>
         </div>
       </aside>
 
-      <section class="forest-status panel" aria-label="Verwendete 3D-Assets">
-        <div class="status-heading">
-          <span class="live-dot" aria-hidden="true"></span>
-          <span>Dorf aktiv</span>
-        </div>
-        <ul>
-          <li><span class="swatch swatch-ground"></span>Boden</li>
-          <li><span class="swatch swatch-forest"></span>Wald & Steine</li>
-          <li><span class="swatch swatch-character"></span>Lena, John, Sophie</li>
-          <li><span class="swatch swatch-cottage"></span>Holzhaus</li>
-          <li><span class="swatch swatch-axe"></span>Holzlager</li>
-          <li><span class="swatch swatch-stone"></span>Steinlager</li>
-          <li><span class="swatch swatch-cottage"></span>Alchemie</li>
-          <li><span class="swatch swatch-apple"></span>Küche & Kürbis</li>
-          <li><span class="swatch swatch-clay"></span>Lehmgrube</li>
-        </ul>
-      </section>
-
-      <button class="wind-button" id="wind-toggle" type="button" aria-pressed="true">
-        <span class="wind-icon" aria-hidden="true">≈</span>
-        Wind
-      </button>
-
-      <button class="village-edit-toggle" id="village-edit-toggle" type="button" aria-pressed="false">
-        <img src="./ui/btn-arrange.jpg" alt="" width="128" height="128" />
-        <span>Anordnen</span>
-      </button>
+      <span id="wood-count" hidden>0</span>
+      <span id="stone-count" hidden>0</span>
+      <span id="clay-count" hidden>0</span>
+      <span id="soup-count" hidden>2</span>
+      <span id="soup-cap" hidden>/10</span>
+      <span id="pumpkin-count" hidden>3</span>
 
       <aside class="village-edit-bar" id="village-edit-bar" hidden>
         <div class="village-edit-plank">
@@ -250,7 +252,7 @@
               <span class="worker-name">John</span>
               <small class="worker-state">Frei</small>
             </button>
-            <button class="worker-card" type="button" data-villager="sophie">
+            <button class="worker-card" type="button" data-villager="sophie" hidden>
               <span class="worker-frame">
                 <img class="worker-portrait" data-portrait="sophie" src="./ui/portrait-bewohnerin.jpg" alt="Sophie" width="160" height="214" />
                 <span class="task-pin" hidden data-task="chop"></span>

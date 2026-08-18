@@ -1,8 +1,8 @@
 # Everdale Build Loop
 STATUS: IN_PROGRESS
 Aktuelle Phase: 2
-Letzter Tick: 2026-08-18T16:20:00.000Z
-Nächster Slice: P2 Study as unique self-built GLB (not alchemy reuse) with the first live tech node unlocking a building
+Letzter Tick: 2026-08-18T17:20:00.000Z
+Nächster Slice: Spielbarer Progressions-Start steht (Suppe, Holz, Studierstube bauen, Forschung, gesperrte Spät-Gebäude, Tal hinter Forschung).
 
 ## Gates
 - [ ] no prototype chrome

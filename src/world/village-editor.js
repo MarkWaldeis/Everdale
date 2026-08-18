@@ -193,7 +193,7 @@ export function createVillageEditor({
   const hitPoint = new THREE.Vector3();
 
   const ui = {
-    toggle: document.querySelector("#village-edit-toggle"),
+    toggle: document.querySelector("#btn-arrange") ?? document.querySelector("#village-edit-toggle"),
     bar: document.querySelector("#village-edit-bar"),
     title: document.querySelector("#village-edit-title"),
     hint: document.querySelector("#village-edit-hint"),
@@ -435,7 +435,7 @@ export function createVillageEditor({
   function isHudEvent(event) {
     return Boolean(
       event.target?.closest?.(
-        ".panel, .worker-dock, .village-edit-bar, .village-edit-toggle, .village-edit-done, .wind-button",
+        ".panel, .worker-dock, .village-edit-bar, .village-edit-toggle, .village-edit-done, .wind-button, .game-hud-top, .game-hud-bottom, .game-sheet, .hud-icon-btn",
       ),
     );
   }

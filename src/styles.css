@@ -1115,3 +1115,320 @@ a:focus-visible {
   font-weight: 500;
   color: var(--ink);
 }
+
+.game-hud-top {
+  position: fixed;
+  top: 14px;
+  left: 14px;
+  right: 14px;
+  z-index: 8;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  pointer-events: none;
+}
+
+.game-hud-top > * {
+  pointer-events: auto;
+}
+
+.hud-level {
+  display: flex;
+  align-items: baseline;
+  gap: 8px;
+  border: 0;
+  padding: 8px 14px;
+  border-radius: 18px;
+  background: #3f7a28;
+  color: #fffdf4;
+  box-shadow: inset 0 -3px 0 rgba(0, 0, 0, 0.16), 0 8px 18px rgba(40, 22, 6, 0.2);
+  font-family: "Fredoka", sans-serif;
+  cursor: pointer;
+}
+
+.hud-level-mark {
+  font-size: 0.72rem;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+}
+
+.hud-level strong {
+  font-size: 1.35rem;
+}
+
+.hud-currencies {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+  margin-left: auto;
+}
+
+.hud-pill {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 6px 10px;
+  border-radius: 999px;
+  background: rgba(63, 122, 40, 0.92);
+  color: #fffdf4;
+  font-family: "Fredoka", sans-serif;
+  box-shadow: inset 0 -3px 0 rgba(0, 0, 0, 0.14);
+}
+
+.hud-pill.soup {
+  background: #c45d28;
+}
+
+.game-hud-quest {
+  position: fixed;
+  top: 72px;
+  left: 50%;
+  z-index: 8;
+  transform: translateX(-50%);
+  margin: 0;
+  max-width: min(520px, calc(100vw - 28px));
+  padding: 8px 16px;
+  border-radius: 999px;
+  background: rgba(224, 138, 56, 0.94);
+  color: #fff8dc;
+  font-family: "Fredoka", sans-serif;
+  text-align: center;
+  box-shadow: 0 8px 18px rgba(80, 36, 8, 0.22);
+}
+
+.game-hud-bottom {
+  position: fixed;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  z-index: 8;
+  padding: 10px 12px max(12px, env(safe-area-inset-bottom));
+  display: grid;
+  gap: 8px;
+  background: linear-gradient(180deg, rgba(80, 42, 12, 0), rgba(80, 42, 12, 0.35) 18%, rgba(80, 42, 12, 0.08));
+  pointer-events: none;
+}
+
+.game-hud-bottom > * {
+  pointer-events: auto;
+}
+
+.hud-soup-row,
+.hud-villager-row,
+.hud-actions {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: center;
+  gap: 8px;
+}
+
+.hud-valley,
+.hud-icon-btn,
+.hud-villager {
+  border: 0;
+  cursor: pointer;
+  font-family: "Fredoka", sans-serif;
+  color: #fff8dc;
+}
+
+.hud-valley {
+  padding: 8px 14px;
+  border-radius: 999px;
+  background: #2f6d8a;
+  box-shadow: inset 0 -3px 0 rgba(0, 0, 0, 0.18);
+}
+
+.hud-valley:disabled,
+.hud-valley.is-locked {
+  opacity: 0.45;
+  cursor: not-allowed;
+}
+
+.hud-icon-btn {
+  display: grid;
+  justify-items: center;
+  gap: 2px;
+  background: transparent;
+  min-width: 64px;
+}
+
+.hud-icon-btn img {
+  width: 56px;
+  height: 56px;
+  border-radius: 16px;
+  box-shadow: 0 6px 0 #2f6d14, 0 10px 16px rgba(40, 22, 6, 0.28);
+  object-fit: cover;
+}
+
+.hud-icon-btn span {
+  font-size: 0.78rem;
+}
+
+.hud-villager {
+  display: grid;
+  justify-items: center;
+  gap: 2px;
+  background: transparent;
+}
+
+.hud-villager[hidden],
+.worker-card[hidden] {
+  display: none !important;
+}
+
+.hud-villager img {
+  width: 48px;
+  height: 62px;
+  object-fit: cover;
+  border-radius: 12px;
+  box-shadow: 0 5px 0 #2f6d14;
+}
+
+.hud-villager span {
+  font-size: 0.72rem;
+}
+
+.game-sheet {
+  position: fixed;
+  inset: 0;
+  z-index: 20;
+  display: grid;
+  place-items: center;
+  padding: 16px 16px 110px;
+  background: rgba(24, 32, 20, 0.28);
+}
+
+.game-sheet[hidden] {
+  display: none;
+}
+
+.game-sheet-plank {
+  width: min(520px, 100%);
+  max-height: min(72vh, 640px);
+  overflow: auto;
+  padding: 16px 16px 20px;
+  border-radius: 22px 22px 16px 16px;
+  background:
+    linear-gradient(180deg, rgba(255, 232, 186, 0.2), rgba(255, 232, 186, 0)),
+    #c47a32;
+  box-shadow: 0 -10px 40px rgba(40, 22, 6, 0.35);
+}
+
+.game-sheet-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  margin-bottom: 12px;
+}
+
+.game-sheet-head h2 {
+  margin: 0;
+  color: #fff8dc;
+  font-family: "Fredoka", sans-serif;
+}
+
+.sheet-close {
+  width: 36px;
+  height: 36px;
+  border: 0;
+  border-radius: 50%;
+  background: rgba(80, 36, 8, 0.28);
+  color: #fff8dc;
+  font-size: 1.4rem;
+  cursor: pointer;
+}
+
+.game-sheet-body {
+  display: grid;
+  gap: 8px;
+}
+
+.sheet-card,
+.sheet-action {
+  display: grid;
+  gap: 4px;
+  width: 100%;
+  text-align: left;
+  border: 0;
+  border-radius: 16px;
+  padding: 12px 14px;
+  background: linear-gradient(180deg, #79c33f, #4ea31f);
+  color: #fffdf4;
+  box-shadow: inset 0 2px 0 rgba(255, 255, 255, 0.28), 0 4px 0 #2f6d14;
+  cursor: pointer;
+  font-family: "Nunito Sans", sans-serif;
+}
+
+.sheet-card small,
+.sheet-card em {
+  font-style: normal;
+  opacity: 0.92;
+}
+
+.sheet-card.is-locked,
+.sheet-card:disabled,
+.sheet-card.is-locked {
+  background: #8a7a62;
+  box-shadow: inset 0 2px 0 rgba(255, 255, 255, 0.12), 0 4px 0 #5a4a36;
+  cursor: not-allowed;
+}
+
+.sheet-card.is-ready {
+  background: linear-gradient(180deg, #f0c14d, #d4a017);
+  color: #3a2810;
+  box-shadow: 0 4px 0 #8a6a10;
+}
+
+.sheet-card.is-researching {
+  background: linear-gradient(180deg, #6cb6e3, #2f6d8a);
+}
+
+.sheet-card.is-done {
+  background: linear-gradient(180deg, #79c33f, #3f7a28);
+}
+
+.sheet-action.is-danger {
+  background: linear-gradient(180deg, #e07a4a, #b14520);
+  box-shadow: 0 4px 0 #7a2a10;
+}
+
+.inv-row {
+  display: flex;
+  justify-content: space-between;
+  padding: 8px 12px;
+  border-radius: 12px;
+  background: rgba(255, 248, 220, 0.88);
+  color: #3a2810;
+}
+
+.sheet-hint {
+  margin: 4px 2px 0;
+  color: #fff8dc;
+  font-size: 0.86rem;
+}
+
+.has-worker-dock .game-hud-bottom {
+  opacity: 0.2;
+  pointer-events: none;
+}
+
+.worker-dock {
+  z-index: 11;
+}
+
+@media (max-width: 760px) {
+  .game-hud-quest {
+    top: 64px;
+    font-size: 0.86rem;
+  }
+
+  .hud-icon-btn img {
+    width: 48px;
+    height: 48px;
+  }
+
+  .hud-currencies .hud-pill:nth-child(n + 3) {
+    display: none;
+  }
+}

@@ -8,7 +8,6 @@ import { createCottage } from "./world/cottage.js";
 import { createHarvestDirector } from "./world/harvest.js";
 import { createWoodYard } from "./world/wood-yard.js";
 import { createStoneYard } from "./world/stone-yard.js";
-import { createResearchLab } from "./world/research.js";
 import { createVillageEditor } from "./world/village-editor.js";
 import { footprintFromSize } from "./world/village-grid.js";
 import { captureCharacterPortrait } from "./world/capture-portrait.js";
@@ -20,12 +19,15 @@ import { createSoupLoop } from "./world/soup-loop.js";
 import { createClayPit } from "./world/clay-pit.js";
 import { createClayYard } from "./world/clay-yard.js";
 import { createClayLoop } from "./world/clay-loop.js";
+import { createStudy } from "./world/study.js";
+import { createStudyLoop } from "./world/study-loop.js";
+import { createValleyHarbor } from "./world/valley.js";
+import { createHud } from "./world/hud.js";
 import "./styles.css";
 
 const canvas = document.querySelector("#world-canvas");
 const errorMessage = document.querySelector("#error-message");
 const errorDetail = document.querySelector("#error-detail");
-const windToggle = document.querySelector("#wind-toggle");
 const loadingScreen = document.querySelector("#loading-screen");
 const loadingBarFill = document.querySelector("#loading-bar-fill");
 const loadingLabel = document.querySelector("#loading-label");
@@ -111,9 +113,14 @@ const animationState = {
   clayYard: null,
   soupLoop: null,
   clayLoop: null,
+  study: null,
+  studyLoop: null,
+  valley: null,
+  hud: null,
   game: null,
   harvest: null,
   village: null,
+  view: "village",
   debugPaused: false,
   windEnabled: !window.matchMedia("(prefers-reduced-motion: reduce)").matches,
 };
@@ -136,17 +143,7 @@ function updateWind(elapsed) {
 
 function setFollowTarget() {}
 
-function bindInterface() {
-  document.querySelector("#brand-home").addEventListener("click", (event) => {
-    event.preventDefault();
-  });
-
-  windToggle.setAttribute("aria-pressed", String(animationState.windEnabled));
-  windToggle.addEventListener("click", () => {
-    animationState.windEnabled = !animationState.windEnabled;
-    windToggle.setAttribute("aria-pressed", String(animationState.windEnabled));
-  });
-}
+function bindInterface() {}
 
 function onResize() {
   camera.aspect = window.innerWidth / window.innerHeight;
@@ -170,6 +167,7 @@ function animate(now = 0) {
     animationState.village?.update(delta, now * 0.001);
     animationState.soupLoop?.update(delta, now * 0.001);
     animationState.clayLoop?.update(delta, now * 0.001);
+    animationState.studyLoop?.update(delta, now * 0.001);
     controls.update();
   }
   if (animationState.frozenCamera) {
@@ -224,7 +222,8 @@ async function start() {
       },
       world.walkArea.surfaceY,
     );
-    animationState.research = createResearchLab(assets.research, world.walkArea.surfaceY);
+    animationState.study = createStudy(assets.study, world.walkArea.surfaceY);
+    animationState.research = animationState.study;
     animationState.kitchen = createKitchen(assets.kitchen, world.walkArea.surfaceY);
     animationState.pumpkinField = createPumpkinField(assets.pumpkinPatch, world.walkArea.surfaceY);
     animationState.well = createWell(assets.well, world.walkArea.surfaceY);
@@ -237,7 +236,9 @@ async function start() {
       },
       world.walkArea.surfaceY,
     );
+    animationState.valley = createValleyHarbor(assets.valleyHarbor, world.walkArea.surfaceY);
     animationState.game = createGameState();
+    animationState.windEnabled = animationState.game.getWind();
     animationState.yard.setWood(animationState.game.getWood());
     animationState.stoneYard.setStone(animationState.game.getStone());
     animationState.clayYard.setClay(animationState.game.getClay());
@@ -257,7 +258,7 @@ async function start() {
         harvestables,
         {
           pickaxe: assets.pickaxe,
-          lab: animationState.research,
+          lab: animationState.study,
           kitchen: animationState.kitchen,
           pumpkinField: animationState.pumpkinField,
           well: animationState.well,
@@ -315,6 +316,11 @@ async function start() {
       pumpkinField: animationState.pumpkinField,
       well: animationState.well,
     });
+    animationState.studyLoop = createStudyLoop({
+      game: animationState.game,
+      study: animationState.study,
+      villagers: animationState.villagers,
+    });
     animationState.harvest = createHarvestDirector({
       trees: harvestables,
       camera,
@@ -333,6 +339,7 @@ async function start() {
       clayYard: animationState.clayYard,
       soupLoop: animationState.soupLoop,
       clayLoop: animationState.clayLoop,
+      studyLoop: animationState.studyLoop,
       game: animationState.game,
       surfaceY: world.walkArea.surfaceY,
       setFollowTarget,
@@ -349,65 +356,12 @@ async function start() {
         if (active) animationState.harvest?.selectTree(null);
       },
     });
-    animationState.village.register({
-      id: "cottage",
-      label: "Holzhaus",
-      root: animationState.cottage.root,
-      size: animationState.cottage.size,
-      w: 2,
-      h: 2,
-      padding: 1,
-      setWorldPosition: (x, z) => animationState.cottage.setWorldPosition(x, z),
-      setYaw: (yaw) => animationState.cottage.setYaw(yaw),
-      refresh: () => animationState.cottage.refreshAnchors(),
-      onRelocated: () => villagerFacade.relocateWithHome(),
-    });
     const woodFoot = footprintFromSize(animationState.yard.size.x, animationState.yard.size.z);
     const stoneFoot = footprintFromSize(
       animationState.stoneYard.size.x,
       animationState.stoneYard.size.z,
     );
-    const labFoot = footprintFromSize(
-      animationState.research.size.x * 0.62,
-      animationState.research.size.z * 0.62,
-    );
-    animationState.village.register({
-      id: "wood-yard",
-      label: "Holzlager",
-      root: animationState.yard.root,
-      size: animationState.yard.size,
-      w: woodFoot.w,
-      h: woodFoot.h,
-      padding: 1,
-      setWorldPosition: (x, z) => animationState.yard.setWorldPosition(x, z),
-      setYaw: (yaw) => animationState.yard.setYaw(yaw),
-      refresh: () => animationState.yard.refreshAnchors(),
-    });
-    animationState.village.register({
-      id: "stone-yard",
-      label: "Steinlager",
-      root: animationState.stoneYard.root,
-      size: animationState.stoneYard.size,
-      w: stoneFoot.w,
-      h: stoneFoot.h,
-      padding: 1,
-      setWorldPosition: (x, z) => animationState.stoneYard.setWorldPosition(x, z),
-      setYaw: (yaw) => animationState.stoneYard.setYaw(yaw),
-      refresh: () => animationState.stoneYard.refreshAnchors(),
-    });
-    animationState.village.register({
-      id: "research",
-      label: "Alchemie",
-      root: animationState.research.root,
-      size: animationState.research.size,
-      w: Math.max(labFoot.w, 3),
-      h: Math.max(labFoot.h, 3),
-      padding: 1,
-      setWorldPosition: (x, z) => animationState.research.setWorldPosition(x, z),
-      setYaw: (yaw) => animationState.research.setYaw(yaw),
-      refresh: () => animationState.research.refreshAnchors(),
-      onRelocated: () => villagerFacade.relocateWithHome(),
-    });
+    const studyFoot = footprintFromSize(animationState.study.size.x, animationState.study.size.z);
     const kitchenFoot = footprintFromSize(
       animationState.kitchen.size.x,
       animationState.kitchen.size.z,
@@ -417,30 +371,6 @@ async function start() {
       animationState.pumpkinField.size.z,
     );
     const wellFoot = footprintFromSize(animationState.well.size.x, animationState.well.size.z);
-    animationState.village.register({
-      id: "kitchen",
-      label: "Küche",
-      root: animationState.kitchen.root,
-      size: animationState.kitchen.size,
-      w: kitchenFoot.w,
-      h: kitchenFoot.h,
-      padding: 0,
-      setWorldPosition: (x, z) => animationState.kitchen.setWorldPosition(x, z),
-      setYaw: (yaw) => animationState.kitchen.setYaw(yaw),
-      refresh: () => animationState.kitchen.refreshAnchors(),
-    });
-    animationState.village.register({
-      id: "pumpkin-patch",
-      label: "Kürbisfeld",
-      root: animationState.pumpkinField.root,
-      size: animationState.pumpkinField.size,
-      w: patchFoot.w,
-      h: patchFoot.h,
-      padding: 0,
-      setWorldPosition: (x, z) => animationState.pumpkinField.setWorldPosition(x, z),
-      setYaw: (yaw) => animationState.pumpkinField.setYaw(yaw),
-      refresh: () => animationState.pumpkinField.refreshAnchors(),
-    });
     const clayPitFoot = footprintFromSize(
       animationState.clayPit.size.x,
       animationState.clayPit.size.z,
@@ -449,55 +379,193 @@ async function start() {
       animationState.clayYard.size.x,
       animationState.clayYard.size.z,
     );
-    animationState.village.register({
-      id: "clay-pit",
-      label: "Lehmgrube",
-      root: animationState.clayPit.root,
-      size: animationState.clayPit.size,
-      w: clayPitFoot.w,
-      h: clayPitFoot.h,
-      padding: 0,
-      setWorldPosition: (x, z) => animationState.clayPit.setWorldPosition(x, z),
-      setYaw: (yaw) => animationState.clayPit.setYaw(yaw),
-      refresh: () => animationState.clayPit.refreshAnchors(),
+
+    const placeable = {
+      cottage: {
+        id: "cottage",
+        label: "Holzhaus",
+        root: animationState.cottage.root,
+        size: animationState.cottage.size,
+        w: 2,
+        h: 2,
+        padding: 1,
+        setWorldPosition: (x, z) => animationState.cottage.setWorldPosition(x, z),
+        setYaw: (yaw) => animationState.cottage.setYaw(yaw),
+        refresh: () => animationState.cottage.refreshAnchors(),
+        onRelocated: () => villagerFacade.relocateWithHome(),
+      },
+      "wood-storage": {
+        id: "wood-yard",
+        label: "Holzlager",
+        root: animationState.yard.root,
+        size: animationState.yard.size,
+        w: woodFoot.w,
+        h: woodFoot.h,
+        padding: 1,
+        setWorldPosition: (x, z) => animationState.yard.setWorldPosition(x, z),
+        setYaw: (yaw) => animationState.yard.setYaw(yaw),
+        refresh: () => animationState.yard.refreshAnchors(),
+      },
+      kitchen: {
+        id: "kitchen",
+        label: "Küche",
+        root: animationState.kitchen.root,
+        size: animationState.kitchen.size,
+        w: kitchenFoot.w,
+        h: kitchenFoot.h,
+        padding: 0,
+        setWorldPosition: (x, z) => animationState.kitchen.setWorldPosition(x, z),
+        setYaw: (yaw) => animationState.kitchen.setYaw(yaw),
+        refresh: () => animationState.kitchen.refreshAnchors(),
+      },
+      "pumpkin-patch": {
+        id: "pumpkin-patch",
+        label: "Kürbisfeld",
+        root: animationState.pumpkinField.root,
+        size: animationState.pumpkinField.size,
+        w: patchFoot.w,
+        h: patchFoot.h,
+        padding: 0,
+        setWorldPosition: (x, z) => animationState.pumpkinField.setWorldPosition(x, z),
+        setYaw: (yaw) => animationState.pumpkinField.setYaw(yaw),
+        refresh: () => animationState.pumpkinField.refreshAnchors(),
+      },
+      well: {
+        id: "well",
+        label: "Brunnen",
+        root: animationState.well.root,
+        size: animationState.well.size,
+        w: Math.max(wellFoot.w, 1),
+        h: Math.max(wellFoot.h, 1),
+        padding: 0,
+        setWorldPosition: (x, z) => animationState.well.setWorldPosition(x, z),
+        setYaw: (yaw) => animationState.well.setYaw(yaw),
+        refresh: () => animationState.well.refreshAnchors(),
+      },
+      study: {
+        id: "study",
+        label: "Studierstube",
+        root: animationState.study.root,
+        size: animationState.study.size,
+        w: Math.max(studyFoot.w, 2),
+        h: Math.max(studyFoot.h, 2),
+        padding: 0,
+        setWorldPosition: (x, z) => animationState.study.setWorldPosition(x, z),
+        setYaw: (yaw) => animationState.study.setYaw(yaw),
+        refresh: () => animationState.study.refreshAnchors(),
+      },
+      "clay-pit": {
+        id: "clay-pit",
+        label: "Lehmgrube",
+        root: animationState.clayPit.root,
+        size: animationState.clayPit.size,
+        w: clayPitFoot.w,
+        h: clayPitFoot.h,
+        padding: 0,
+        setWorldPosition: (x, z) => animationState.clayPit.setWorldPosition(x, z),
+        setYaw: (yaw) => animationState.clayPit.setYaw(yaw),
+        refresh: () => animationState.clayPit.refreshAnchors(),
+      },
+      "clay-storage": {
+        id: "clay-yard",
+        label: "Lehmlager",
+        root: animationState.clayYard.root,
+        size: animationState.clayYard.size,
+        w: clayYardFoot.w,
+        h: clayYardFoot.h,
+        padding: 0,
+        setWorldPosition: (x, z) => animationState.clayYard.setWorldPosition(x, z),
+        setYaw: (yaw) => animationState.clayYard.setYaw(yaw),
+        refresh: () => animationState.clayYard.refreshAnchors(),
+      },
+      "stone-storage": {
+        id: "stone-yard",
+        label: "Steinlager",
+        root: animationState.stoneYard.root,
+        size: animationState.stoneYard.size,
+        w: stoneFoot.w,
+        h: stoneFoot.h,
+        padding: 1,
+        setWorldPosition: (x, z) => animationState.stoneYard.setWorldPosition(x, z),
+        setYaw: (yaw) => animationState.stoneYard.setYaw(yaw),
+        refresh: () => animationState.stoneYard.refreshAnchors(),
+      },
+    };
+
+    const mounted = new Set();
+    function mountPlaced(id) {
+      const spec = placeable[id];
+      if (!spec || mounted.has(id)) return;
+      world.root.add(spec.root);
+      spec.root.visible = true;
+      animationState.village.register(spec);
+      mounted.add(id);
+    }
+
+    ["cottage", "wood-storage", "kitchen", "pumpkin-patch", "well"].forEach(mountPlaced);
+    ["study", "clay-pit", "clay-storage", "stone-storage"].forEach((id) => {
+      if (animationState.game.isPlaced(id)) mountPlaced(id);
     });
-    animationState.village.register({
-      id: "clay-yard",
-      label: "Lehmlager",
-      root: animationState.clayYard.root,
-      size: animationState.clayYard.size,
-      w: clayYardFoot.w,
-      h: clayYardFoot.h,
-      padding: 0,
-      setWorldPosition: (x, z) => animationState.clayYard.setWorldPosition(x, z),
-      setYaw: (yaw) => animationState.clayYard.setYaw(yaw),
-      refresh: () => animationState.clayYard.refreshAnchors(),
+
+    animationState.villagers.forEach((member) => {
+      world.root.add(member.root);
+      if (member.getId() === "sophie" && !animationState.game.isVillagerUnlocked("sophie")) {
+        member.root.visible = false;
+      }
     });
-    animationState.village.register({
-      id: "well",
-      label: "Brunnen",
-      root: animationState.well.root,
-      size: animationState.well.size,
-      w: Math.max(wellFoot.w, 1),
-      h: Math.max(wellFoot.h, 1),
-      padding: 0,
-      setWorldPosition: (x, z) => animationState.well.setWorldPosition(x, z),
-      setYaw: (yaw) => animationState.well.setYaw(yaw),
-      refresh: () => animationState.well.refreshAnchors(),
-    });
-    world.root.add(
-      animationState.cottage.root,
-      animationState.yard.root,
-      animationState.stoneYard.root,
-      animationState.research.root,
-      animationState.kitchen.root,
-      animationState.pumpkinField.root,
-      animationState.well.root,
-      animationState.clayPit.root,
-      animationState.clayYard.root,
-      ...animationState.villagers.map((member) => member.root),
-    );
+    world.root.add(animationState.valley.root);
     scene.add(world.root);
+
+    const focusVillager = (id) => {
+      const member = animationState.villagers.find((entry) => entry.getId() === id);
+      if (!member) return;
+      controls.target.copy(member.root.position);
+      controls.target.y += 0.6;
+    };
+
+    const setValleyView = (on) => {
+      animationState.view = on ? "valley" : "village";
+      animationState.valley.setVisible(on && animationState.game.isValleyUnlocked());
+      if (on && animationState.game.isValleyUnlocked()) {
+        animationState.game.simulateValleyMembers(1);
+        camera.position.copy(animationState.valley.cameraAnchor);
+        controls.target.copy(animationState.valley.lookTarget);
+        document.querySelector("#btn-valley").textContent = "Zum Dorf";
+      } else {
+        camera.position.set(16, 14, 18);
+        controls.target.set(0.4, 0.45, 0.2);
+        const button = document.querySelector("#btn-valley");
+        if (button) button.textContent = "Zum Tal";
+      }
+    };
+
+    animationState.hud = createHud({
+      game: animationState.game,
+      onBuild: (id) => {
+        const result = animationState.game.placeBuilding(id);
+        if (result.ok) mountPlaced(id);
+        return result;
+      },
+      onValley: () => {
+        setValleyView(animationState.view !== "valley");
+      },
+      onWind: (enabled) => {
+        animationState.windEnabled = enabled;
+      },
+      onFocusVillager: focusVillager,
+      onReset: () => {
+        animationState.game.resetSave();
+        window.location.reload();
+      },
+    });
+    animationState.hud.bind();
+    animationState.game.subscribe((snap) => {
+      const sophie = animationState.villagers.find((entry) => entry.getId() === "sophie");
+      if (sophie) sophie.root.visible = Boolean(snap.villagers.sophie?.unlocked);
+      if (snap.valleyUnlocked && animationState.view === "valley") {
+        animationState.valley.setVisible(true);
+      }
+    });
 
     updateLoadingScreen({ ratio: 1, label: "Fertig" });
     dismissLoadingScreen();

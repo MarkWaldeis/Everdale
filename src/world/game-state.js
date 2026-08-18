@@ -1,138 +1,79 @@
-const STORAGE_KEY = "everdale-game-v1";
+import {
+  STORAGE_VERSION,
+  createDefaultState,
+  harvestResource as simHarvest,
+  placeBuilding as simPlace,
+  canPlaceBuilding as simCanPlace,
+  canCollectResource as simCanCollect,
+  startResearch as simStart,
+  completeResearch as simComplete,
+  tickResearch as simTickResearch,
+  tickVillagerWork as simTickWork,
+  setVillagerState as simSetVillager,
+  cookFromPumpkin as simCook,
+  consumeSoup as simConsumeSoup,
+  setResource,
+  getPlayerLevel,
+  getNodeStatus,
+  getActiveQuest,
+  isPlaced,
+  isBuildingUnlocked,
+  isValleyUnlocked,
+  isVillagerUnlocked,
+  fillValleyCrate,
+  simulateValleyMembers,
+  getCatalogItem,
+  BUILDING_CATALOG,
+  RESEARCH_NODES,
+} from "./simulation.js";
 
-const DEFAULT_SKILLS = Object.freeze({
-  farming: 0,
-  woodcutting: 0,
-  clayDigging: 0,
-  stoneMining: 0,
-  building: 0,
-  research: 0,
-});
+const STORAGE_KEY = "everdale-game-v2";
 
 function clone(value) {
   return JSON.parse(JSON.stringify(value));
-}
-
-function defaultVillager(id, name) {
-  return {
-    id,
-    name,
-    gender: id === "john" ? "male" : "female",
-    houseId: "cottage",
-    state: "IDLE",
-    assignedBuildingId: null,
-    assignedTaskId: null,
-    skills: { ...DEFAULT_SKILLS },
-    activeBuff: null,
-    workSeconds: 0,
-    hungry: false,
-  };
-}
-
-function defaultState() {
-  return {
-    version: 1,
-    lastTick: Date.now(),
-    village: {
-      gold: 0,
-      gems: 0,
-      reputation: 0,
-      scrolls: 0,
-      soup: 2,
-      soupCap: 10,
-      pumpkins: 3,
-      wood: 0,
-      woodCap: 20,
-      stone: 0,
-      stoneCap: 20,
-      clay: 0,
-      clayCap: 20,
-    },
-    recipes: [
-      {
-        id: "pumpkin-soup",
-        buildingTypeId: "kitchen",
-        name: "Kürbissuppe",
-        craftingTimeSeconds: 45,
-        inputs: [{ resourceId: "pumpkin", amount: 1 }],
-        outputs: [{ resourceId: "soup", amount: 2 }],
-        requiredStudyLevel: 0,
-      },
-    ],
-    buildings: {
-      kitchen: {
-        id: "kitchen",
-        typeId: "kitchen",
-        level: 1,
-        status: "ACTIVE",
-        workerCapacity: 1,
-        assignedVillagerIds: [],
-        productionQueue: [],
-        storedResources: { soup: 2 },
-        maxCapacity: 10,
-      },
-      pumpkinPatch: {
-        id: "pumpkin-patch",
-        typeId: "pumpkin-patch",
-        level: 1,
-        status: "ACTIVE",
-        workerCapacity: 1,
-        assignedVillagerIds: [],
-        storedResources: { pumpkin: 3 },
-      },
-      well: {
-        id: "well",
-        typeId: "well",
-        level: 1,
-        status: "IDLE",
-        workerCapacity: 0,
-        assignedVillagerIds: [],
-      },
-      clayPit: {
-        id: "clay-pit",
-        typeId: "clay-pit",
-        level: 1,
-        status: "ACTIVE",
-        workerCapacity: 1,
-        assignedVillagerIds: [],
-      },
-      clayStorage: {
-        id: "clay-storage",
-        typeId: "clay-storage",
-        level: 1,
-        status: "ACTIVE",
-        storedResources: { clay: 0 },
-        maxCapacity: 20,
-      },
-    },
-    villagers: {
-      lena: defaultVillager("lena", "Lena"),
-      john: defaultVillager("john", "John"),
-      sophie: defaultVillager("sophie", "Sophie"),
-    },
-    timings: {
-      cookSeconds: 45,
-      harvestSeconds: 8,
-      eatSeconds: 2.6,
-      hungerInterval: 90,
-    },
-  };
 }
 
 function readSave() {
   try {
     const raw = localStorage.getItem(STORAGE_KEY);
     if (!raw) return null;
-    return JSON.parse(raw);
+    const parsed = JSON.parse(raw);
+    if (parsed?.version !== STORAGE_VERSION) return null;
+    return parsed;
   } catch {
     return null;
   }
 }
 
 export function createGameState() {
-  const base = defaultState();
+  const base = createDefaultState();
   const saved = readSave();
-  const data = saved?.version === 1 ? { ...base, ...saved, village: { ...base.village, ...saved.village }, timings: { ...base.timings, ...saved.timings }, buildings: { ...base.buildings, ...saved.buildings }, villagers: { ...base.villagers, ...saved.villagers } } : base;
+  const data = saved
+    ? {
+        ...base,
+        ...saved,
+        player: { ...base.player, ...saved.player },
+        settings: { ...base.settings, ...saved.settings },
+        village: { ...base.village, ...saved.village },
+        placed: { ...base.placed, ...saved.placed },
+        unlocked: { ...base.unlocked, ...saved.unlocked },
+        nodes: { ...base.nodes, ...saved.nodes },
+        research: { ...base.research, ...saved.research },
+        valley: {
+          ...base.valley,
+          ...saved.valley,
+          crates: saved.valley?.crates ?? base.valley.crates,
+        },
+        timings: { ...base.timings, ...saved.timings },
+        buildings: { ...base.buildings, ...saved.buildings },
+        villagers: {
+          lena: { ...base.villagers.lena, ...saved.villagers?.lena },
+          john: { ...base.villagers.john, ...saved.villagers?.john },
+          sophie: { ...base.villagers.sophie, ...saved.villagers?.sophie },
+        },
+      }
+    : base;
+  data.player.level = getPlayerLevel(data);
   const listeners = new Set();
 
   function persist() {
@@ -149,219 +90,75 @@ export function createGameState() {
     return clone(data);
   }
 
-  function getSoup() {
-    return data.village.soup;
-  }
-
-  function getSoupCap() {
-    return data.village.soupCap;
-  }
-
-  function getPumpkins() {
-    return data.village.pumpkins;
-  }
-
-  function setSoup(amount) {
-    data.village.soup = Math.max(0, Math.min(data.village.soupCap, Math.round(amount)));
-    data.buildings.kitchen.storedResources.soup = data.village.soup;
+  function wrap(mutator) {
+    const result = mutator();
     persist();
-    return data.village.soup;
-  }
-
-  function addSoup(amount) {
-    return setSoup(data.village.soup + amount);
-  }
-
-  function consumeSoup(amount = 1) {
-    if (data.village.soup < amount) return false;
-    setSoup(data.village.soup - amount);
-    return true;
-  }
-
-  function setPumpkins(amount) {
-    data.village.pumpkins = Math.max(0, Math.round(amount));
-    data.buildings.pumpkinPatch.storedResources.pumpkin = data.village.pumpkins;
-    persist();
-    return data.village.pumpkins;
-  }
-
-  function addPumpkins(amount) {
-    return setPumpkins(data.village.pumpkins + amount);
-  }
-
-  function spendPumpkins(amount = 1) {
-    if (data.village.pumpkins < amount) return false;
-    setPumpkins(data.village.pumpkins - amount);
-    return true;
-  }
-
-  function clampResource(id, capKey, amount) {
-    data.village[id] = Math.max(0, Math.min(data.village[capKey], Math.round(amount)));
-    return data.village[id];
-  }
-
-  function getWood() {
-    return data.village.wood;
-  }
-
-  function getWoodCap() {
-    return data.village.woodCap;
-  }
-
-  function setWood(amount) {
-    clampResource("wood", "woodCap", amount);
-    persist();
-    return data.village.wood;
-  }
-
-  function addWood(amount) {
-    return setWood(data.village.wood + amount);
-  }
-
-  function getStone() {
-    return data.village.stone;
-  }
-
-  function getStoneCap() {
-    return data.village.stoneCap;
-  }
-
-  function setStone(amount) {
-    clampResource("stone", "stoneCap", amount);
-    persist();
-    return data.village.stone;
-  }
-
-  function addStone(amount) {
-    return setStone(data.village.stone + amount);
-  }
-
-  function getClay() {
-    return data.village.clay;
-  }
-
-  function getClayCap() {
-    return data.village.clayCap;
-  }
-
-  function setClay(amount) {
-    clampResource("clay", "clayCap", amount);
-    if (data.buildings.clayStorage?.storedResources) {
-      data.buildings.clayStorage.storedResources.clay = data.village.clay;
-    }
-    persist();
-    return data.village.clay;
-  }
-
-  function addClay(amount) {
-    return setClay(data.village.clay + amount);
-  }
-
-  function cookFromPumpkin() {
-    if (data.village.soup >= data.village.soupCap) return data.village.soup;
-    if (!spendPumpkins(1)) return data.village.soup;
-    const room = data.village.soupCap - data.village.soup;
-    return addSoup(Math.min(2, room));
-  }
-
-  function ensureVillager(id, name) {
-    if (!data.villagers[id]) data.villagers[id] = defaultVillager(id, name ?? id);
-    return data.villagers[id];
-  }
-
-  function setVillagerState(id, state, extra = {}) {
-    const villager = ensureVillager(id);
-    const nextHungry = extra.hungry === undefined ? villager.hungry : extra.hungry;
-    const nextBuilding = extra.assignedBuildingId === undefined ? villager.assignedBuildingId : extra.assignedBuildingId;
-    const nextTask = extra.assignedTaskId === undefined ? villager.assignedTaskId : extra.assignedTaskId;
-    const changed =
-      villager.state !== state ||
-      villager.hungry !== nextHungry ||
-      villager.assignedBuildingId !== nextBuilding ||
-      villager.assignedTaskId !== nextTask;
-    villager.state = state;
-    villager.assignedBuildingId = nextBuilding;
-    villager.assignedTaskId = nextTask;
-    villager.hungry = nextHungry;
-    if (changed) persist();
-    return villager;
-  }
-
-  function tickVillagerWork(id, delta) {
-    const villager = ensureVillager(id);
-    if (data.village.soup <= 0) {
-      if (!villager.hungry) {
-        villager.hungry = true;
-        persist();
-      }
-      return true;
-    }
-    villager.workSeconds += delta;
-    if (villager.workSeconds >= data.timings.hungerInterval) {
-      if (!consumeSoup(1)) {
-        villager.hungry = true;
-        persist();
-        return true;
-      }
-      villager.workSeconds = 0;
-      villager.hungry = false;
-      persist();
-    }
-    return false;
-  }
-
-  function resetVillagerWork(id) {
-    const villager = ensureVillager(id);
-    villager.workSeconds = 0;
-    villager.hungry = false;
-    persist();
-  }
-
-  function assignBuildingWorker(buildingId, villagerId) {
-    const building = data.buildings[buildingId];
-    if (!building) return;
-    if (!building.assignedVillagerIds.includes(villagerId)) {
-      building.assignedVillagerIds.push(villagerId);
-    }
-    persist();
-  }
-
-  function clearBuildingWorker(buildingId, villagerId) {
-    const building = data.buildings[buildingId];
-    if (!building) return;
-    building.assignedVillagerIds = building.assignedVillagerIds.filter((id) => id !== villagerId);
-    persist();
+    return result;
   }
 
   return {
     getSnapshot,
+    getRaw: () => data,
     subscribe: (listener) => {
       listeners.add(listener);
       return () => listeners.delete(listener);
     },
     persist,
-    getSoup,
-    getSoupCap,
-    getPumpkins,
-    setSoup,
-    addSoup,
-    consumeSoup,
-    setPumpkins,
-    addPumpkins,
-    spendPumpkins,
-    getWood,
-    getWoodCap,
-    setWood,
-    addWood,
-    getStone,
-    getStoneCap,
-    setStone,
-    addStone,
-    getClay,
-    getClayCap,
-    setClay,
-    addClay,
-    cookFromPumpkin,
+    catalog: BUILDING_CATALOG,
+    nodes: RESEARCH_NODES,
+    getPlayerLevel: () => getPlayerLevel(data),
+    getXp: () => data.player.xp,
+    getQuest: () => getActiveQuest(data),
+    getNodeStatus: (id) => getNodeStatus(data, id),
+    isPlaced: (id) => isPlaced(data, id),
+    isUnlocked: (id) => isBuildingUnlocked(data, id),
+    isValleyUnlocked: () => isValleyUnlocked(data),
+    isVillagerUnlocked: (id) => isVillagerUnlocked(data, id),
+    canPlaceBuilding: (id) => simCanPlace(data, id),
+    canCollectResource: (resourceId) => simCanCollect(data, resourceId),
+    placeBuilding: (id) => wrap(() => simPlace(data, id)),
+    startResearch: (id) => wrap(() => simStart(data, id)),
+    completeResearch: (id) => wrap(() => simComplete(data, id)),
+    tickResearch: (delta) =>
+      wrap(() => {
+        const result = simTickResearch(data, delta);
+        return result;
+      }),
+    recordHarvest: (resourceId, amount) => wrap(() => simHarvest(data, resourceId, amount)),
+    fillValleyCrate: (crateId) => wrap(() => fillValleyCrate(data, crateId, "player")),
+    simulateValleyMembers: (fills) => wrap(() => simulateValleyMembers(data, fills)),
+    getCatalogItem: (id) => getCatalogItem(id),
+    getSoup: () => data.village.soup,
+    getSoupCap: () => data.village.soupCap,
+    getPumpkins: () => data.village.pumpkins,
+    setSoup: (amount) => wrap(() => setResource(data, "soup", amount)),
+    addSoup: (amount) => wrap(() => setResource(data, "soup", data.village.soup + amount)),
+    consumeSoup: (amount = 1) => wrap(() => simConsumeSoup(data, amount)),
+    setPumpkins: (amount) => wrap(() => setResource(data, "pumpkin", amount)),
+    addPumpkins: (amount) => wrap(() => setResource(data, "pumpkin", data.village.pumpkins + amount)),
+    spendPumpkins: (amount = 1) =>
+      wrap(() => {
+        if (data.village.pumpkins < amount) return false;
+        setResource(data, "pumpkin", data.village.pumpkins - amount);
+        return true;
+      }),
+    getWood: () => data.village.wood,
+    getWoodCap: () => data.village.woodCap,
+    setWood: (amount) => wrap(() => setResource(data, "wood", amount)),
+    addWood: (amount) => wrap(() => simHarvest(data, "wood", amount).total),
+    getStone: () => data.village.stone,
+    getStoneCap: () => data.village.stoneCap,
+    setStone: (amount) => wrap(() => setResource(data, "stone", amount)),
+    addStone: (amount) => wrap(() => simHarvest(data, "stone", amount).total),
+    getClay: () => data.village.clay,
+    getClayCap: () => data.village.clayCap,
+    setClay: (amount) => wrap(() => setResource(data, "clay", amount)),
+    addClay: (amount) => wrap(() => simHarvest(data, "clay", amount).total),
+    getGold: () => data.village.gold,
+    getGems: () => data.village.gems,
+    getReputation: () => data.village.reputation,
+    getScrolls: () => data.village.scrolls,
+    cookFromPumpkin: () => wrap(() => simCook(data)),
     getCookSeconds: () => data.timings.cookSeconds,
     getHarvestSeconds: () => data.timings.harvestSeconds,
     getEatSeconds: () => data.timings.eatSeconds,
@@ -382,11 +179,68 @@ export function createGameState() {
       data.timings.hungerInterval = Math.max(0.4, value);
       persist();
     },
-    tickVillagerWork,
-    resetVillagerWork,
-    setVillagerState,
-    assignBuildingWorker,
-    clearBuildingWorker,
-    ensureVillager,
+    tickVillagerWork: (id, delta) => wrap(() => simTickWork(data, id, delta)),
+    resetVillagerWork: (id) =>
+      wrap(() => {
+        const villager = data.villagers[id];
+        if (!villager) return;
+        villager.workSeconds = 0;
+        villager.hungry = false;
+      }),
+    setVillagerState: (id, state, extra) => wrap(() => simSetVillager(data, id, state, extra)),
+    assignBuildingWorker: (buildingId, villagerId) =>
+      wrap(() => {
+        const building = data.buildings[buildingId];
+        if (!building) return;
+        if (!building.assignedVillagerIds.includes(villagerId)) {
+          building.assignedVillagerIds.push(villagerId);
+        }
+      }),
+    clearBuildingWorker: (buildingId, villagerId) =>
+      wrap(() => {
+        const building = data.buildings[buildingId];
+        if (!building) return;
+        building.assignedVillagerIds = building.assignedVillagerIds.filter((id) => id !== villagerId);
+      }),
+    ensureVillager: (id, name) => {
+      if (!data.villagers[id]) {
+        data.villagers[id] = {
+          id,
+          name: name ?? id,
+          unlocked: true,
+          state: "IDLE",
+          hungry: false,
+          workSeconds: 0,
+          assignedBuildingId: null,
+          assignedTaskId: null,
+        };
+      }
+      return data.villagers[id];
+    },
+    getMuted: () => Boolean(data.settings.muted),
+    setMuted: (value) => {
+      data.settings.muted = Boolean(value);
+      persist();
+    },
+    getWind: () => data.settings.wind !== false,
+    setWind: (value) => {
+      data.settings.wind = Boolean(value);
+      persist();
+    },
+    resetSave: () => {
+      const fresh = createDefaultState();
+      Object.keys(data).forEach((key) => {
+        delete data[key];
+      });
+      Object.assign(data, fresh);
+      try {
+        localStorage.removeItem(STORAGE_KEY);
+      } catch {
+        // ignore
+      }
+      persist();
+    },
   };
 }
+
+export { STORAGE_KEY };

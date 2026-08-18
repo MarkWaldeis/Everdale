@@ -101,6 +101,7 @@ export function createHarvestDirector({
   clayYard,
   soupLoop,
   clayLoop,
+  studyLoop,
   game,
   surfaceY,
   setFollowTarget,
@@ -110,7 +111,7 @@ export function createHarvestDirector({
   const marker = createGroundMarker();
   const chips = createChipBurst();
   const tray = document.querySelector("#worker-dock");
-  const workerButtons = [...document.querySelectorAll("[data-villager]")];
+  const workerButtons = [...document.querySelectorAll("#worker-dock [data-villager]")];
   const trayTitle = document.querySelector("#worker-dock-title");
   const woodCount = document.querySelector("#wood-count");
   const stoneCount = document.querySelector("#stone-count");
@@ -232,9 +233,10 @@ export function createHarvestDirector({
     const visitingLab = pointerState.mode === "research";
     const visitingKitchen = pointerState.mode === "kitchen" || pointerState.mode === "pumpkin";
     const visitingClay = pointerState.mode === "clay";
+    const clayLocked = visitingClay && !game?.canCollectResource?.("clay");
     const storageFull =
       visitingClay
-        ? Boolean(clayLoop?.isFull?.() || clayYard?.isFull?.())
+        ? Boolean(clayLocked || clayLoop?.isFull?.() || clayYard?.isFull?.())
         : selected?.userData.harvestKind === "stone"
           ? (stoneYard?.getStone?.() ?? 0) >= (stoneYard?.max ?? 20)
           : selected
@@ -299,6 +301,15 @@ export function createHarvestDirector({
     }
 
     pointerState.mode = "harvest";
+
+    if (tree.userData.harvestKind === "stone" && !game?.isPlaced?.("stone-storage")) {
+      if (trayTitle) trayTitle.textContent = "Erst das Steinlager erforschen und bauen";
+      workerButtons.forEach((button) => {
+        button.disabled = true;
+      });
+      setTrayOpen(true);
+      return;
+    }
 
     const label = TREE_LABELS[tree.userData.assetId] ?? "Baum";
     const action = tree.userData.harvestKind === "stone" ? "abbauen" : "fällen";
@@ -450,7 +461,11 @@ export function createHarvestDirector({
     pointerState.mode = "clay";
     placeMarker(null);
     if (trayTitle) {
-      trayTitle.textContent = clayLoop?.isFull?.() ? "Lehmlager ist voll" : "Lehmgrube · Lehm graben";
+      trayTitle.textContent = !game?.canCollectResource?.("clay")
+        ? "Erst das Lehmlager erforschen und bauen"
+        : clayLoop?.isFull?.()
+          ? "Lehmlager ist voll"
+          : "Lehmgrube · Lehm graben";
     }
     refreshWorkerCard();
     setTrayOpen(true);
@@ -463,7 +478,7 @@ export function createHarvestDirector({
     pointerState.selected = null;
     pointerState.mode = "research";
     placeMarker(null);
-    if (trayTitle) trayTitle.textContent = "Alchemie · Forschen";
+    if (trayTitle) trayTitle.textContent = "Studierstube · Forschen";
     refreshWorkerCard();
     setTrayOpen(true);
   }
@@ -479,6 +494,7 @@ export function createHarvestDirector({
   }
 
   function pickResearch(clientX, clientY) {
+    if (!game?.isPlaced?.("study")) return null;
     return pickBuilding(clientX, clientY, research);
   }
 
@@ -532,7 +548,11 @@ export function createHarvestDirector({
 
   function assignWorker(member) {
     if (pointerState.mode === "research") {
-      assignVisit(member);
+      if (!game?.isPlaced?.("study")) return;
+      const accepted = studyLoop?.assignScholar?.(member);
+      if (!accepted) assignVisit(member);
+      refreshWorkerCard();
+      selectTree(null);
       return;
     }
     if (pointerState.mode === "kitchen" || pointerState.mode === "pumpkin") {
@@ -544,6 +564,7 @@ export function createHarvestDirector({
       return;
     }
     if (pointerState.mode === "clay") {
+      if (!game?.canCollectResource?.("clay")) return;
       const accepted = clayLoop?.assignDigger(member);
       if (!accepted) return;
       refreshWorkerCard();
@@ -562,6 +583,7 @@ export function createHarvestDirector({
 
     const approach = approachPoint(tree);
     const isStone = tree.userData.harvestKind === "stone";
+    if (isStone && !game?.isPlaced?.("stone-storage")) return;
     if (isStone && (stoneYard?.getStone?.() ?? 0) >= (stoneYard?.max ?? 20)) return;
     if (!isStone && (yard?.getWood?.() ?? 0) >= (yard?.max ?? 20)) return;
     const accepted = member.assignJob({
@@ -593,14 +615,15 @@ export function createHarvestDirector({
         setFollowTarget?.(member.root, null, member);
       },
       onDeliver: () => {
+        const kind = isStone ? "stone" : "wood";
+        const result = game?.recordHarvest?.(kind, 5);
+        const total = result?.total ?? 0;
         if (isStone) {
-          const amount = stoneYard?.deposit() ?? 0;
-          game?.setStone?.(amount);
-          if (stoneCount) stoneCount.textContent = String(amount);
+          stoneYard?.setStone?.(total);
+          if (stoneCount) stoneCount.textContent = String(total);
         } else {
-          const amount = yard?.deposit() ?? 0;
-          game?.setWood?.(amount);
-          if (woodCount) woodCount.textContent = String(amount);
+          yard?.setWood?.(total);
+          if (woodCount) woodCount.textContent = String(total);
         }
         if (clayCount && game?.getClay) clayCount.textContent = String(game.getClay());
         refreshWorkerCard();
@@ -762,7 +785,7 @@ export function createHarvestDirector({
     const travel = Math.hypot(event.clientX - pointerState.down.x, event.clientY - pointerState.down.y);
     pointerState.down = null;
     if (travel > CLICK_SLOP) return;
-    if (event.target?.closest?.(".panel, .worker-dock, .harvest-meter, .village-edit-bar")) return;
+    if (event.target?.closest?.(".panel, .worker-dock, .harvest-meter, .village-edit-bar, .game-hud-top, .game-hud-bottom, .game-sheet")) return;
 
     const kitchenHit = pickKitchen(event.clientX, event.clientY);
     if (kitchenHit) {

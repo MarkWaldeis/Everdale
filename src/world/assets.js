@@ -94,11 +94,6 @@ export const ASSETS = Object.freeze({
     url: new URL("../../3d Assets/pickaxe.glb", import.meta.url).href,
     height: 0.32,
   },
-  research: {
-    label: "Alchemie",
-    url: new URL("../../3d Assets/fantasy+alchemy+cottage+3d+model.glb", import.meta.url).href,
-    height: 4.05,
-  },
   kitchen: {
     label: "Küche",
     url: new URL("../../3d Assets/kitchen-cauldron.glb", import.meta.url).href,
@@ -133,6 +128,16 @@ export const ASSETS = Object.freeze({
     label: "Lehmlager voll",
     url: new URL("../../3d Assets/clay-storage-full.glb", import.meta.url).href,
     height: 1.62,
+  },
+  study: {
+    label: "Studierstube",
+    url: new URL("../../3d Assets/study-hall.glb", import.meta.url).href,
+    height: 3.2,
+  },
+  valleyHarbor: {
+    label: "Talhafen",
+    url: new URL("../../3d Assets/valley-harbor.glb", import.meta.url).href,
+    height: 2.4,
   },
 });
 
