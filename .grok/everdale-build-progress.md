@@ -1,8 +1,8 @@
 # Everdale Build Loop
 STATUS: IN_PROGRESS
-Aktuelle Phase: 1
-Letzter Tick: 2026-08-18T15:20:00.000Z
-Nächster Slice: P2 clay pit + clay storage as unique self-built GLBs, collectors stop at cap
+Aktuelle Phase: 2
+Letzter Tick: 2026-08-18T16:20:00.000Z
+Nächster Slice: P2 Study as unique self-built GLB (not alchemy reuse) with the first live tech node unlocking a building
 
 ## Gates
 - [ ] no prototype chrome
@@ -29,6 +29,10 @@ Nächster Slice: P2 clay pit + clay storage as unique self-built GLBs, collector
 - kitchen-cauldron.glb — offener Kochschuppen, Kupferkessel, Suppe, Kelle, Tisch, Holzstoß
 - pumpkin-patch.glb — Hochbeet, Reben, Blätter, geriffelte Kürbisse
 - village-well.glb — Steinring, Dach, Seil, Eimer, Kurbel
+- clay-pit.glb — Lehmkessel, Bermen, Steg, Seilzug, Schubkarre, Schaufel, nasse Klumpen
+- clay-storage-empty.glb — Trockenschuppen, Tonziegeldach, Weidenroste, leere Körbe
+- clay-storage-half.glb — dieselben Gestelle mit Ziegelreihen und einem vollen Korb
+- clay-storage-full.glb — volle Roste, Bodenstapel, Leinentuch, überlaufende Klumpen
 
 ## Systeme
 - game-state.js (GDD 8.1–8.3, localStorage everdale-game-v1)
@@ -38,6 +42,10 @@ Nächster Slice: P2 clay pit + clay storage as unique self-built GLBs, collector
 - Sim-States IDLE / WALKING / WORKING / HUNGRY / EATING
 - Idle-Ziel Brunnen
 - HUD: Suppe + Kürbis, Hungrig-Blase
+- clay-pit.js / clay-yard.js / clay-loop.js + village.register
+- Lehm: Grube tippen, Spitzhacke, 5er-Ladung ins Lager, Schleife bis Cap 20
+- Sammler stoppen bei vollem Holz-/Stein-/Lehmlager
+- Holz/Stein/Lehm persistieren in village + HUD /20
 
 ## Regressions
 - Küche antippen → Dock „Küche · Suppe kochen“ → Lena kocht, Suppe 0→2→5, Kürbis sinkt
@@ -47,3 +55,8 @@ Nächster Slice: P2 clay pit + clay storage as unique self-built GLBs, collector
 - Save/Reload: Suppe 5, Kürbis 3
 - Mobile 390×844: Zähler lesbar
 - npm run build grün
+- Lehmgrube antippen → Dock „Lehmgrube · Lehm graben“ → Lena gräbt, Lehm 0→5→20, Lager leer/halb/voll
+- Bei 20: Dock „Lehmlager ist voll“, keine neue Zuweisung, Lena geht heim
+- Save/Reload Lehm 20
+- Stein abbauen und Anordnen bleiben grün
+- Holzlager voll blockiert Baum-Zuweisung

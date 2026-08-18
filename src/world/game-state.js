@@ -41,6 +41,12 @@ function defaultState() {
       soup: 2,
       soupCap: 10,
       pumpkins: 3,
+      wood: 0,
+      woodCap: 20,
+      stone: 0,
+      stoneCap: 20,
+      clay: 0,
+      clayCap: 20,
     },
     recipes: [
       {
@@ -81,6 +87,22 @@ function defaultState() {
         status: "IDLE",
         workerCapacity: 0,
         assignedVillagerIds: [],
+      },
+      clayPit: {
+        id: "clay-pit",
+        typeId: "clay-pit",
+        level: 1,
+        status: "ACTIVE",
+        workerCapacity: 1,
+        assignedVillagerIds: [],
+      },
+      clayStorage: {
+        id: "clay-storage",
+        typeId: "clay-storage",
+        level: 1,
+        status: "ACTIVE",
+        storedResources: { clay: 0 },
+        maxCapacity: 20,
       },
     },
     villagers: {
@@ -171,6 +193,68 @@ export function createGameState() {
     if (data.village.pumpkins < amount) return false;
     setPumpkins(data.village.pumpkins - amount);
     return true;
+  }
+
+  function clampResource(id, capKey, amount) {
+    data.village[id] = Math.max(0, Math.min(data.village[capKey], Math.round(amount)));
+    return data.village[id];
+  }
+
+  function getWood() {
+    return data.village.wood;
+  }
+
+  function getWoodCap() {
+    return data.village.woodCap;
+  }
+
+  function setWood(amount) {
+    clampResource("wood", "woodCap", amount);
+    persist();
+    return data.village.wood;
+  }
+
+  function addWood(amount) {
+    return setWood(data.village.wood + amount);
+  }
+
+  function getStone() {
+    return data.village.stone;
+  }
+
+  function getStoneCap() {
+    return data.village.stoneCap;
+  }
+
+  function setStone(amount) {
+    clampResource("stone", "stoneCap", amount);
+    persist();
+    return data.village.stone;
+  }
+
+  function addStone(amount) {
+    return setStone(data.village.stone + amount);
+  }
+
+  function getClay() {
+    return data.village.clay;
+  }
+
+  function getClayCap() {
+    return data.village.clayCap;
+  }
+
+  function setClay(amount) {
+    clampResource("clay", "clayCap", amount);
+    if (data.buildings.clayStorage?.storedResources) {
+      data.buildings.clayStorage.storedResources.clay = data.village.clay;
+    }
+    persist();
+    return data.village.clay;
+  }
+
+  function addClay(amount) {
+    return setClay(data.village.clay + amount);
   }
 
   function cookFromPumpkin() {
@@ -265,6 +349,18 @@ export function createGameState() {
     setPumpkins,
     addPumpkins,
     spendPumpkins,
+    getWood,
+    getWoodCap,
+    setWood,
+    addWood,
+    getStone,
+    getStoneCap,
+    setStone,
+    addStone,
+    getClay,
+    getClayCap,
+    setClay,
+    addClay,
     cookFromPumpkin,
     getCookSeconds: () => data.timings.cookSeconds,
     getHarvestSeconds: () => data.timings.harvestSeconds,

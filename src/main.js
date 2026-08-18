@@ -17,6 +17,9 @@ import { createKitchen } from "./world/kitchen.js";
 import { createPumpkinField } from "./world/pumpkin-field.js";
 import { createWell } from "./world/well.js";
 import { createSoupLoop } from "./world/soup-loop.js";
+import { createClayPit } from "./world/clay-pit.js";
+import { createClayYard } from "./world/clay-yard.js";
+import { createClayLoop } from "./world/clay-loop.js";
 import "./styles.css";
 
 const canvas = document.querySelector("#world-canvas");
@@ -104,7 +107,10 @@ const animationState = {
   kitchen: null,
   pumpkinField: null,
   well: null,
+  clayPit: null,
+  clayYard: null,
   soupLoop: null,
+  clayLoop: null,
   game: null,
   harvest: null,
   village: null,
@@ -163,6 +169,7 @@ function animate(now = 0) {
     animationState.harvest?.update(delta, now * 0.001);
     animationState.village?.update(delta, now * 0.001);
     animationState.soupLoop?.update(delta, now * 0.001);
+    animationState.clayLoop?.update(delta, now * 0.001);
     controls.update();
   }
   if (animationState.frozenCamera) {
@@ -221,7 +228,25 @@ async function start() {
     animationState.kitchen = createKitchen(assets.kitchen, world.walkArea.surfaceY);
     animationState.pumpkinField = createPumpkinField(assets.pumpkinPatch, world.walkArea.surfaceY);
     animationState.well = createWell(assets.well, world.walkArea.surfaceY);
+    animationState.clayPit = createClayPit(assets.clayPit, world.walkArea.surfaceY);
+    animationState.clayYard = createClayYard(
+      {
+        empty: assets.clayStorageEmpty,
+        half: assets.clayStorageHalf,
+        full: assets.clayStorageFull,
+      },
+      world.walkArea.surfaceY,
+    );
     animationState.game = createGameState();
+    animationState.yard.setWood(animationState.game.getWood());
+    animationState.stoneYard.setStone(animationState.game.getStone());
+    animationState.clayYard.setClay(animationState.game.getClay());
+    const woodHud = document.querySelector("#wood-count");
+    const stoneHud = document.querySelector("#stone-count");
+    const clayHud = document.querySelector("#clay-count");
+    if (woodHud) woodHud.textContent = String(animationState.game.getWood());
+    if (stoneHud) stoneHud.textContent = String(animationState.game.getStone());
+    if (clayHud) clayHud.textContent = String(animationState.game.getClay());
     const makeVillager = (model, id, label) =>
       createCharacterController(
         model,
@@ -236,6 +261,8 @@ async function start() {
           kitchen: animationState.kitchen,
           pumpkinField: animationState.pumpkinField,
           well: animationState.well,
+          clayPit: animationState.clayPit,
+          clayYard: animationState.clayYard,
           id,
           label,
           rootName: `resident-${id}`,
@@ -272,9 +299,21 @@ async function start() {
       well: animationState.well,
       yard: animationState.yard,
       stoneYard: animationState.stoneYard,
+      clayYard: animationState.clayYard,
+      clayPit: animationState.clayPit,
       villagers: animationState.villagers,
       camera,
       canvas,
+    });
+    animationState.clayLoop = createClayLoop({
+      game: animationState.game,
+      clayPit: animationState.clayPit,
+      clayYard: animationState.clayYard,
+      yard: animationState.yard,
+      stoneYard: animationState.stoneYard,
+      kitchen: animationState.kitchen,
+      pumpkinField: animationState.pumpkinField,
+      well: animationState.well,
     });
     animationState.harvest = createHarvestDirector({
       trees: harvestables,
@@ -290,7 +329,11 @@ async function start() {
       kitchen: animationState.kitchen,
       pumpkinField: animationState.pumpkinField,
       well: animationState.well,
+      clayPit: animationState.clayPit,
+      clayYard: animationState.clayYard,
       soupLoop: animationState.soupLoop,
+      clayLoop: animationState.clayLoop,
+      game: animationState.game,
       surfaceY: world.walkArea.surfaceY,
       setFollowTarget,
       isPlacementActive: () => Boolean(animationState.village?.isActive()),
@@ -398,6 +441,38 @@ async function start() {
       setYaw: (yaw) => animationState.pumpkinField.setYaw(yaw),
       refresh: () => animationState.pumpkinField.refreshAnchors(),
     });
+    const clayPitFoot = footprintFromSize(
+      animationState.clayPit.size.x,
+      animationState.clayPit.size.z,
+    );
+    const clayYardFoot = footprintFromSize(
+      animationState.clayYard.size.x,
+      animationState.clayYard.size.z,
+    );
+    animationState.village.register({
+      id: "clay-pit",
+      label: "Lehmgrube",
+      root: animationState.clayPit.root,
+      size: animationState.clayPit.size,
+      w: clayPitFoot.w,
+      h: clayPitFoot.h,
+      padding: 0,
+      setWorldPosition: (x, z) => animationState.clayPit.setWorldPosition(x, z),
+      setYaw: (yaw) => animationState.clayPit.setYaw(yaw),
+      refresh: () => animationState.clayPit.refreshAnchors(),
+    });
+    animationState.village.register({
+      id: "clay-yard",
+      label: "Lehmlager",
+      root: animationState.clayYard.root,
+      size: animationState.clayYard.size,
+      w: clayYardFoot.w,
+      h: clayYardFoot.h,
+      padding: 0,
+      setWorldPosition: (x, z) => animationState.clayYard.setWorldPosition(x, z),
+      setYaw: (yaw) => animationState.clayYard.setYaw(yaw),
+      refresh: () => animationState.clayYard.refreshAnchors(),
+    });
     animationState.village.register({
       id: "well",
       label: "Brunnen",
@@ -418,6 +493,8 @@ async function start() {
       animationState.kitchen.root,
       animationState.pumpkinField.root,
       animationState.well.root,
+      animationState.clayPit.root,
+      animationState.clayYard.root,
       ...animationState.villagers.map((member) => member.root),
     );
     scene.add(world.root);
@@ -434,6 +511,9 @@ async function start() {
       kitchen: animationState.kitchen,
       pumpkinField: animationState.pumpkinField,
       well: animationState.well,
+      clayPit: animationState.clayPit,
+      clayYard: animationState.clayYard,
+      clayLoop: animationState.clayLoop,
       soupLoop: animationState.soupLoop,
       game: animationState.game,
       harvest: animationState.harvest,
@@ -457,9 +537,14 @@ async function start() {
         animationState.villagers.find((member) => member.getState() === "job-work")?.debugFinishWork?.(),
       selectKitchen: () => animationState.harvest?.selectKitchen(),
       selectPatch: () => animationState.harvest?.selectPatch(),
+      selectClay: () => animationState.harvest?.selectClay(),
       assignCook: (id) => {
         const member = animationState.villagers.find((entry) => entry.getId() === id);
         return animationState.soupLoop?.assignCook(member);
+      },
+      assignClay: (id) => {
+        const member = animationState.villagers.find((entry) => entry.getId() === id);
+        return animationState.clayLoop?.assignDigger(member);
       },
       setPaused: (paused) => {
         animationState.debugPaused = Boolean(paused);

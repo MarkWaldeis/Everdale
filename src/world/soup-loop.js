@@ -12,6 +12,8 @@ export function createSoupLoop({
   well,
   yard,
   stoneYard,
+  clayYard,
+  clayPit,
   villagers,
   camera,
   canvas,
@@ -23,7 +25,15 @@ export function createSoupLoop({
   }
 
   function villageBlocks() {
-    return [blockOf(yard), blockOf(stoneYard), blockOf(kitchen), blockOf(pumpkinField), blockOf(well)].filter(Boolean);
+    return [
+      blockOf(yard),
+      blockOf(stoneYard),
+      blockOf(clayYard),
+      blockOf(clayPit),
+      blockOf(kitchen),
+      blockOf(pumpkinField),
+      blockOf(well),
+    ].filter(Boolean);
   }
   const soupCount = document.querySelector("#soup-count");
   const soupCap = document.querySelector("#soup-cap");

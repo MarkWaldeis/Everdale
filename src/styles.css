@@ -112,6 +112,10 @@ a:focus-visible {
   background: #d9772a;
 }
 
+.clay-counter {
+  background: #b46834;
+}
+
 .wood-counter-icon {
   width: 28px;
   height: 28px;
@@ -126,6 +130,10 @@ a:focus-visible {
 .soup-counter-icon,
 .pumpkin-counter-icon {
   background-position: 60% 50%;
+}
+
+.clay-counter-icon {
+  background-position: 80% 50%;
 }
 
 .wood-counter strong {
@@ -336,6 +344,7 @@ a:focus-visible {
 .swatch-cottage { background: #9b5b32; }
 .swatch-axe { background: #c47a3a; }
 .swatch-stone { background: #6b675f; }
+.swatch-clay { background: #b46834; }
 
 #world-canvas.is-over-tree,
 #world-canvas.is-over-building {

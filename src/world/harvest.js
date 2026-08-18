@@ -97,7 +97,11 @@ export function createHarvestDirector({
   kitchen,
   pumpkinField,
   well,
+  clayPit,
+  clayYard,
   soupLoop,
+  clayLoop,
+  game,
   surfaceY,
   setFollowTarget,
   isPlacementActive,
@@ -110,6 +114,7 @@ export function createHarvestDirector({
   const trayTitle = document.querySelector("#worker-dock-title");
   const woodCount = document.querySelector("#wood-count");
   const stoneCount = document.querySelector("#stone-count");
+  const clayCount = document.querySelector("#clay-count");
   const meter = document.querySelector("#harvest-meter");
   const meterFill = document.querySelector("#harvest-meter-fill");
   const meterLabel = document.querySelector("#harvest-meter-label");
@@ -206,6 +211,7 @@ export function createHarvestDirector({
     const kind = member.getJobKind?.();
     if (kind === "cook") return "Kocht";
     if (kind === "harvest") return "Erntet";
+    if (kind === "dig") return "Gräbt";
     if (!member.isBusy()) return "Frei";
     const state = member.getState();
     if (state === "job-walk-home" || state === "home-approach" || state === "ascend-porch") {
@@ -225,15 +231,27 @@ export function createHarvestDirector({
     const selected = pointerState.selected;
     const visitingLab = pointerState.mode === "research";
     const visitingKitchen = pointerState.mode === "kitchen" || pointerState.mode === "pumpkin";
+    const visitingClay = pointerState.mode === "clay";
+    const storageFull =
+      visitingClay
+        ? Boolean(clayLoop?.isFull?.() || clayYard?.isFull?.())
+        : selected?.userData.harvestKind === "stone"
+          ? (stoneYard?.getStone?.() ?? 0) >= (stoneYard?.max ?? 20)
+          : selected
+            ? (yard?.getWood?.() ?? 0) >= (yard?.max ?? 20)
+            : false;
     const canAssign = visitingLab || visitingKitchen
       ? true
-      : Boolean(
-          selected &&
-            selected.userData.harvestState !== "gone" &&
-            selected.userData.harvestState !== "falling" &&
-            selected.userData.harvestState !== "assigned" &&
-            selected.userData.harvestState !== "chopping",
-        );
+      : visitingClay
+        ? !storageFull
+        : Boolean(
+            selected &&
+              !storageFull &&
+              selected.userData.harvestState !== "gone" &&
+              selected.userData.harvestState !== "falling" &&
+              selected.userData.harvestState !== "assigned" &&
+              selected.userData.harvestState !== "chopping",
+          );
     workerButtons.forEach((button) => {
       const member = roster.find((entry) => entry.getId() === button.dataset.villager);
       if (!member) return;
@@ -248,7 +266,13 @@ export function createHarvestDirector({
         pin.hidden = !busy;
         const kind = member.getJobKind?.();
         pin.dataset.task =
-          kind === "cook" ? "cook" : kind === "harvest" ? "harvest" : member.getJobTool?.() === "pickaxe" ? "mine" : "chop";
+          kind === "cook"
+            ? "cook"
+            : kind === "harvest"
+              ? "harvest"
+              : kind === "dig" || member.getJobTool?.() === "pickaxe"
+                ? "mine"
+                : "chop";
       }
     });
   }
@@ -279,8 +303,18 @@ export function createHarvestDirector({
     const label = TREE_LABELS[tree.userData.assetId] ?? "Baum";
     const action = tree.userData.harvestKind === "stone" ? "abbauen" : "fällen";
     const inArbeit = tree.userData.harvestState === "assigned" || tree.userData.harvestState === "chopping";
+    const yardFull =
+      tree.userData.harvestKind === "stone"
+        ? (stoneYard?.getStone?.() ?? 0) >= (stoneYard?.max ?? 20)
+        : (yard?.getWood?.() ?? 0) >= (yard?.max ?? 20);
     if (trayTitle) {
-      trayTitle.textContent = inArbeit ? `${label} ist bereits in Arbeit` : `${label} ${action}`;
+      trayTitle.textContent = yardFull
+        ? tree.userData.harvestKind === "stone"
+          ? "Steinlager ist voll"
+          : "Holzlager ist voll"
+        : inArbeit
+          ? `${label} ist bereits in Arbeit`
+          : `${label} ${action}`;
     }
     refreshWorkerCard();
     setTrayOpen(true);
@@ -408,6 +442,20 @@ export function createHarvestDirector({
     setTrayOpen(true);
   }
 
+  function selectClay() {
+    if (pointerState.selected?.userData.harvestState === "selected") {
+      pointerState.selected.userData.harvestState = "idle";
+    }
+    pointerState.selected = null;
+    pointerState.mode = "clay";
+    placeMarker(null);
+    if (trayTitle) {
+      trayTitle.textContent = clayLoop?.isFull?.() ? "Lehmlager ist voll" : "Lehmgrube · Lehm graben";
+    }
+    refreshWorkerCard();
+    setTrayOpen(true);
+  }
+
   function selectResearch() {
     if (pointerState.selected?.userData.harvestState === "selected") {
       pointerState.selected.userData.harvestState = "idle";
@@ -442,6 +490,14 @@ export function createHarvestDirector({
     return pickBuilding(clientX, clientY, pumpkinField);
   }
 
+  function pickClayPit(clientX, clientY) {
+    return pickBuilding(clientX, clientY, clayPit);
+  }
+
+  function pickClayYard(clientX, clientY) {
+    return pickBuilding(clientX, clientY, clayYard);
+  }
+
   function yardBlock(storage) {
     if (!storage?.root) return null;
     const span = Math.max(storage.size?.x ?? 0.8, storage.size?.z ?? 0.8);
@@ -455,6 +511,8 @@ export function createHarvestDirector({
       yardBlock(kitchen),
       yardBlock(pumpkinField),
       yardBlock(well),
+      yardBlock(clayPit),
+      yardBlock(clayYard),
     ].filter(Boolean);
   }
 
@@ -481,8 +539,16 @@ export function createHarvestDirector({
       const accepted = soupLoop?.assignCook(member);
       if (!accepted) return;
       refreshWorkerCard();
-      setTrayOpen(false);
+      selectTree(null);
       setFollowTarget?.(member.root, kitchen?.root ?? pumpkinField?.root, member);
+      return;
+    }
+    if (pointerState.mode === "clay") {
+      const accepted = clayLoop?.assignDigger(member);
+      if (!accepted) return;
+      refreshWorkerCard();
+      selectTree(null);
+      setFollowTarget?.(member.root, clayPit?.root ?? clayYard?.root, member);
       return;
     }
     const tree = pointerState.selected;
@@ -496,6 +562,8 @@ export function createHarvestDirector({
 
     const approach = approachPoint(tree);
     const isStone = tree.userData.harvestKind === "stone";
+    if (isStone && (stoneYard?.getStone?.() ?? 0) >= (stoneYard?.max ?? 20)) return;
+    if (!isStone && (yard?.getWood?.() ?? 0) >= (yard?.max ?? 20)) return;
     const accepted = member.assignJob({
       tree,
       tool: isStone ? "pickaxe" : "axe",
@@ -527,11 +595,14 @@ export function createHarvestDirector({
       onDeliver: () => {
         if (isStone) {
           const amount = stoneYard?.deposit() ?? 0;
+          game?.setStone?.(amount);
           if (stoneCount) stoneCount.textContent = String(amount);
         } else {
           const amount = yard?.deposit() ?? 0;
+          game?.setWood?.(amount);
           if (woodCount) woodCount.textContent = String(amount);
         }
+        if (clayCount && game?.getClay) clayCount.textContent = String(game.getClay());
         refreshWorkerCard();
       },
       onReturned: () => {
@@ -675,8 +746,10 @@ export function createHarvestDirector({
     const tree = pickTree(event.clientX, event.clientY);
     const kitchenHit = !tree && pickKitchen(event.clientX, event.clientY);
     const patchHit = !tree && !kitchenHit && pickPatch(event.clientX, event.clientY);
-    const labHit = !tree && !kitchenHit && !patchHit && pickResearch(event.clientX, event.clientY);
-    pointerState.hovered = tree || kitchenHit || patchHit || labHit;
+    const clayHit =
+      !tree && !kitchenHit && !patchHit && (pickClayPit(event.clientX, event.clientY) || pickClayYard(event.clientX, event.clientY));
+    const labHit = !tree && !kitchenHit && !patchHit && !clayHit && pickResearch(event.clientX, event.clientY);
+    pointerState.hovered = tree || kitchenHit || patchHit || clayHit || labHit;
     canvas.classList.toggle("is-over-tree", Boolean(pointerState.hovered));
   }
 
@@ -707,6 +780,15 @@ export function createHarvestDirector({
         return;
       }
       selectPatch();
+      return;
+    }
+    const clayHit = pickClayPit(event.clientX, event.clientY) || pickClayYard(event.clientX, event.clientY);
+    if (clayHit) {
+      if (pointerState.mode === "clay") {
+        selectTree(null);
+        return;
+      }
+      selectClay();
       return;
     }
     const labHit = pickResearch(event.clientX, event.clientY);
@@ -765,6 +847,7 @@ export function createHarvestDirector({
     selectResearch,
     selectKitchen,
     selectPatch,
+    selectClay,
     assignSelectedWorker,
   };
 }

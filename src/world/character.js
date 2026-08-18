@@ -368,6 +368,8 @@ export function createCharacterController(
   const well = extraTools.well ?? null;
   const kitchen = extraTools.kitchen ?? null;
   const pumpkinField = extraTools.pumpkinField ?? null;
+  const clayPit = extraTools.clayPit ?? null;
+  const clayYard = extraTools.clayYard ?? null;
   const pickaxe = extraTools.pickaxe
     ? createAxeWielder(model, extraTools.pickaxe, {
         targetLength: 0.36,
@@ -1070,6 +1072,11 @@ export function createCharacterController(
             job.delivered = true;
             job.onDeliver?.();
           }
+          const next = typeof job.nextJob === "function" ? job.nextJob() : job.nextJob;
+          if (next) {
+            chainJob(next);
+            break;
+          }
           beginWalkHome();
         }
         break;
@@ -1426,7 +1433,9 @@ export function createCharacterController(
       const span = Math.max(building.size?.x ?? 0.8, building.size?.z ?? 0.8);
       return { x: building.root.position.x, z: building.root.position.z, radius: span * 0.42 + 0.12 };
     };
-    [asBlock(kitchen), asBlock(pumpkinField), asBlock(well)].filter(Boolean).forEach((block) => extras.push(block));
+    [asBlock(kitchen), asBlock(pumpkinField), asBlock(well), asBlock(clayPit), asBlock(clayYard)]
+      .filter(Boolean)
+      .forEach((block) => extras.push(block));
     const walkability = createWalkability(home, trees, {
       ignoreTree: nextJob.tree,
       extras,

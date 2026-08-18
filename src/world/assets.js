@@ -114,6 +114,26 @@ export const ASSETS = Object.freeze({
     url: new URL("../../3d Assets/village-well.glb", import.meta.url).href,
     height: 2.62,
   },
+  clayPit: {
+    label: "Lehmgrube",
+    url: new URL("../../3d Assets/clay-pit.glb", import.meta.url).href,
+    height: 1.78,
+  },
+  clayStorageEmpty: {
+    label: "Lehmlager leer",
+    url: new URL("../../3d Assets/clay-storage-empty.glb", import.meta.url).href,
+    height: 1.62,
+  },
+  clayStorageHalf: {
+    label: "Lehmlager halb",
+    url: new URL("../../3d Assets/clay-storage-half.glb", import.meta.url).href,
+    height: 1.62,
+  },
+  clayStorageFull: {
+    label: "Lehmlager voll",
+    url: new URL("../../3d Assets/clay-storage-full.glb", import.meta.url).href,
+    height: 1.62,
+  },
 });
 
 export const TREE_WEIGHTS = Object.freeze([
