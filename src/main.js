@@ -12,6 +12,11 @@ import { createResearchLab } from "./world/research.js";
 import { createVillageEditor } from "./world/village-editor.js";
 import { footprintFromSize } from "./world/village-grid.js";
 import { captureCharacterPortrait } from "./world/capture-portrait.js";
+import { createGameState } from "./world/game-state.js";
+import { createKitchen } from "./world/kitchen.js";
+import { createPumpkinField } from "./world/pumpkin-field.js";
+import { createWell } from "./world/well.js";
+import { createSoupLoop } from "./world/soup-loop.js";
 import "./styles.css";
 
 const canvas = document.querySelector("#world-canvas");
@@ -96,6 +101,11 @@ const animationState = {
   cottage: null,
   stoneYard: null,
   research: null,
+  kitchen: null,
+  pumpkinField: null,
+  well: null,
+  soupLoop: null,
+  game: null,
   harvest: null,
   village: null,
   debugPaused: false,
@@ -152,6 +162,7 @@ function animate(now = 0) {
     }
     animationState.harvest?.update(delta, now * 0.001);
     animationState.village?.update(delta, now * 0.001);
+    animationState.soupLoop?.update(delta, now * 0.001);
     controls.update();
   }
   if (animationState.frozenCamera) {
@@ -207,6 +218,10 @@ async function start() {
       world.walkArea.surfaceY,
     );
     animationState.research = createResearchLab(assets.research, world.walkArea.surfaceY);
+    animationState.kitchen = createKitchen(assets.kitchen, world.walkArea.surfaceY);
+    animationState.pumpkinField = createPumpkinField(assets.pumpkinPatch, world.walkArea.surfaceY);
+    animationState.well = createWell(assets.well, world.walkArea.surfaceY);
+    animationState.game = createGameState();
     const makeVillager = (model, id, label) =>
       createCharacterController(
         model,
@@ -218,6 +233,9 @@ async function start() {
         {
           pickaxe: assets.pickaxe,
           lab: animationState.research,
+          kitchen: animationState.kitchen,
+          pumpkinField: animationState.pumpkinField,
+          well: animationState.well,
           id,
           label,
           rootName: `resident-${id}`,
@@ -247,6 +265,17 @@ async function start() {
         animationState.villagers.find((member) => member.isBusy())?.getState() ??
         animationState.character.getState(),
     };
+    animationState.soupLoop = createSoupLoop({
+      game: animationState.game,
+      kitchen: animationState.kitchen,
+      pumpkinField: animationState.pumpkinField,
+      well: animationState.well,
+      yard: animationState.yard,
+      stoneYard: animationState.stoneYard,
+      villagers: animationState.villagers,
+      camera,
+      canvas,
+    });
     animationState.harvest = createHarvestDirector({
       trees: harvestables,
       camera,
@@ -258,6 +287,10 @@ async function start() {
       yard: animationState.yard,
       stoneYard: animationState.stoneYard,
       research: animationState.research,
+      kitchen: animationState.kitchen,
+      pumpkinField: animationState.pumpkinField,
+      well: animationState.well,
+      soupLoop: animationState.soupLoop,
       surfaceY: world.walkArea.surfaceY,
       setFollowTarget,
       isPlacementActive: () => Boolean(animationState.village?.isActive()),
@@ -332,11 +365,59 @@ async function start() {
       refresh: () => animationState.research.refreshAnchors(),
       onRelocated: () => villagerFacade.relocateWithHome(),
     });
+    const kitchenFoot = footprintFromSize(
+      animationState.kitchen.size.x,
+      animationState.kitchen.size.z,
+    );
+    const patchFoot = footprintFromSize(
+      animationState.pumpkinField.size.x,
+      animationState.pumpkinField.size.z,
+    );
+    const wellFoot = footprintFromSize(animationState.well.size.x, animationState.well.size.z);
+    animationState.village.register({
+      id: "kitchen",
+      label: "Küche",
+      root: animationState.kitchen.root,
+      size: animationState.kitchen.size,
+      w: kitchenFoot.w,
+      h: kitchenFoot.h,
+      padding: 0,
+      setWorldPosition: (x, z) => animationState.kitchen.setWorldPosition(x, z),
+      setYaw: (yaw) => animationState.kitchen.setYaw(yaw),
+      refresh: () => animationState.kitchen.refreshAnchors(),
+    });
+    animationState.village.register({
+      id: "pumpkin-patch",
+      label: "Kürbisfeld",
+      root: animationState.pumpkinField.root,
+      size: animationState.pumpkinField.size,
+      w: patchFoot.w,
+      h: patchFoot.h,
+      padding: 0,
+      setWorldPosition: (x, z) => animationState.pumpkinField.setWorldPosition(x, z),
+      setYaw: (yaw) => animationState.pumpkinField.setYaw(yaw),
+      refresh: () => animationState.pumpkinField.refreshAnchors(),
+    });
+    animationState.village.register({
+      id: "well",
+      label: "Brunnen",
+      root: animationState.well.root,
+      size: animationState.well.size,
+      w: Math.max(wellFoot.w, 1),
+      h: Math.max(wellFoot.h, 1),
+      padding: 0,
+      setWorldPosition: (x, z) => animationState.well.setWorldPosition(x, z),
+      setYaw: (yaw) => animationState.well.setYaw(yaw),
+      refresh: () => animationState.well.refreshAnchors(),
+    });
     world.root.add(
       animationState.cottage.root,
       animationState.yard.root,
       animationState.stoneYard.root,
       animationState.research.root,
+      animationState.kitchen.root,
+      animationState.pumpkinField.root,
+      animationState.well.root,
       ...animationState.villagers.map((member) => member.root),
     );
     scene.add(world.root);
@@ -350,6 +431,11 @@ async function start() {
       cottage: animationState.cottage,
       stoneYard: animationState.stoneYard,
       research: animationState.research,
+      kitchen: animationState.kitchen,
+      pumpkinField: animationState.pumpkinField,
+      well: animationState.well,
+      soupLoop: animationState.soupLoop,
+      game: animationState.game,
       harvest: animationState.harvest,
       village: animationState.village,
       yard: animationState.yard,
@@ -367,6 +453,14 @@ async function start() {
             return state === "job-chop" || state === "job-align";
           })
           ?.debugFinishChop?.(),
+      finishWork: () =>
+        animationState.villagers.find((member) => member.getState() === "job-work")?.debugFinishWork?.(),
+      selectKitchen: () => animationState.harvest?.selectKitchen(),
+      selectPatch: () => animationState.harvest?.selectPatch(),
+      assignCook: (id) => {
+        const member = animationState.villagers.find((entry) => entry.getId() === id);
+        return animationState.soupLoop?.assignCook(member);
+      },
       setPaused: (paused) => {
         animationState.debugPaused = Boolean(paused);
       },

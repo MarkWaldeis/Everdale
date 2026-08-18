@@ -99,6 +99,21 @@ export const ASSETS = Object.freeze({
     url: new URL("../../3d Assets/fantasy+alchemy+cottage+3d+model.glb", import.meta.url).href,
     height: 4.05,
   },
+  kitchen: {
+    label: "Küche",
+    url: new URL("../../3d Assets/kitchen-cauldron.glb", import.meta.url).href,
+    height: 2.94,
+  },
+  pumpkinPatch: {
+    label: "Kürbisfeld",
+    url: new URL("../../3d Assets/pumpkin-patch.glb", import.meta.url).href,
+    height: 1.04,
+  },
+  well: {
+    label: "Brunnen",
+    url: new URL("../../3d Assets/village-well.glb", import.meta.url).href,
+    height: 2.62,
+  },
 });
 
 export const TREE_WEIGHTS = Object.freeze([

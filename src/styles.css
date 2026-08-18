@@ -70,7 +70,7 @@ a:focus-visible {
 .brand-panel {
   top: 24px;
   left: 24px;
-  width: min(460px, calc(100vw - 48px));
+  width: min(640px, calc(100vw - 48px));
   min-height: 72px;
   padding: 12px 14px;
   border-radius: 20px;
@@ -83,6 +83,8 @@ a:focus-visible {
 .resource-counters {
   display: flex;
   align-items: center;
+  flex-wrap: wrap;
+  justify-content: flex-end;
   gap: 8px;
 }
 
@@ -102,6 +104,14 @@ a:focus-visible {
   background: #6b675f;
 }
 
+.soup-counter {
+  background: #c45d28;
+}
+
+.pumpkin-counter {
+  background: #d9772a;
+}
+
 .wood-counter-icon {
   width: 28px;
   height: 28px;
@@ -113,6 +123,11 @@ a:focus-visible {
   background-position: 40% 50%;
 }
 
+.soup-counter-icon,
+.pumpkin-counter-icon {
+  background-position: 60% 50%;
+}
+
 .wood-counter strong {
   font-size: 1.05rem;
 }
@@ -120,6 +135,45 @@ a:focus-visible {
 .wood-counter-max {
   color: rgba(255, 253, 244, 0.72);
   font-size: 0.82rem;
+}
+
+.need-bubbles {
+  position: fixed;
+  inset: 0;
+  z-index: 6;
+  pointer-events: none;
+}
+
+.need-bubble {
+  position: absolute;
+  left: 0;
+  top: 0;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  padding: 6px 10px 6px 6px;
+  border-radius: 999px;
+  background: rgba(255, 253, 244, 0.94);
+  border: 1px solid rgba(255, 255, 255, 0.8);
+  box-shadow: 0 8px 18px rgba(72, 40, 16, 0.2);
+  color: #8a3a16;
+  font-family: "Fredoka", sans-serif;
+  font-size: 0.78rem;
+  white-space: nowrap;
+}
+
+.need-bubble[hidden] {
+  display: none !important;
+}
+
+.need-bubble-bowl {
+  width: 22px;
+  height: 22px;
+  border-radius: 50%;
+  background:
+    radial-gradient(circle at 50% 62%, #e07a2a 0 42%, transparent 43%),
+    radial-gradient(circle at 50% 70%, #6a3a18 0 70%, transparent 71%);
+  box-shadow: inset 0 -3px 0 rgba(90, 36, 10, 0.2);
 }
 
 .brand {
@@ -694,8 +748,9 @@ a:focus-visible {
   background-position: 40% 50%;
 }
 
-.task-pin[data-task="cook"] {
-  background-position: 80% 50%;
+.task-pin[data-task="cook"],
+.task-pin[data-task="harvest"] {
+  background-position: 60% 50%;
 }
 
 .worker-name,

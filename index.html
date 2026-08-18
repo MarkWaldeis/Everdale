@@ -141,15 +141,24 @@
             <strong id="stone-count">0</strong>
             <span class="wood-counter-max">/20</span>
           </div>
+          <div class="wood-counter soup-counter" id="soup-counter" aria-label="Suppenvorrat">
+            <span class="wood-counter-icon soup-counter-icon" aria-hidden="true"></span>
+            <strong id="soup-count">2</strong>
+            <span class="wood-counter-max" id="soup-cap">/10</span>
+          </div>
+          <div class="wood-counter pumpkin-counter" id="pumpkin-counter" aria-label="Kürbisvorrat">
+            <span class="wood-counter-icon pumpkin-counter-icon" aria-hidden="true"></span>
+            <strong id="pumpkin-count">3</strong>
+          </div>
         </div>
       </header>
 
       <aside class="world-note panel" aria-label="Information zur Welt">
         <span class="note-index">04</span>
         <div>
-          <p class="eyebrow">Im Holzhaus</p>
-          <h2>Lena, John und Sophie wohnen hier.</h2>
-          <p>Tippe Baum, Stein oder das Alchemie-Labor. Wer im Labor ist, kommt wieder raus, wenn du ihn woanders hinsendest.</p>
+          <p class="eyebrow">Im Dorf</p>
+          <h2>Suppe hält die Arbeit am Laufen.</h2>
+          <p>Tippe die Küche oder das Kürbisfeld, damit jemand kocht. Ohne Suppe legen Holzfäller die Axt hin.</p>
         </div>
       </aside>
 
@@ -166,6 +175,7 @@
           <li><span class="swatch swatch-axe"></span>Holzlager</li>
           <li><span class="swatch swatch-stone"></span>Steinlager</li>
           <li><span class="swatch swatch-cottage"></span>Alchemie</li>
+          <li><span class="swatch swatch-apple"></span>Küche & Kürbis</li>
         </ul>
       </section>
 
@@ -202,8 +212,10 @@
 
       <div class="interaction-hint" aria-hidden="true">
         <span class="mouse-symbol"></span>
-        Baum, Stein oder Labor antippen <i></i> Anordnen zum Drehen
+        Baum, Stein, Küche oder Feld antippen <i></i> Anordnen zum Drehen
       </div>
+
+      <div id="need-bubbles" class="need-bubbles" aria-hidden="true"></div>
 
       <div class="harvest-meter" id="harvest-meter" hidden>
         <svg viewBox="0 0 40 40" aria-hidden="true">

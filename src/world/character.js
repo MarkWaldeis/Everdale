@@ -39,6 +39,7 @@ const STATES = Object.freeze({
   JOB_ALIGN_STORAGE: "job-align-storage",
   JOB_DEPOSIT: "job-deposit",
   JOB_WALK_HOME: "job-walk-home",
+  JOB_WORK: "job-work",
   VISIT_WALK: "visit-walk",
   VISIT_ALIGN: "visit-align",
   VISIT_ENTER: "visit-enter",
@@ -58,6 +59,7 @@ const JOB_STATES = new Set([
   STATES.JOB_ALIGN_STORAGE,
   STATES.JOB_DEPOSIT,
   STATES.JOB_WALK_HOME,
+  STATES.JOB_WORK,
   STATES.VISIT_WALK,
   STATES.VISIT_ALIGN,
   STATES.VISIT_ENTER,
@@ -363,6 +365,9 @@ export function createCharacterController(
   root.add(model);
   const axe = axeModel ? createAxeWielder(model, axeModel) : null;
   const lab = extraTools.lab ?? null;
+  const well = extraTools.well ?? null;
+  const kitchen = extraTools.kitchen ?? null;
+  const pumpkinField = extraTools.pumpkinField ?? null;
   const pickaxe = extraTools.pickaxe
     ? createAxeWielder(model, extraTools.pickaxe, {
         targetLength: 0.36,
@@ -446,7 +451,11 @@ export function createCharacterController(
   const stabilizeHead = createHeadStabilizer(model);
   const doorReach = createArmReacher(model, home?.door.handleAnchor);
   const isRoamPointAllowed = (point) =>
-    !home?.containsPoint(point, 0.72) && !lab?.containsPoint(point, 0.55);
+    !home?.containsPoint(point, 0.72) &&
+    !lab?.containsPoint(point, 0.55) &&
+    !kitchen?.containsPoint(point, 0.5) &&
+    !pumpkinField?.containsPoint(point, 0.45) &&
+    !well?.containsPoint(point, 0.4);
   let roamTarget = randomPointInEllipse(
     walkArea.radiusX,
     walkArea.radiusZ,
@@ -462,7 +471,37 @@ export function createCharacterController(
   let lastElapsed = 0;
   let job = null;
   let lastImpactCycle = -1;
+  let hungry = false;
+  let eating = null;
   const stateOrigin = root.position.clone();
+
+  function isTimedWork(entry = job) {
+    return (
+      entry?.kind === "work" ||
+      entry?.kind === "cook" ||
+      entry?.kind === "harvest" ||
+      entry?.kind === "eat"
+    );
+  }
+
+  function getSimState() {
+    if (eating) return "EATING";
+    if (hungry) return "HUNGRY";
+    if (state === STATES.JOB_CHOP || state === STATES.JOB_WORK || state === STATES.VISIT_INSIDE) {
+      return "WORKING";
+    }
+    if (JOB_STATES.has(state)) return "WALKING";
+    return "IDLE";
+  }
+
+  function isWorking() {
+    if (eating || hungry) return false;
+    return (
+      state === STATES.JOB_CHOP ||
+      state === STATES.JOB_WORK ||
+      state === STATES.VISIT_INSIDE
+    );
+  }
 
   if (home) {
     root.position.copy(home.points.inside);
@@ -472,6 +511,10 @@ export function createCharacterController(
   }
 
   function chooseNextRoamTarget(preferAwayFromHome = false) {
+    if (well?.points?.idle && Math.random() < 0.48) {
+      roamTarget = well.points.idle.clone();
+      return;
+    }
     roamTarget = randomPointInEllipse(
       walkArea.radiusX,
       walkArea.radiusZ,
@@ -650,11 +693,15 @@ export function createCharacterController(
     if (waitTime > 0) {
       waitTime -= delta;
       stopMoving(delta);
+      if (well?.points?.idle && roamTarget.distanceTo(well.points.idle) < 0.35) {
+        faceToward(well.points.look ?? well.points.idle, delta);
+      }
       return;
     }
 
     if (moveToward(roamTarget, WALK_SPEED, delta, true)) {
-      waitTime = 0.7 + Math.random() * 1.15;
+      const atWell = Boolean(well?.points?.idle && roamTarget.distanceTo(well.points.idle) < 0.4);
+      waitTime = atWell ? 3.2 + Math.random() * 3.4 : 0.7 + Math.random() * 1.15;
       chooseNextRoamTarget();
     }
   }
@@ -937,6 +984,16 @@ export function createCharacterController(
 
       case STATES.JOB_ALIGN: {
         stopMoving(delta);
+        if (isTimedWork()) {
+          holsterTools();
+          const remaining = faceToward(job.lookAt ?? job.approach, delta);
+          if (stateTime >= 0.28 && remaining < 0.1) {
+            job.workTime = 0;
+            job.onStartWork?.();
+            transition(STATES.JOB_WORK);
+          }
+          break;
+        }
         drawJobTool();
         const remaining = faceToward(job.lookAt, delta);
         if (stateTime >= 0.38 && remaining < 0.08) {
@@ -956,8 +1013,30 @@ export function createCharacterController(
         break;
       }
 
+      case STATES.JOB_WORK: {
+        stopMoving(delta, 14);
+        holsterTools();
+        if (job.lookAt) faceToward(job.lookAt, delta);
+        if (hungry && job.kind !== "eat") break;
+        job.workTime = (job.workTime ?? 0) + delta;
+        if (job.workTime >= (job.duration ?? 1)) {
+          job.onWorkDone?.();
+          const next = typeof job.nextJob === "function" ? job.nextJob() : job.nextJob;
+          if (next) {
+            chainJob(next);
+            break;
+          }
+          beginWalkHome();
+        }
+        break;
+      }
+
       case STATES.JOB_CHOP: {
         stopMoving(delta, 14);
+        if (hungry || eating) {
+          holsterTools();
+          break;
+        }
         drawJobTool();
         faceToward(job.lookAt, delta);
         job.chopTime += delta;
@@ -1053,7 +1132,7 @@ export function createCharacterController(
     axe?.updateDraw(delta);
     pickaxe?.updateDraw(delta);
 
-    if (state === STATES.JOB_CHOP && job) {
+    if (state === STATES.JOB_CHOP && job && !hungry && !eating) {
       const hand = model.getObjectByName("R_Hand");
       if (hand) {
         hand.getWorldPosition(scratch.nextPosition);
@@ -1088,6 +1167,19 @@ export function createCharacterController(
     lastElapsed = elapsed;
     stateTime += safeDelta;
     reachWeight = 0;
+
+    if (eating) {
+      eating.time += safeDelta;
+      stopMoving(safeDelta, 14);
+      holsterTools();
+      updateAnimation(safeDelta, elapsed);
+      if (eating.time >= eating.duration) {
+        const done = eating.onDone;
+        eating = null;
+        done?.();
+      }
+      return;
+    }
 
     if (state === STATES.VISIT_INSIDE) {
       holsterTools();
@@ -1181,6 +1273,37 @@ export function createCharacterController(
     job.stuckTime = 0;
     job.skipRepath = false;
     transition(STATES.JOB_WALK);
+  }
+
+  function chainJob(nextJob) {
+    if (!home || !nextJob) return false;
+    const routes = buildJobPaths(nextJob);
+    job = {
+      ...nextJob,
+      approach: routes.approach,
+      storageApproach: routes.storage ?? nextJob.storageApproach,
+      storagePath: nextJob.storagePath ?? routes.storagePath,
+      storagePathIndex: 0,
+      delivered: false,
+      chopTime: 0,
+      hits: 0,
+      hitsNeeded: Math.max(nextJob.hitsNeeded ?? 5, 1),
+      progress: 0,
+      hitLock: 0,
+      handRising: false,
+      workTime: 0,
+      duration: Math.max(nextJob.duration ?? 1, 0.4),
+      path: nextJob.path ?? routes.path,
+      pathIndex: 0,
+      homePath: nextJob.homePath ?? routes.homePath,
+      homePathIndex: 0,
+      walkability: routes.walkability,
+    };
+    holsterTools();
+    appearWalking();
+    applyMeshFade(1);
+    transition(STATES.JOB_WALK);
+    return true;
   }
 
   function beginWalkHome() {
@@ -1298,6 +1421,12 @@ export function createCharacterController(
       : nextJob.storageBlock
         ? [nextJob.storageBlock]
         : [];
+    const asBlock = (building) => {
+      if (!building?.root) return null;
+      const span = Math.max(building.size?.x ?? 0.8, building.size?.z ?? 0.8);
+      return { x: building.root.position.x, z: building.root.position.z, radius: span * 0.42 + 0.12 };
+    };
+    [asBlock(kitchen), asBlock(pumpkinField), asBlock(well)].filter(Boolean).forEach((block) => extras.push(block));
     const walkability = createWalkability(home, trees, {
       ignoreTree: nextJob.tree,
       extras,
@@ -1381,6 +1510,7 @@ export function createCharacterController(
     update,
     forceHomeSequence,
     assignJob,
+    chainJob,
     isBusy,
     isIndoors,
     relocateWithHome,
@@ -1388,6 +1518,17 @@ export function createCharacterController(
     getId: () => villagerId,
     getLabel: () => villagerLabel,
     getJobTool: () => job?.tool ?? null,
+    getJobKind: () => job?.kind ?? null,
+    getSimState,
+    isWorking,
+    isHungry: () => hungry,
+    setHungry: (value) => {
+      hungry = Boolean(value);
+    },
+    isEating: () => Boolean(eating),
+    beginEating: (seconds, onDone) => {
+      eating = { duration: Math.max(seconds ?? 2.6, 0.4), time: 0, onDone };
+    },
     isAtLab,
     getState: () => state,
     debugResetToHome: () => {
@@ -1423,6 +1564,10 @@ export function createCharacterController(
       chopClip: locomotion.chop?.name ?? null,
       walkWeightLive: walkAction?.getEffectiveWeight() ?? 0,
       chopWeightLive: chopAction?.getEffectiveWeight() ?? 0,
+      simState: getSimState(),
+      hungry,
+      eating: Boolean(eating),
+      jobKind: job?.kind ?? null,
     }),
     debugWarp: (nextState, point) => {
       if (point) root.position.copy(point);
@@ -1441,6 +1586,11 @@ export function createCharacterController(
       job.progress = 1;
       job.onChopDone?.();
       beginCarryToStorage();
+      return true;
+    },
+    debugFinishWork: () => {
+      if (!job || state !== STATES.JOB_WORK) return false;
+      job.workTime = job.duration ?? 1;
       return true;
     },
   };
