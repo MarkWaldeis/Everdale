@@ -1,5 +1,5 @@
 import * as THREE from "three";
-import { OrbitControls } from "three/addons/controls/OrbitControls.js";
+import { MapControls } from "three/addons/controls/MapControls.js";
 import { ASSETS } from "./world/assets.js";
 import { loadWorldAssets } from "./world/asset-loader.js";
 import { buildForestWorld } from "./world/forest.js";
@@ -64,19 +64,24 @@ renderer.toneMappingExposure = 1.08;
 renderer.shadowMap.enabled = true;
 renderer.shadowMap.type = THREE.PCFSoftShadowMap;
 
-const controls = new OrbitControls(camera, renderer.domElement);
+const controls = new MapControls(camera, renderer.domElement);
 controls.enableDamping = true;
-controls.dampingFactor = 0.055;
+controls.dampingFactor = 0.08;
 controls.enablePan = true;
-controls.screenSpacePanning = true;
+controls.screenSpacePanning = false;
 controls.enableRotate = true;
-controls.minPolarAngle = THREE.MathUtils.degToRad(8);
-controls.maxPolarAngle = THREE.MathUtils.degToRad(78);
-controls.minDistance = 4;
-controls.maxDistance = 90;
+controls.zoomToCursor = true;
+controls.panSpeed = 1.55;
+controls.keyPanSpeed = 18;
+controls.minPolarAngle = THREE.MathUtils.degToRad(6);
+controls.maxPolarAngle = THREE.MathUtils.degToRad(86);
+controls.minDistance = 2.2;
+controls.maxDistance = 110;
 controls.target.set(0.4, 0.45, 0.2);
 camera.position.set(16, 14, 18);
 camera.lookAt(controls.target);
+controls.listenToKeyEvents(window);
+controls.update();
 
 const hemisphere = new THREE.HemisphereLight(0xeaf8ff, 0x6f7a3a, 2.3);
 scene.add(hemisphere);

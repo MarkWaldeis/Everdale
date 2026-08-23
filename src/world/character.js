@@ -69,7 +69,7 @@ const JOB_STATES = new Set([
 
 const DEPOSIT_TIME = 1.2;
 
-const CHOP_CYCLE = 0.92;
+const STRIKE_LOCK = 0.55;
 
 const scratch = {
   direction: new THREE.Vector3(),
@@ -1006,6 +1006,10 @@ export function createCharacterController(
           job.progress = 0;
           job.hitLock = 0;
           job.handRising = false;
+          job.strikeArmed = false;
+          job.strikePeak = null;
+          job.strikeTrough = null;
+          job.prevChopTime = null;
           chopAction?.reset();
           chopAction?.setEffectiveWeight(1);
           chopAction?.play();
@@ -1094,6 +1098,40 @@ export function createCharacterController(
     }
   }
 
+  function registerChopHit() {
+    if (!job || job.hits >= job.hitsNeeded) return;
+    job.hits += 1;
+    job.progress = job.hits / job.hitsNeeded;
+    job.hitLock = STRIKE_LOCK;
+    job.handRising = false;
+    job.strikeArmed = false;
+    job.strikePeak = job.strikeTrough;
+    job.onImpact?.();
+    job.onChopProgress?.(job.progress);
+    if (job.hits >= job.hitsNeeded) {
+      job.onChopDone?.();
+      beginCarryToStorage();
+    }
+  }
+
+  function registerChopHitFromClip() {
+    if (!chopAction || !job) return;
+    const duration = chopAction.getClip()?.duration ?? 0;
+    if (duration < 0.3) return;
+    const clipTime = chopAction.time;
+    const prev = job.prevChopTime;
+    job.prevChopTime = clipTime;
+    if (prev == null || !Number.isFinite(prev)) return;
+    const impact = duration * 0.24;
+    const crossed =
+      clipTime >= prev
+        ? prev < impact && clipTime >= impact
+        : prev < impact || clipTime >= impact;
+    if (!crossed) return;
+    if ((job.hitLock ?? 0) > 0 || job.hits >= job.hitsNeeded) return;
+    registerChopHit();
+  }
+
   function updateAnimation(delta, elapsed) {
     const movementAmount = THREE.MathUtils.clamp(speed / WALK_SPEED, 0, 1);
     const atWork = Boolean(job) && state === STATES.JOB_CHOP;
@@ -1112,22 +1150,26 @@ export function createCharacterController(
 
     if (mixer) {
       if (walkAction) {
-        walkAction.enabled = true;
-        walkAction.setEffectiveWeight(useWalk ? 1 : 0);
         if (atWork || !model.visible) {
+          walkAction.enabled = false;
+          walkAction.setEffectiveWeight(0);
           walkAction.timeScale = 0;
-        } else if (movementAmount < 0.04) {
-          walkAction.timeScale = 0.22;
         } else {
-          walkAction.timeScale = THREE.MathUtils.clamp(
-            speed / NATURAL_WALK_SPEED,
-            0.28,
-            1.08,
-          );
+          walkAction.enabled = true;
+          walkAction.setEffectiveWeight(useWalk ? 1 : 0);
+          walkAction.timeScale =
+            movementAmount < 0.04
+              ? 0.22
+              : THREE.MathUtils.clamp(speed / NATURAL_WALK_SPEED, 0.28, 1.08);
         }
       }
       if (chopAction) {
+        chopAction.enabled = atWork;
+        chopAction.paused = !atWork;
         chopAction.timeScale = atWork ? 1 : 0;
+        if (atWork && chopAction.getEffectiveWeight() < 0.99) {
+          chopAction.setEffectiveWeight(1);
+        }
       }
       mixer.update(delta);
     } else if (model.visible) {
@@ -1140,32 +1182,7 @@ export function createCharacterController(
     pickaxe?.updateDraw(delta);
 
     if (state === STATES.JOB_CHOP && job && !hungry && !eating) {
-      const hand = model.getObjectByName("R_Hand");
-      if (hand) {
-        hand.getWorldPosition(scratch.nextPosition);
-        if (job.lastHandY != null) {
-          const fall = job.lastHandY - scratch.nextPosition.y;
-          if (fall < -0.012) job.handRising = true;
-          if (
-            job.handRising &&
-            fall > 0.055 &&
-            (job.hitLock ?? 0) <= 0 &&
-            job.hits < job.hitsNeeded
-          ) {
-            job.hits += 1;
-            job.progress = job.hits / job.hitsNeeded;
-            job.hitLock = 0.7;
-            job.handRising = false;
-            job.onImpact?.();
-            job.onChopProgress?.(job.progress);
-            if (job.hits >= job.hitsNeeded) {
-              job.onChopDone?.();
-              beginCarryToStorage();
-            }
-          }
-        }
-        job.lastHandY = scratch.nextPosition.y;
-      }
+      registerChopHitFromClip();
     }
   }
 
@@ -1298,6 +1315,10 @@ export function createCharacterController(
       progress: 0,
       hitLock: 0,
       handRising: false,
+      strikeArmed: false,
+      strikePeak: null,
+      strikeTrough: null,
+      prevChopTime: null,
       workTime: 0,
       duration: Math.max(nextJob.duration ?? 1, 0.4),
       path: nextJob.path ?? routes.path,
@@ -1509,6 +1530,10 @@ export function createCharacterController(
       progress: 0,
       hitLock: 0,
       handRising: false,
+      strikeArmed: false,
+      strikePeak: null,
+      strikeTrough: null,
+      prevChopTime: null,
       duration: Math.max(nextJob.duration ?? 60, 0.5),
       path: nextJob.path ?? routes.path,
       pathIndex: 0,
@@ -1547,6 +1572,13 @@ export function createCharacterController(
     return job?.progress ?? 0;
   }
 
+  function getJobHits() {
+    return {
+      hits: job?.hits ?? 0,
+      needed: job?.hitsNeeded ?? 5,
+    };
+  }
+
   return {
     root,
     update,
@@ -1559,6 +1591,7 @@ export function createCharacterController(
     isIndoors,
     relocateWithHome,
     getJobProgress,
+    getJobHits,
     getId: () => villagerId,
     getLabel: () => villagerLabel,
     getJobTool: () => job?.tool ?? null,
@@ -1606,6 +1639,8 @@ export function createCharacterController(
       homePathLength: job?.homePath?.length ?? 0,
       walkClip: locomotion.walk?.name ?? null,
       chopClip: locomotion.chop?.name ?? null,
+      chopTime: chopAction?.time ?? 0,
+      chopDuration: chopAction?.getClip()?.duration ?? 0,
       walkWeightLive: walkAction?.getEffectiveWeight() ?? 0,
       chopWeightLive: chopAction?.getEffectiveWeight() ?? 0,
       simState: getSimState(),

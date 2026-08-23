@@ -1,7 +1,7 @@
 import * as THREE from "three";
 
 export const CHOP_HITS = 5;
-const CLICK_SLOP = 8;
+const CLICK_SLOP = 12;
 const TREE_LABELS = Object.freeze({
   tree: "Waldbaum",
   appleTree: "Apfelbaum",
@@ -407,11 +407,15 @@ export function createHarvestDirector({
     });
   }
 
-  function projectMeter(tree, progress) {
+  function projectMeter(tree, hits = 0, needed = CHOP_HITS) {
     if (!meter || !tree) {
       if (meter) meter.hidden = true;
       return;
     }
+
+    const total = Math.max(needed, 1);
+    const count = THREE.MathUtils.clamp(Math.round(hits), 0, total);
+    const progress = count / total;
 
     if (!tree.userData.crownHeight) {
       const bounds = new THREE.Box3().setFromObject(tree);
@@ -423,26 +427,24 @@ export function createHarvestDirector({
       tree.position.z,
     );
     scratch.projected.copy(scratch.world).project(camera);
-    const onScreen =
-      scratch.projected.z > -1 &&
-      scratch.projected.z < 1 &&
-      Math.abs(scratch.projected.x) < 1.15 &&
-      Math.abs(scratch.projected.y) < 1.15;
-
-    if (!onScreen) {
+    const behindCamera = scratch.projected.z < -1 || scratch.projected.z > 1;
+    if (behindCamera) {
       meter.hidden = true;
+      if (meterLabel) meterLabel.textContent = `${count}/${total}`;
       return;
     }
 
+    const nx = THREE.MathUtils.clamp(scratch.projected.x, -0.9, 0.9);
+    const ny = THREE.MathUtils.clamp(scratch.projected.y, -0.78, 0.86);
     const view = canvas.getBoundingClientRect();
-    const x = view.left + (scratch.projected.x * 0.5 + 0.5) * view.width;
-    const y = view.top + (-scratch.projected.y * 0.5 + 0.5) * view.height;
+    const x = view.left + (nx * 0.5 + 0.5) * view.width;
+    const y = view.top + (-ny * 0.5 + 0.5) * view.height;
     meter.hidden = false;
     meter.style.transform = `translate(${x}px, ${y}px) translate(-50%, -50%)`;
     const offset = 113.1 * (1 - progress);
     if (meterFill) meterFill.style.strokeDashoffset = String(offset);
     if (meterLabel) {
-      meterLabel.textContent = `${Math.round(progress * CHOP_HITS)}/${CHOP_HITS}`;
+      meterLabel.textContent = `${count}/${total}`;
     }
   }
 
@@ -650,17 +652,22 @@ export function createHarvestDirector({
       onStartChop: () => {
         tree.userData.harvestState = "chopping";
         tree.userData.lockSway = true;
-        projectMeter(tree, 0);
+        tree.userData.chopHits = 0;
+        projectMeter(tree, 0, CHOP_HITS);
       },
       onImpact: () => {
         const origin = tree.position.clone();
         origin.y = surfaceY;
         spawnChips(origin, isStone ? "stone" : "wood");
         tree.userData.impactPulse = 1;
-        projectMeter(tree, member.getJobProgress());
+        const hits = member.getJobHits?.().hits ?? tree.userData.chopHits ?? 0;
+        tree.userData.chopHits = hits;
+        projectMeter(tree, hits, CHOP_HITS);
       },
-      onChopProgress: (progress) => {
-        projectMeter(tree, progress);
+      onChopProgress: () => {
+        const hits = member.getJobHits?.().hits ?? tree.userData.chopHits ?? 0;
+        tree.userData.chopHits = hits;
+        projectMeter(tree, hits, CHOP_HITS);
       },
       onChopDone: () => {
         beginFall(tree, member.root.position.clone());
@@ -793,13 +800,23 @@ export function createHarvestDirector({
     updateFalls(delta);
     updateImpulses(delta);
 
-    const chopping = trees.find((tree) => tree.userData.harvestState === "chopping");
-    if (chopping) {
+    const choppingTrees = trees.filter((tree) => tree.userData.harvestState === "chopping");
+    if (choppingTrees.length) {
+      choppingTrees.sort(
+        (left, right) =>
+          camera.position.distanceToSquared(left.position) -
+          camera.position.distanceToSquared(right.position),
+      );
+      const chopping = choppingTrees[0];
       const worker =
         roster.find((member) => member.getId() === chopping.userData.assignedWorkerId) ??
         roster.find((member) => member.getState() === "job-chop");
-      projectMeter(chopping, worker?.getJobProgress() ?? 0);
-    } else if (meter && !chopping) {
+      const info = worker?.getJobHits?.();
+      const hits = info?.hits ?? chopping.userData.chopHits ?? 0;
+      const needed = info?.needed ?? CHOP_HITS;
+      chopping.userData.chopHits = hits;
+      projectMeter(chopping, hits, needed);
+    } else if (meter) {
       const assigned = trees.find((tree) => tree.userData.harvestState === "assigned");
       if (!assigned) meter.hidden = true;
     }
