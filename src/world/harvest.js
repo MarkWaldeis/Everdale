@@ -106,6 +106,7 @@ export function createHarvestDirector({
   surfaceY,
   setFollowTarget,
   isPlacementActive,
+  onOpenResearch,
 }) {
   const raycaster = new THREE.Raycaster();
   const marker = createGroundMarker();
@@ -521,7 +522,7 @@ export function createHarvestDirector({
     pointerState.selected = null;
     pointerState.mode = "research";
     placeMarker(null);
-    if (trayTitle) trayTitle.textContent = "Studierstube · Forschen";
+    if (trayTitle) trayTitle.textContent = "Alchemielabor · Forschen";
     refreshWorkerCard();
     setTrayOpen(true);
   }
@@ -854,7 +855,7 @@ export function createHarvestDirector({
     const travel = Math.hypot(event.clientX - pointerState.down.x, event.clientY - pointerState.down.y);
     pointerState.down = null;
     if (travel > CLICK_SLOP) return;
-    if (event.target?.closest?.(".panel, .worker-dock, .harvest-meter, .village-edit-bar, .game-hud-top, .game-hud-bottom, .game-sheet")) return;
+    if (event.target?.closest?.(".panel, .worker-dock, .harvest-meter, .village-edit-bar, .game-hud-top, .game-hud-bottom, .game-sheet, .glass-overlay")) return;
 
     const kitchenHit = pickKitchen(event.clientX, event.clientY);
     if (kitchenHit) {
@@ -885,11 +886,8 @@ export function createHarvestDirector({
     }
     const labHit = pickResearch(event.clientX, event.clientY);
     if (labHit) {
-      if (pointerState.mode === "research") {
-        selectTree(null);
-        return;
-      }
-      selectResearch();
+      selectTree(null);
+      onOpenResearch?.();
       return;
     }
     const tree = pickTree(event.clientX, event.clientY);

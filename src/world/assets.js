@@ -130,7 +130,7 @@ export const ASSETS = Object.freeze({
     height: 1.62,
   },
   study: {
-    label: "Studierstube",
+    label: "Alchemielabor",
     url: new URL("../../3d Assets/study-hall.glb", import.meta.url).href,
     height: 3.2,
   },

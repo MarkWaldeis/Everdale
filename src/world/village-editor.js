@@ -435,7 +435,7 @@ export function createVillageEditor({
   function isHudEvent(event) {
     return Boolean(
       event.target?.closest?.(
-        ".panel, .worker-dock, .village-edit-bar, .village-edit-toggle, .village-edit-done, .wind-button, .game-hud-top, .game-hud-bottom, .game-sheet, .hud-icon-btn",
+        ".panel, .worker-dock, .village-edit-bar, .village-edit-toggle, .village-edit-done, .wind-button, .game-hud-top, .game-hud-bottom, .game-sheet, .hud-icon-btn, .glass-overlay",
       ),
     );
   }
@@ -569,7 +569,7 @@ export function createVillageEditor({
         groundY + state.lift * LIFT_HEIGHT + bob,
         world.z,
       );
-      if (state.holding.id === "cottage" || state.holding.id === "research") {
+      if (state.holding.id === "cottage" || state.holding.id === "study") {
         const lift = state.lift * LIFT_HEIGHT + bob;
         if (character.liftIndoors) {
           character.liftIndoors(lift);
@@ -587,12 +587,27 @@ export function createVillageEditor({
     if (overlay.visible) colorTiles(elapsed);
   }
 
+  function beginPlace(building) {
+    if (!building) return false;
+    const record = grid.get(building.id) ?? building;
+    if (!Number.isFinite(record.col) || !Number.isFinite(record.row)) return false;
+    if (!state.active) {
+      state.active = true;
+      overlay.visible = true;
+      refreshHud();
+      onModeChange?.(true);
+    }
+    pickUp(record);
+    return true;
+  }
+
   return {
     register,
     update,
     isActive: () => state.active,
     setActive,
     pickUp,
+    beginPlace,
     cancelHold,
     confirmHold,
     previewAt: setPreview,

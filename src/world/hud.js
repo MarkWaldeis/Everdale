@@ -47,68 +47,108 @@ export function createHud({
 
   function closeSheet() {
     openId = null;
-    if (els.sheet) els.sheet.hidden = true;
+    if (!els.sheet) return;
+    els.sheet.hidden = true;
+    els.sheet.classList.remove("is-research", "is-build");
   }
 
   function openSheet(id, title, html) {
     openId = id;
     if (!els.sheet) return;
     els.sheet.hidden = false;
+    els.sheet.classList.toggle("is-research", id === "research");
+    els.sheet.classList.toggle("is-build", id === "build");
     if (els.sheetTitle) els.sheetTitle.textContent = title;
     if (els.sheetBody) els.sheetBody.innerHTML = html;
     bindSheetButtons();
   }
 
-  function statusLabel(status) {
+  function statusLabel(status, extra = "") {
     if (status === "done") return "Erforscht";
-    if (status === "researching") return "Läuft";
-    if (status === "ready") return "Bereit";
-    return "Gesperrt";
+    if (status === "researching") return "Wird erforscht";
+    if (status === "ready") return extra || "Bereit";
+    return extra || "Gesperrt";
   }
 
   function renderBuild() {
     const cards = game.catalog
+      .filter((item) => item.placeable || item.later)
       .map((item) => {
         const placed = game.isPlaced(item.id);
         const unlocked = game.isUnlocked(item.id);
         const can = game.canPlaceBuilding(item.id);
-        const names = { wood: "Holz", clay: "Lehm", stone: "Stein", scrolls: "Schriftrollen" };
-        const cost = Object.entries(item.cost || {})
-          .map(([key, value]) => `${value} ${names[key] ?? key}`)
-          .join(", ");
-        let state = "Kann gebaut werden";
-        if (!item.placeable) state = "Später";
-        else if (placed) state = "Steht im Dorf";
-        else if (!unlocked) state = "Noch nicht erforscht";
-        else if (!can) state = `Zu teuer (${cost})`;
+        const cost = game.formatCost?.(item.cost) ?? "";
+        let state = "Tippen und auf die Karte setzen";
+        let kind = "is-ready";
+        if (!item.placeable || item.later) {
+          state = "Bald verfügbar";
+          kind = "is-locked";
+        } else if (placed) {
+          state = "Steht im Dorf";
+          kind = "is-done";
+        } else if (!unlocked) {
+          state = "Zuerst im Labor erforschen";
+          kind = "is-locked";
+        } else if (!can) {
+          state = `Zu teuer · ${cost}`;
+          kind = "is-locked";
+        }
         const disabled = !can;
-        return `<button class="sheet-card ${disabled ? "is-locked" : ""}" type="button" data-build="${item.id}" ${disabled ? "disabled" : ""}>
+        const price = cost && cost !== "Frei" ? cost : "";
+        return `<button class="glass-card ${kind}" type="button" data-build="${item.id}" ${disabled ? "disabled" : ""}>
+          <span class="glass-card-kicker">${placed ? "Gebaut" : unlocked ? "Freigeschaltet" : "Gesperrt"}</span>
           <strong>${item.label}</strong>
           <small>${item.description}</small>
-          <em>${state}</em>
+          <em>${price ? `${price} · ${state}` : state}</em>
         </button>`;
       })
       .join("");
-    openSheet("build", "Bauen", cards || "<p>Nichts verfügbar.</p>");
+    openSheet(
+      "build",
+      "Bauen",
+      `<p class="glass-lead">Wähle ein erforschtes Gebäude. Danach setzt du es auf ein freies Feld.</p>
+       <div class="build-grid">${cards || "<p>Nichts verfügbar.</p>"}</div>`,
+    );
   }
 
   function renderResearch() {
-    if (!game.isPlaced("study")) {
-      openSheet("research", "Forschung", "<p>Baue zuerst die Studierstube.</p>");
-      return;
-    }
-    const cards = game.nodes
-      .map((node) => {
+    const steps = game.nodes
+      .map((node, index) => {
         const status = game.getNodeStatus(node.id);
-        const cost = `${node.cost.scrolls} Schriftrolle${node.cost.scrolls === 1 ? "" : "n"}`;
-        return `<button class="sheet-card is-${status}" type="button" data-research="${node.id}" ${status === "ready" ? "" : "disabled"}>
-          <strong>${node.name}</strong>
-          <small>${node.detail}</small>
-          <em>${statusLabel(status)} · ${cost}</em>
-        </button>`;
+        const cost = game.formatCost?.(node.cost) ?? "";
+        const affordable = game.canAffordResearch?.(node.id);
+        const shortfall = game.researchShortfall?.(node.id) ?? [];
+        const canClick = (status === "ready" && affordable) || status === "researching";
+        let extra = cost;
+        if (status === "ready" && !affordable && shortfall.length) {
+          extra = `Noch ${shortfall.join(", ")}`;
+        } else if (status === "ready" && affordable) {
+          extra = `${cost} · Tippen zum Freischalten`;
+        } else if (status === "locked" && node.later) {
+          extra = "Bald";
+        }
+        return `<div class="research-step">
+          ${index > 0 ? `<span class="research-link is-${status}" aria-hidden="true"></span>` : ""}
+          <button class="research-node is-${status} ${canClick ? "is-open" : ""}" type="button" data-research="${node.id}" ${canClick ? "" : "disabled"}>
+            <span class="research-glyph">${node.icon ?? "✦"}</span>
+            <span class="research-index">${String(index + 1).padStart(2, "0")}</span>
+            <strong>${node.name}</strong>
+            <small>${node.detail}</small>
+            <em>${statusLabel(status, extra)}</em>
+          </button>
+        </div>`;
       })
       .join("");
-    openSheet("research", "Forschung", cards);
+    openSheet(
+      "research",
+      "Forschungsbaum",
+      `<p class="glass-lead">Von links nach rechts. Jeder Schritt schaltet das Nächste frei.</p>
+       <div class="research-tree">${steps}</div>`,
+    );
+    requestAnimationFrame(() => {
+      const ready = els.sheetBody?.querySelector(".research-node.is-open, .research-node.is-ready");
+      ready?.closest(".research-step")?.scrollIntoView({ inline: "center", block: "nearest", behavior: "smooth" });
+    });
   }
 
   function renderInventory() {
@@ -169,8 +209,12 @@ export function createHud({
     });
     els.sheetBody?.querySelectorAll("[data-research]").forEach((button) => {
       button.addEventListener("click", () => {
-        game.startResearch(button.dataset.research);
+        const result = game.completeResearch(button.dataset.research);
         refresh();
+        if (result?.ok && result.unlockedBuilding) {
+          renderBuild();
+          return;
+        }
         renderResearch();
       });
     });
@@ -216,22 +260,26 @@ export function createHud({
       els.valleyBtn.classList.toggle("is-locked", !game.isValleyUnlocked());
     }
     if (els.researchBtn) {
-      els.researchBtn.classList.toggle("needs-study", !game.isPlaced("study"));
+      els.researchBtn.classList.remove("needs-study");
     }
     const sophieOn = game.isVillagerUnlocked("sophie");
     if (els.sophieCard) els.sophieCard.hidden = !sophieOn;
     if (els.sophieDock) els.sophieDock.hidden = !sophieOn;
-    if (openId === "build") renderBuild();
-    if (openId === "research") renderResearch();
     if (openId === "inventory") renderInventory();
     if (openId === "valley") renderValley();
   }
 
   function bind() {
     document.querySelector("#btn-settings")?.addEventListener("click", renderSettings);
-    document.querySelector("#btn-build")?.addEventListener("click", renderBuild);
+    document.querySelector("#btn-build")?.addEventListener("click", () => {
+      if (openId === "build") closeSheet();
+      else renderBuild();
+    });
     document.querySelector("#btn-inventory")?.addEventListener("click", renderInventory);
-    document.querySelector("#btn-research")?.addEventListener("click", renderResearch);
+    document.querySelector("#btn-research")?.addEventListener("click", () => {
+      if (openId === "research") closeSheet();
+      else renderResearch();
+    });
     document.querySelector("#btn-valley")?.addEventListener("click", () => {
       if (!game.isValleyUnlocked()) {
         renderValley();
@@ -242,6 +290,12 @@ export function createHud({
     });
     // Anordnen is bound by the village editor.
     document.querySelector("#sheet-close")?.addEventListener("click", closeSheet);
+    els.sheet?.addEventListener("click", (event) => {
+      if (event.target === els.sheet) closeSheet();
+    });
+    window.addEventListener("keydown", (event) => {
+      if (event.key === "Escape" && openId) closeSheet();
+    });
     document.querySelector("#hud-level-wrap")?.addEventListener("click", renderInventory);
     document.querySelectorAll("[data-hud-villager]").forEach((button) => {
       button.addEventListener("click", () => onFocusVillager?.(button.dataset.hudVillager));

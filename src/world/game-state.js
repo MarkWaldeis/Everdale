@@ -23,6 +23,10 @@ import {
   fillValleyCrate,
   simulateValleyMembers,
   getCatalogItem,
+  getResearchNode,
+  canAfford,
+  researchCostShortfall,
+  formatCost,
   BUILDING_CATALOG,
   RESEARCH_NODES,
 } from "./simulation.js";
@@ -73,6 +77,7 @@ export function createGameState() {
         },
       }
     : base;
+  data.placed.study = true;
   data.player.level = getPlayerLevel(data);
   const listeners = new Set();
 
@@ -106,6 +111,15 @@ export function createGameState() {
     persist,
     catalog: BUILDING_CATALOG,
     nodes: RESEARCH_NODES,
+    formatCost,
+    canAffordResearch: (nodeId) => {
+      const node = getResearchNode(nodeId);
+      return Boolean(node && canAfford(data, node.cost));
+    },
+    researchShortfall: (nodeId) => {
+      const node = getResearchNode(nodeId);
+      return node ? researchCostShortfall(data, node.cost) : [];
+    },
     getPlayerLevel: () => getPlayerLevel(data),
     getXp: () => data.player.xp,
     getQuest: () => getActiveQuest(data),
@@ -187,7 +201,18 @@ export function createGameState() {
         villager.workSeconds = 0;
         villager.hungry = false;
       }),
-    setVillagerState: (id, state, extra) => wrap(() => simSetVillager(data, id, state, extra)),
+    setVillagerState: (id, state, extra = {}) => {
+      const villager = data.villagers[id];
+      if (!villager) return null;
+      const unchanged =
+        villager.state === state &&
+        (extra.hungry === undefined || villager.hungry === extra.hungry) &&
+        (extra.assignedBuildingId === undefined ||
+          villager.assignedBuildingId === extra.assignedBuildingId) &&
+        (extra.assignedTaskId === undefined || villager.assignedTaskId === extra.assignedTaskId);
+      if (unchanged) return villager;
+      return wrap(() => simSetVillager(data, id, state, extra));
+    },
     assignBuildingWorker: (buildingId, villagerId) =>
       wrap(() => {
         const building = data.buildings[buildingId];

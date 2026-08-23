@@ -17,14 +17,28 @@ export const RESOURCES = Object.freeze({
   flour: {},
 });
 
+export const COST_LABELS = Object.freeze({
+  wood: "Holz",
+  stone: "Stein",
+  clay: "Lehm",
+  scrolls: "Schriftrollen",
+});
+
+export function formatCost(cost = {}) {
+  const parts = Object.entries(cost)
+    .filter(([, value]) => value > 0)
+    .map(([key, value]) => `${value} ${COST_LABELS[key] ?? key}`);
+  return parts.join(" · ") || "Frei";
+}
+
 export const BUILDING_CATALOG = Object.freeze([
   {
     id: "study",
-    label: "Studierstube",
+    label: "Alchemielabor",
     starterBuild: true,
-    placeable: true,
-    cost: { wood: 10 },
-    description: "Hier forschen Bewohner neue Gebäude frei.",
+    placeable: false,
+    cost: {},
+    description: "Steht bereits im Dorf. Hier forschst du neue Gebäude frei.",
   },
   {
     id: "clay-pit",
@@ -77,9 +91,10 @@ export const RESEARCH_NODES = Object.freeze([
   {
     id: "clay-pit",
     name: "Lehmgrube",
-    detail: "Hebt eine Lehmgrube am Dorfrand aus.",
+    detail: "Sammle 10 Holz, dann erforsche die Grube und baue sie.",
+    icon: "🧱",
     requires: [],
-    cost: { scrolls: 1 },
+    cost: { wood: 10 },
     unlocksBuilding: "clay-pit",
     completable: true,
   },
@@ -87,8 +102,9 @@ export const RESEARCH_NODES = Object.freeze([
     id: "clay-storage",
     name: "Lehmlager",
     detail: "Trockenschuppen für gegrabenen Lehm.",
+    icon: "📦",
     requires: ["clay-pit"],
-    cost: { scrolls: 1 },
+    cost: { wood: 6 },
     unlocksBuilding: "clay-storage",
     completable: true,
   },
@@ -96,8 +112,9 @@ export const RESEARCH_NODES = Object.freeze([
     id: "stone-storage",
     name: "Steinlager",
     detail: "Steinstapel und Abbau im Wald.",
-    requires: ["clay-pit"],
-    cost: { scrolls: 1 },
+    icon: "🪨",
+    requires: ["clay-storage"],
+    cost: { wood: 8 },
     unlocksBuilding: "stone-storage",
     completable: true,
   },
@@ -105,8 +122,9 @@ export const RESEARCH_NODES = Object.freeze([
     id: "house-ii",
     name: "Neues Wohnhaus",
     detail: "Sophie zieht ins Dorf und hilft mit.",
-    requires: ["clay-storage"],
-    cost: { scrolls: 2 },
+    icon: "🏠",
+    requires: ["stone-storage"],
+    cost: { wood: 12 },
     unlocksVillager: "sophie",
     completable: true,
   },
@@ -114,8 +132,9 @@ export const RESEARCH_NODES = Object.freeze([
     id: "valley-access",
     name: "Tal-Zugang",
     detail: "Öffnet das gemeinsame Tal und den Hafen.",
-    requires: ["clay-storage", "stone-storage"],
-    cost: { scrolls: 2 },
+    icon: "⛵",
+    requires: ["house-ii"],
+    cost: { wood: 10, stone: 4 },
     unlocksValley: true,
     completable: true,
   },
@@ -123,8 +142,9 @@ export const RESEARCH_NODES = Object.freeze([
     id: "bakery",
     name: "Bäckerei",
     detail: "Kommt später: Mehl zu Brot und Kuchen.",
+    icon: "🍞",
     requires: ["valley-access"],
-    cost: { scrolls: 3 },
+    cost: { wood: 16 },
     later: true,
     completable: false,
   },
@@ -132,8 +152,9 @@ export const RESEARCH_NODES = Object.freeze([
     id: "tailor",
     name: "Schneiderei",
     detail: "Kommt später: Hemden, Socken, Hosen.",
+    icon: "🧵",
     requires: ["bakery"],
-    cost: { scrolls: 3 },
+    cost: { wood: 14 },
     later: true,
     completable: false,
   },
@@ -141,8 +162,9 @@ export const RESEARCH_NODES = Object.freeze([
     id: "wood-workshop",
     name: "Holzwerkstatt",
     detail: "Kommt später: Bretter und Fässer.",
+    icon: "🪚",
     requires: ["bakery"],
-    cost: { scrolls: 3 },
+    cost: { wood: 12 },
     later: true,
     completable: false,
   },
@@ -154,6 +176,7 @@ export const STARTER_PLACED = Object.freeze([
   "kitchen",
   "pumpkin-patch",
   "well",
+  "study",
 ]);
 
 function clone(value) {
@@ -191,7 +214,7 @@ export function createDefaultState() {
     kitchen: true,
     "pumpkin-patch": true,
     well: true,
-    study: false,
+    study: true,
     "clay-pit": false,
     "clay-storage": false,
     "stone-storage": false,
@@ -325,8 +348,14 @@ export function isVillagerUnlocked(state, id) {
   return Boolean(state.villagers[id]?.unlocked);
 }
 
-function canAfford(state, cost = {}) {
+export function canAfford(state, cost = {}) {
   return Object.entries(cost).every(([key, value]) => (state.village[key] ?? 0) >= value);
+}
+
+export function researchCostShortfall(state, cost = {}) {
+  return Object.entries(cost)
+    .filter(([key, value]) => (state.village[key] ?? 0) < value)
+    .map(([key, value]) => `${value - (state.village[key] ?? 0)} ${COST_LABELS[key] ?? key}`);
 }
 
 function spendCost(state, cost = {}) {
@@ -359,7 +388,6 @@ export function getNodeStatus(state, nodeId) {
   if (state.nodes[nodeId] === "done") return "done";
   if (state.research.activeId === nodeId) return "researching";
   if (node.later || node.completable === false) return "locked";
-  if (!state.placed.study) return "locked";
   const ready = node.requires.every((id) => state.nodes[id] === "done");
   return ready ? "ready" : "locked";
 }
@@ -367,11 +395,10 @@ export function getNodeStatus(state, nodeId) {
 export function startResearch(state, nodeId) {
   const node = getResearchNode(nodeId);
   if (!node) return { ok: false, reason: "missing" };
-  if (!state.placed.study) return { ok: false, reason: "no-study" };
   const status = getNodeStatus(state, nodeId);
   if (status !== "ready") return { ok: false, reason: status };
-  if ((state.village.scrolls ?? 0) < (node.cost.scrolls ?? 0)) {
-    return { ok: false, reason: "scrolls" };
+  if (!canAfford(state, node.cost)) {
+    return { ok: false, reason: "cost" };
   }
   state.research.activeId = nodeId;
   state.research.progress = 0;
@@ -383,15 +410,14 @@ export function completeResearch(state, nodeId) {
   const node = getResearchNode(nodeId);
   if (!node) return { ok: false, reason: "missing" };
   if (node.completable === false || node.later) return { ok: false, reason: "later" };
-  if (!state.placed.study) return { ok: false, reason: "no-study" };
   const status = getNodeStatus(state, nodeId);
   if (status !== "ready" && status !== "researching") {
     return { ok: false, reason: status };
   }
-  if ((state.village.scrolls ?? 0) < (node.cost.scrolls ?? 0)) {
-    return { ok: false, reason: "scrolls" };
+  if (!canAfford(state, node.cost)) {
+    return { ok: false, reason: "cost" };
   }
-  state.village.scrolls -= node.cost.scrolls ?? 0;
+  spendCost(state, node.cost);
   state.nodes[nodeId] = "done";
   state.research.activeId = null;
   state.research.progress = 0;
@@ -554,11 +580,8 @@ export function simulateValleyMembers(state, fills = 1) {
 }
 
 export function getActiveQuest(state) {
-  if (!state.placed.study) {
-    return { id: "build-study", text: "Sammle 10 Holz und baue die Studierstube." };
-  }
   if (state.nodes["clay-pit"] !== "done") {
-    return { id: "research-clay", text: "Erforsche die Lehmgrube in der Studierstube." };
+    return { id: "research-clay", text: "Sammle 10 Holz und erforsche die Lehmgrube im Labor." };
   }
   if (!state.placed["clay-pit"]) {
     return { id: "place-clay", text: "Platziere die Lehmgrube über das Bau-Menü." };
@@ -574,6 +597,9 @@ export function getActiveQuest(state) {
   }
   if (!state.placed["stone-storage"]) {
     return { id: "place-stone", text: "Baue das Steinlager und baue Stein ab." };
+  }
+  if (state.nodes["house-ii"] !== "done") {
+    return { id: "research-house", text: "Erforsche ein neues Wohnhaus — Sophie zieht ein." };
   }
   if (state.nodes["valley-access"] !== "done") {
     return { id: "research-valley", text: "Erforsche den Zugang zum Tal." };

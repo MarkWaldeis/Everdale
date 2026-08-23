@@ -352,6 +352,7 @@ async function start() {
       surfaceY: world.walkArea.surfaceY,
       setFollowTarget,
       isPlacementActive: () => Boolean(animationState.village?.isActive()),
+      onOpenResearch: () => animationState.hud?.renderResearch?.(),
     });
     animationState.village = createVillageEditor({
       scene: world.root,
@@ -452,7 +453,7 @@ async function start() {
       },
       study: {
         id: "study",
-        label: "Studierstube",
+        label: "Alchemielabor",
         root: animationState.study.root,
         size: animationState.study.size,
         w: Math.max(studyFoot.w, 2),
@@ -503,15 +504,17 @@ async function start() {
     const mounted = new Set();
     function mountPlaced(id) {
       const spec = placeable[id];
-      if (!spec || mounted.has(id)) return;
+      if (!spec) return null;
+      if (mounted.has(id)) return animationState.village.grid.get(spec.id);
       world.root.add(spec.root);
       spec.root.visible = true;
-      animationState.village.register(spec);
+      const record = animationState.village.register(spec);
       mounted.add(id);
+      return record;
     }
 
-    ["cottage", "wood-storage", "kitchen", "pumpkin-patch", "well"].forEach(mountPlaced);
-    ["study", "clay-pit", "clay-storage", "stone-storage"].forEach((id) => {
+    ["cottage", "wood-storage", "kitchen", "pumpkin-patch", "well", "study"].forEach(mountPlaced);
+    ["clay-pit", "clay-storage", "stone-storage"].forEach((id) => {
       if (animationState.game.isPlaced(id)) mountPlaced(id);
     });
 
@@ -554,7 +557,10 @@ async function start() {
       game: animationState.game,
       onBuild: (id) => {
         const result = animationState.game.placeBuilding(id);
-        if (result.ok) mountPlaced(id);
+        if (result.ok) {
+          const record = mountPlaced(id);
+          animationState.village?.beginPlace?.(record);
+        }
         return result;
       },
       onValley: () => {

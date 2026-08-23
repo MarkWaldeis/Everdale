@@ -10,6 +10,7 @@ import {
   tickVillagerWork,
   getPlayerLevel,
   getNodeStatus,
+  getActiveQuest,
   isValleyUnlocked,
   consumeSoup,
   fillValleyCrate,
@@ -18,13 +19,13 @@ import {
 
 test("fresh start keeps later buildings locked", () => {
   const state = createDefaultState();
-  assert.equal(state.placed.study, false);
+  assert.equal(state.placed.study, true);
   assert.equal(state.placed["clay-pit"], false);
   assert.equal(state.placed["stone-storage"], false);
   assert.equal(canPlaceBuilding(state, "clay-pit"), false);
   assert.equal(canPlaceBuilding(state, "stone-storage"), false);
   assert.equal(canPlaceBuilding(state, "bakery"), false);
-  assert.equal(getNodeStatus(state, "clay-pit"), "locked");
+  assert.equal(getNodeStatus(state, "clay-pit"), "ready");
   assert.equal(isValleyUnlocked(state), false);
   assert.equal(state.villagers.sophie.unlocked, false);
   assert.equal(state.villagers.lena.unlocked, true);
@@ -52,22 +53,20 @@ test("harvest increments the real item and respects the cap", () => {
 
 test("research spend unlocks a previously locked building", () => {
   const state = createDefaultState();
+  assert.equal(state.placed.study, true);
+  assert.equal(getNodeStatus(state, "clay-pit"), "ready");
+  assert.equal(completeResearch(state, "clay-pit").ok, false);
+
   harvestResource(state, "wood", 5);
   harvestResource(state, "wood", 5);
   assert.equal(state.village.wood, 10);
-  assert.equal(canPlaceBuilding(state, "study"), true);
-  const built = placeBuilding(state, "study");
-  assert.equal(built.ok, true);
-  assert.equal(state.placed.study, true);
-  assert.equal(state.village.wood, 0);
-  assert.equal(getNodeStatus(state, "clay-pit"), "ready");
-
   const started = startResearch(state, "clay-pit");
   assert.equal(started.ok, true);
   const researched = completeResearch(state, "clay-pit");
   assert.equal(researched.ok, true);
   assert.equal(researched.unlockedBuilding, "clay-pit");
   assert.equal(state.unlocked["clay-pit"], true);
+  assert.equal(state.village.wood, 0);
 
   harvestResource(state, "wood", 5);
   harvestResource(state, "wood", 5);
@@ -104,7 +103,6 @@ test("player level increases after a qualifying harvest or research action", () 
   const afterHarvest = getPlayerLevel(state);
 
   harvestResource(state, "wood", 5);
-  placeBuilding(state, "study");
   completeResearch(state, "clay-pit");
   assert.ok(getPlayerLevel(state) > afterHarvest, "research must raise level");
 });
@@ -115,7 +113,6 @@ test("clay cannot be collected until clay-storage is placed", () => {
 
   harvestResource(state, "wood", 5);
   harvestResource(state, "wood", 5);
-  assert.equal(placeBuilding(state, "study").ok, true);
   assert.equal(completeResearch(state, "clay-pit").ok, true);
 
   harvestResource(state, "wood", 5);
@@ -131,6 +128,8 @@ test("clay cannot be collected until clay-storage is placed", () => {
   assert.equal(blocked.added, 0);
   assert.equal(state.village.clay, 0);
 
+  harvestResource(state, "wood", 5);
+  harvestResource(state, "wood", 5);
   assert.equal(completeResearch(state, "clay-storage").ok, true);
   harvestResource(state, "wood", 5);
   harvestResource(state, "wood", 5);
@@ -141,6 +140,18 @@ test("clay cannot be collected until clay-storage is placed", () => {
   assert.equal(dug.ok, true);
   assert.equal(dug.added, 5);
   assert.equal(state.village.clay, 5);
+});
+
+test("quest asks for house research before valley", () => {
+  const state = createDefaultState();
+  state.nodes["clay-pit"] = "done";
+  state.nodes["clay-storage"] = "done";
+  state.nodes["stone-storage"] = "done";
+  state.placed["clay-pit"] = true;
+  state.placed["clay-storage"] = true;
+  state.placed["stone-storage"] = true;
+  const quest = getActiveQuest(state);
+  assert.equal(quest.id, "research-house");
 });
 
 test("valley crates stay locked until researched", () => {
