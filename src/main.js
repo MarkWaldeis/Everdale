@@ -418,12 +418,12 @@ function animate(now = 0) {
     const clampedX = THREE.MathUtils.clamp(
       controls.target.x,
       valleyView ? 24 : -14,
-      valleyView ? 52 : 16,
+      valleyView ? 52 : 20,
     );
     const clampedZ = THREE.MathUtils.clamp(
       controls.target.z,
       valleyView ? -26 : -11,
-      valleyView ? 6 : 12,
+      valleyView ? 6 : 15,
     );
     if (clampedX !== controls.target.x) {
       camera.position.x += clampedX - controls.target.x;

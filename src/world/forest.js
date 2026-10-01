@@ -3,8 +3,8 @@ import { TREE_WEIGHTS } from "./assets.js";
 
 const WORLD_SIZE = 60;
 const TREE_COUNT = 720;
-const CLEARING_SCALE_X = 0.34;
-const CLEARING_SCALE_Z = 0.31;
+const CLEARING_SCALE_X = 0.40;
+const CLEARING_SCALE_Z = 0.37;
 
 function seededRandom(seed = 7419) {
   let state = seed >>> 0;
