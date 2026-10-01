@@ -12,6 +12,7 @@ const ITEM_ROWS = [
   ["berry", "Beeren", "berryCap"],
   ["egg", "Eier", "eggCap"],
   ["fish", "Fische", "fishCap"],
+  ["honey", "Honig", "honeyCap"],
   ["bread", "Brot", "breadCap"],
   ["pancake", "Pfannkuchen", "pancakeCap"],
   ["flour", "Mehl", "flourCap"],
@@ -35,6 +36,7 @@ const COST_ROW_LABELS = {
   egg: "Eier",
   fish: "Fische",
   pancake: "Pfannkuchen",
+  honey: "Honig",
 };
 
 const FIELD_LABELS = {
@@ -56,6 +58,7 @@ const FIELD_LABELS = {
   egg: "Eier",
   fish: "Fische",
   pancake: "Pfannkuchen",
+  honey: "Honig",
 };
 
 const ORDER_SINGULAR_LABELS = {
@@ -72,6 +75,7 @@ const ORDER_SINGULAR_LABELS = {
   egg: "Ei",
   fish: "Fisch",
   pancake: "Pfannkuchen",
+  honey: "Honig",
 };
 
 const BUILDING_INFO = {
@@ -145,6 +149,14 @@ const BUILDING_INFO = {
     resourceLabel: "Stein",
     worker: "Buddler",
     blurb: "Rohblock für Lager und Gebäude — der Buddler haut Stein aus dem Fels.",
+  },
+  apiary: {
+    label: "Imkerei",
+    icon: "🍯",
+    resource: "honey",
+    resourceLabel: "Honig",
+    worker: "Imkerin",
+    blurb: "Summend fleißig — die Imkerin holt goldenen Honig aus den Stöcken.",
   },
   well: {
     label: "Brunnen",
@@ -546,6 +558,7 @@ export function createHud({
     egg: "Eier",
     fish: "Fische",
     pancake: "Pfannkuchen",
+    honey: "Honig",
   };
 
   function renderOrders() {
