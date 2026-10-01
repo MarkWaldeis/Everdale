@@ -1241,6 +1241,7 @@ export function completeResearch(state, nodeId) {
   if (node.unlocksPotions) state.potionsUnlocked = true;
   if (node.unlocksVillager && state.villagers[node.unlocksVillager]) {
     state.villagers[node.unlocksVillager].unlocked = true;
+    bumpStat(state, "villagersUnlocked");
   }
   addPlayerXp(state, XP_PER_RESEARCH);
   return {
