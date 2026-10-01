@@ -39,7 +39,7 @@ export function footprintFromSize(sizeX, sizeZ) {
   };
 }
 
-export function createVillageGrid({ radiusX, radiusZ, surfaceY }) {
+export function createVillageGrid({ radiusX, radiusZ, surfaceY, reservedCells = new Set() }) {
   const buildings = new Map();
 
   function inVillage(col, row) {
@@ -83,6 +83,7 @@ export function createVillageGrid({ radiusX, radiusZ, surfaceY }) {
     const cells = footprintCells(minCol, minRow, building.w, building.h);
     if (!cells.length) return false;
     if (cells.some((cell) => !inVillage(cell.col, cell.row))) return false;
+    if (cells.some((cell) => reservedCells.has(`${cell.col},${cell.row}`))) return false;
     const blocked = blockedKeys(id);
     return cells.every((cell) => !blocked.has(`${cell.col},${cell.row}`));
   }

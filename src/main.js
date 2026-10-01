@@ -38,6 +38,7 @@ import { createMillModel } from "./world/mill.js";
 import { createWheatLoop } from "./world/wheat-loop.js";
 import { createSheepPen } from "./world/sheep-pen.js";
 import { createSheepLoop } from "./world/sheep-loop.js";
+import { createStream, streamReservedCells } from "./world/stream.js";
 import { createHud } from "./world/hud.js";
 import "./styles.css";
 
@@ -290,6 +291,7 @@ function animate(now = 0) {
     animationState.houseIii?.update?.(camera);
     animationState.wheatField?.update?.(delta, now * 0.001);
     animationState.sheepPen?.update?.(delta, now * 0.001);
+    animationState.stream?.update?.(delta, now * 0.001);
     if (animationState.millRotor) {
       animationState.millRotor.rotation.z -= delta * 0.85;
     }
@@ -654,6 +656,7 @@ async function start() {
       onModeChange: (active) => {
         if (active) animationState.harvest?.selectTree(null);
       },
+      reservedCells: streamReservedCells(CELL),
       onCancelPlacement: (id) => {
         if (!id.startsWith("deko-")) return;
         animationState.game?.removeDecoration?.(id);
@@ -1004,6 +1007,8 @@ async function start() {
     ];
     animationState.foliage = createFoliage({ area: world.walkArea, zones: foliageZones });
     scene.add(animationState.foliage.root);
+    animationState.stream = createStream(world.walkArea.surfaceY);
+    scene.add(animationState.stream.root);
 
     const focusVillager = (id) => {
       const member = animationState.villagers.find((entry) => entry.getId() === id);

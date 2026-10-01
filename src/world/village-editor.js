@@ -130,11 +130,13 @@ export function createVillageEditor({
   controls,
   onModeChange,
   onCancelPlacement,
+  reservedCells,
 }) {
   const grid = createVillageGrid({
     radiusX: walkArea.radiusX,
     radiusZ: walkArea.radiusZ,
     surfaceY: walkArea.surfaceY,
+    reservedCells,
   });
 
   const overlay = new THREE.Group();

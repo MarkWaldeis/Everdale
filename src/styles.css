@@ -730,6 +730,10 @@ a:focus-visible {
   opacity: 0;
 }
 
+.has-worker-dock .game-sheet {
+  pointer-events: none;
+}
+
 .worker-dock.is-open {
   transform: translateY(0);
   opacity: 1;
