@@ -191,6 +191,7 @@ function animate(now = 0) {
     Object.values(animationState.workshopLoops).forEach((loop) => loop.update(delta));
     animationState.game?.tickBrewing?.(delta);
     animationState.game?.tickBuffs?.(delta);
+    animationState.game?.tickValley?.(delta);
     animationState.game?.tickConstructions?.(delta);
     animationState.houseIi?.update?.(camera);
     Object.entries(animationState.workshopModules ?? {}).forEach(([id, module]) => {
@@ -683,6 +684,12 @@ async function start() {
       const model = decoModels[deco.type]?.clone?.(true);
       const root = new THREE.Group();
       if (model) root.add(model);
+      const proxy = new THREE.Mesh(
+        new THREE.CylinderGeometry(0.45, 0.45, 0.9, 10),
+        new THREE.MeshBasicMaterial({ visible: false }),
+      );
+      proxy.position.y = 0.45;
+      root.add(proxy);
       root.position.y = world.walkArea.surfaceY;
       world.root.add(root);
       const label =

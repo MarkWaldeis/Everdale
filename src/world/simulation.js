@@ -1109,7 +1109,62 @@ export function applyOfflineProgress(state, elapsedSeconds) {
       }
     }
   }
+  const shipEvent = tickValley(state, elapsed);
+  if (shipEvent.event === "returned") result.shipReturned = true;
   return result;
+}
+
+export const SHIP_SECONDS = 90;
+
+const CRATE_DECK = [
+  { item: "wood", amount: 5, rewardGold: 12, rewardRep: 4 },
+  { item: "clay", amount: 5, rewardGold: 14, rewardRep: 5 },
+  { item: "stone", amount: 5, rewardGold: 13, rewardRep: 4 },
+  { item: "wood", amount: 10, rewardGold: 20, rewardRep: 8 },
+  { item: "pumpkins", amount: 6, rewardGold: 16, rewardRep: 5 },
+  { item: "soup", amount: 3, rewardGold: 18, rewardRep: 6 },
+  { item: "stone", amount: 8, rewardGold: 22, rewardRep: 7 },
+  { item: "clay", amount: 9, rewardGold: 24, rewardRep: 8 },
+];
+
+function reloadCrates(state) {
+  const voyage = state.valley.ship?.voyages ?? 0;
+  state.valley.crates = [0, 1, 2, 3].map((index) => ({
+    id: index,
+    ...clone(CRATE_DECK[(voyage * 4 + index) % CRATE_DECK.length]),
+    filledBy: null,
+  }));
+}
+
+export function tickValley(state, deltaSeconds) {
+  const ship = (state.valley.ship ??= { status: "loading", remaining: 0, voyages: 0 });
+  if (ship.status === "loading") {
+    const allFilled = state.valley.crates.length > 0 &&
+      state.valley.crates.every((crate) => crate.filledBy);
+    if (allFilled) {
+      ship.status = "sailing";
+      ship.remaining = SHIP_SECONDS;
+      return { event: "departed" };
+    }
+    return { event: null };
+  }
+  if (ship.status === "sailing") {
+    ship.remaining -= deltaSeconds;
+    if (ship.remaining > 0) return { event: null };
+    ship.status = "loading";
+    ship.remaining = 0;
+    ship.voyages += 1;
+    reloadCrates(state);
+    state.village.gems = (state.village.gems ?? 0) + 2;
+    state.village.reputation = (state.village.reputation ?? 0) + 10;
+    addPlayerXp(state, 12);
+    return { event: "returned", voyage: ship.voyages };
+  }
+  return { event: null };
+}
+
+export function getShip(state) {
+  return { ...(state.valley.ship ?? { status: "loading", remaining: 0, voyages: 0 }) };
 }
 
 export function simulateValleyMembers(state, fills = 1) {

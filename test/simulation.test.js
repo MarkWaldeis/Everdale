@@ -34,6 +34,8 @@ import {
   villagerSpeed,
   canPlaceDecoration,
   removeDecoration,
+  tickValley,
+  getShip,
   placeDecoration,
 } from "../src/world/simulation.js";
 
@@ -579,4 +581,25 @@ test("removeDecoration refunds cost and revokes reputation", () => {
   assert.equal(state.village.clay, 10);
   assert.equal(state.village.reputation, 1);
   assert.equal(removeDecoration(state, placed.uid).ok, false);
+});
+
+test("valley ship departs when all crates are filled and returns with cargo", () => {
+  const state = createDefaultState();
+  state.valleyUnlocked = true;
+  state.village.wood = 30;
+  state.village.clay = 30;
+  state.village.stone = 30;
+  state.valley.crates.forEach((crate) => {
+    crate.filledBy = "player";
+  });
+  const departed = tickValley(state, 0.5);
+  assert.equal(departed.event, "departed");
+  assert.equal(state.valley.ship.status, "sailing");
+
+  const returned = tickValley(state, 91);
+  assert.equal(returned.event, "returned");
+  assert.equal(state.valley.ship.status, "loading");
+  assert.equal(state.valley.ship.voyages, 1);
+  assert.equal(state.village.gems, 2);
+  assert.equal(state.valley.crates.every((crate) => !crate.filledBy), true);
 });

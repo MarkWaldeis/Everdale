@@ -40,6 +40,8 @@ import {
   placeDecoration,
   removeDecoration,
   DECORATIONS,
+  tickValley,
+  getShip,
   getCatalogItem,
   getResearchNode,
   canAfford,
@@ -260,6 +262,8 @@ export function createGameState() {
     canPlaceDecoration: (typeId) => canPlaceDecoration(data, typeId),
     placeDecoration: (typeId) => wrap(() => placeDecoration(data, typeId)),
     removeDecoration: (uid) => wrap(() => removeDecoration(data, uid)),
+    tickValley: (delta) => wrap(() => tickValley(data, delta)),
+    getShip: () => getShip(data),
     tickVillagerWork: (id, delta) => wrap(() => simTickWork(data, id, delta)),
     resetVillagerWork: (id) =>
       wrap(() => {

@@ -21,6 +21,19 @@ const COST_ROW_LABELS = {
   blanket: "Decken",
 };
 
+const FIELD_LABELS = {
+  wood: "Holz",
+  stone: "Stein",
+  clay: "Lehm",
+  pumpkins: "Kürbisse",
+  soup: "Suppe",
+  bread: "Brot",
+  planks: "Bretter",
+  bucket: "Eimer",
+  rope: "Seile",
+  blanket: "Decken",
+};
+
 const ORDER_SINGULAR_LABELS = {
   rope: "Seil",
   blanket: "Decke",
@@ -405,11 +418,17 @@ export function createHud({
       return;
     }
     const snap = game.getSnapshot();
+    const ship = game.getShip?.() ?? { status: "loading", remaining: 0, voyages: 0 };
+    const filledCount = snap.valley.crates.filter((crate) => crate.filledBy).length;
+    const shipLine =
+      ship.status === "sailing"
+        ? `<div class="inv-row"><span>⛵ Schiff</span><strong>Unterwegs · zurück in ${Math.ceil(ship.remaining)} s</strong></div>`
+        : `<div class="inv-row"><span>⛵ Schiff</span><strong>Reise ${ship.voyages + 1} · ${filledCount}/${snap.valley.crates.length} Kisten beladen</strong></div>`;
     const crates = snap.valley.crates
       .map((crate) => {
         const filled = crate.filledBy
           ? `Beladen von ${crate.filledBy === "player" ? "dir" : "einem Tal-Mitglied"}`
-          : `${crate.amount}× ${crate.item} → ${crate.rewardGold} Gold`;
+          : `${crate.amount}× ${FIELD_LABELS[crate.item] ?? crate.item} → ${crate.rewardGold} Gold`;
         const disabled = Boolean(crate.filledBy);
         return `<button class="sheet-card ${disabled ? "is-locked" : ""}" type="button" data-crate="${crate.id}" ${disabled ? "disabled" : ""}>
           <strong>Kiste ${crate.id + 1}</strong>
@@ -417,7 +436,11 @@ export function createHud({
         </button>`;
       })
       .join("");
-    openSheet("valley", "Hafen", `${crates}<p class="sheet-hint">Andere Tal-Mitglieder füllen mit der Zeit weitere Kisten.</p>`);
+    openSheet(
+      "valley",
+      "Hafen",
+      `${shipLine}${crates}<p class="sheet-hint">Sind alle Kisten beladen, läuft das Schiff aus — es bringt Diamanten und neue Aufträge mit.</p>`,
+    );
   }
 
   function bindSheetButtons() {
