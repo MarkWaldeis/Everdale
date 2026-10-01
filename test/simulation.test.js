@@ -49,7 +49,6 @@ import {
   MINE_SECONDS,
   buildMonumentStage,
   getMonumentStage,
-  finishConstruction,
   isBuildingUnlocked,
   isVillagerUnlocked,
   tickResearch,
@@ -779,7 +778,7 @@ test("house-iii research, construction and mia move-in", () => {
   const state = createDefaultState();
   state.nodes["wood-workshop"] = "done";
   state.unlocked["house-iii"] = true;
-  state.village.wood = 40;
+  state.village.wood = 60;
   state.village.stone = 30;
   state.village.gems = 6;
 
@@ -790,6 +789,6 @@ test("house-iii research, construction and mia move-in", () => {
 
   assert.equal(placeBuilding(state, "house-iii").ok, true);
   assert.equal(state.constructions["house-iii"].remaining, 60);
-  finishConstruction(state, "house-iii");
+  tickConstructions(state, 61);
   assert.equal(state.villagers.mia.unlocked, true);
 });
