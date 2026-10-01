@@ -58,6 +58,49 @@ function createShipModel() {
   return ship;
 }
 
+function createLibraryModel() {
+  const lib = new THREE.Group();
+  lib.name = "valley-library";
+  const stone = new THREE.MeshStandardMaterial({ color: 0xd9c9a8, roughness: 0.85 });
+  const roof = new THREE.MeshStandardMaterial({ color: 0x7d9ec4, roughness: 0.8 });
+
+  const base = new THREE.Mesh(new THREE.CylinderGeometry(1.15, 1.25, 0.22, 8), stone);
+  base.position.y = 0.11;
+  lib.add(base);
+
+  [45, 135, 225, 315].forEach((deg) => {
+    const rad = (deg * Math.PI) / 180;
+    const col = new THREE.Mesh(new THREE.CylinderGeometry(0.09, 0.09, 0.9, 8), stone);
+    col.position.set(Math.cos(rad) * 0.9, 0.65, Math.sin(rad) * 0.9);
+    lib.add(col);
+  });
+
+  const dome = new THREE.Mesh(new THREE.ConeGeometry(1.3, 0.75, 8), roof);
+  dome.position.y = 1.5;
+  lib.add(dome);
+
+  const book = new THREE.Mesh(
+    new THREE.BoxGeometry(0.5, 0.14, 0.36),
+    new THREE.MeshStandardMaterial({ color: 0x8a4b3a, roughness: 0.85 }),
+  );
+  book.position.set(0, 0.3, 0);
+  book.rotation.y = 0.4;
+  lib.add(book);
+  const book2 = book.clone();
+  book2.position.y = 0.44;
+  book2.rotation.y = -0.3;
+  book2.scale.setScalar(0.85);
+  lib.add(book2);
+
+  lib.traverse((node) => {
+    if (node.isMesh) {
+      node.castShadow = true;
+      node.receiveShadow = true;
+    }
+  });
+  return lib;
+}
+
 function createCrate() {
   const crate = new THREE.Group();
   const body = new THREE.Mesh(
@@ -105,6 +148,12 @@ export function createValleyHarbor(model, surfaceY) {
   ship.position.copy(dockAnchor);
   ship.rotation.y = 0.5;
   root.add(ship);
+
+  const library = createLibraryModel();
+  library.position.set(-3.2, surfaceY - 0.02, -2.4);
+  library.rotation.y = 0.6;
+  library.visible = false;
+  root.add(library);
 
   const crates = [0, 1, 2, 3].map((index) => {
     const crate = createCrate();
@@ -183,6 +232,9 @@ export function createValleyHarbor(model, surfaceY) {
     },
     setShip,
     setCrates,
+    setLibraryBuilt(value) {
+      library.visible = Boolean(value);
+    },
     update,
     getSailPhase: () => sail.phase,
   };

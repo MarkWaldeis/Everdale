@@ -892,6 +892,7 @@ async function start() {
       }
       animationState.valley?.setShip?.(snap.valley?.ship);
       animationState.valley?.setCrates?.(snap.valley?.crates);
+      animationState.valley?.setLibraryBuilt?.(Boolean(snap.valley?.library?.built));
       syncStorageCaps(snap);
     });
 

@@ -39,6 +39,9 @@ import {
   rushBrewing,
   rushResearch,
   getShip,
+  buildLibrary,
+  isLibraryBuilt,
+  tickResearch,
   villagerSkillLevel,
   tickVillagerSkill,
   recordSkillHit,
@@ -675,4 +678,28 @@ test("villagers gain skill xp while working and get faster", () => {
   assert.equal(hitsForSkill(state, "lena", "woodcutting"), 5);
   villager.skills.woodcutting = 50; // level 3
   assert.equal(hitsForSkill(state, "lena", "woodcutting"), 4);
+});
+
+test("valley library boosts research and pays skill xp on ship return", () => {
+  const state = createDefaultState();
+  assert.equal(buildLibrary(state).ok, false); // valley locked
+
+  state.valleyUnlocked = true;
+  state.village.wood = 30;
+  state.village.stone = 15;
+  state.village.clay = 10;
+  assert.equal(buildLibrary(state).ok, true);
+  assert.equal(isLibraryBuilt(state), true);
+  assert.equal(buildLibrary(state).ok, false); // already built
+
+  state.research.activeId = "clay-pit";
+  state.research.required = 100;
+  tickResearch(state, 10);
+  assert.equal(state.research.progress, 12.5); // +25%
+
+  // Ship return pays 6 skill xp per villager on their active track.
+  state.villagers.lena.assignedTaskId = "bake";
+  state.valley.ship = { status: "sailing", remaining: 1, voyages: 0 };
+  tickValley(state, 2);
+  assert.equal(state.villagers.lena.skills.building, 6);
 });

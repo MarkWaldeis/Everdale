@@ -48,6 +48,8 @@ import {
   recordSkillHit,
   hitsForSkill,
   getVillagerInfo,
+  buildLibrary as simBuildLibrary,
+  isLibraryBuilt,
   rushConstruction,
   rushBrewing,
   rushProduction,
@@ -273,6 +275,8 @@ export function createGameState() {
     placeDecoration: (typeId) => wrap(() => placeDecoration(data, typeId)),
     removeDecoration: (uid) => wrap(() => removeDecoration(data, uid)),
     tickValley: (delta) => wrap(() => tickValley(data, delta)),
+    buildLibrary: () => wrap(() => simBuildLibrary(data)),
+    isLibraryBuilt: () => isLibraryBuilt(data),
     getShip: () => getShip(data),
     getVillagerInfo: (id) => getVillagerInfo(data, id),
     getVillagerSkill: (id) => {

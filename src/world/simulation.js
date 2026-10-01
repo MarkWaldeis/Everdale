@@ -872,7 +872,7 @@ export function completeResearch(state, nodeId) {
 export function tickResearch(state, delta) {
   const id = state.research.activeId;
   if (!id) return { done: false };
-  state.research.progress += delta;
+  state.research.progress += isLibraryBuilt(state) ? delta * 1.25 : delta;
   if (state.research.progress >= state.research.required) {
     return { done: true, result: completeResearch(state, id) };
   }
@@ -1250,6 +1250,12 @@ export function tickValley(state, deltaSeconds) {
     reloadCrates(state);
     state.village.gems = (state.village.gems ?? 0) + 2;
     state.village.reputation = (state.village.reputation ?? 0) + 10;
+    if (isLibraryBuilt(state)) {
+      Object.keys(state.villagers ?? {}).forEach((villagerId) => {
+        const key = villagerSkillKey(state.villagers[villagerId]) ?? "farming";
+        addSkillXp(state, villagerId, key, 6);
+      });
+    }
     addPlayerXp(state, 12);
     return { event: "returned", voyage: ship.voyages };
   }
@@ -1307,6 +1313,23 @@ export function rushResearch(state) {
 
 export function getShip(state) {
   return { ...(state.valley.ship ?? { status: "loading", remaining: 0, voyages: 0 }) };
+}
+
+export const LIBRARY_COST = Object.freeze({ wood: 20, stone: 10, clay: 8 });
+
+export function isLibraryBuilt(state) {
+  return Boolean(state.valley.library?.built);
+}
+
+export function buildLibrary(state) {
+  if (!state.valleyUnlocked) return { ok: false, reason: "locked" };
+  if (isLibraryBuilt(state)) return { ok: false, reason: "built" };
+  if (!canAfford(state, LIBRARY_COST)) return { ok: false, reason: "cost" };
+  spendCost(state, LIBRARY_COST);
+  (state.valley.library ??= { built: false }).built = true;
+  state.village.reputation = (state.village.reputation ?? 0) + 15;
+  addPlayerXp(state, 30);
+  return { ok: true };
 }
 
 export function simulateValleyMembers(state, fills = 1) {

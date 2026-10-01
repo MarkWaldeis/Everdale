@@ -482,10 +482,16 @@ export function createHud({
         </button>`;
       })
       .join("");
+    const library = game.isLibraryBuilt?.()
+      ? `<div class="inv-row"><span>📚 Große Bibliothek</span><strong>Gebaut · +25 % Forschung · +6 Skill-XP je Reise</strong></div>`
+      : `<button class="sheet-card" type="button" data-library="1">
+          <strong>📚 Große Bibliothek errichten</strong>
+          <small>${formatCost({ wood: 20, stone: 10, clay: 8 })} · +25 % Forschung, +6 Skill-XP je Schiffsreise</small>
+        </button>`;
     openSheet(
       "valley",
       "Hafen",
-      `${shipLine}${crates}<p class="sheet-hint">Sind alle Kisten beladen, läuft das Schiff aus — es bringt Diamanten und neue Aufträge mit.</p>`,
+      `${shipLine}${crates}${library}<p class="sheet-hint">Sind alle Kisten beladen, läuft das Schiff aus — es bringt Diamanten und neue Aufträge mit.</p>`,
     );
   }
 
@@ -517,6 +523,13 @@ export function createHud({
         game.fillOrder?.(Number(button.dataset.order));
         refresh();
         renderOrders();
+      });
+    });
+    els.sheetBody?.querySelectorAll("[data-library]").forEach((button) => {
+      button.addEventListener("click", () => {
+        game.buildLibrary?.();
+        renderValley();
+        refresh();
       });
     });
     els.sheetBody?.querySelectorAll("[data-crate]").forEach((button) => {
