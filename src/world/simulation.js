@@ -507,6 +507,30 @@ export const DECORATIONS = Object.freeze([
     rep: 3,
     effect: "Plätschert vor sich hin.",
   },
+  {
+    id: "deko-lantern",
+    label: "Laterne",
+    icon: "🏮",
+    cost: { wood: 2, stone: 1 },
+    rep: 2,
+    effect: "Leuchtet abends warm über die Wege.",
+  },
+  {
+    id: "deko-bench",
+    label: "Sitzbank",
+    icon: "🪑",
+    cost: { wood: 3 },
+    rep: 1,
+    effect: "Ein Platz zum Ausruhen am Wegesrand.",
+  },
+  {
+    id: "deko-scarecrow",
+    label: "Vogelscheuche",
+    icon: "🌾",
+    cost: { wood: 2, wheat: 2 },
+    rep: 2,
+    effect: "Passt auf Felder und Gärten auf.",
+  },
 ]);
 
 export const POTIONS = Object.freeze([

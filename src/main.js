@@ -48,6 +48,7 @@ import { createFishingDock } from "./world/fishing-dock.js";
 import { createFishLoop } from "./world/fish-loop.js";
 import { createStream, streamReservedCells } from "./world/stream.js";
 import { createGiftBox } from "./world/gift.js";
+import { createDecoMesh } from "./world/decos.js";
 import { createSocialLayer } from "./world/social.js";
 import { createHud } from "./world/hud.js";
 import "./styles.css";
@@ -822,6 +823,9 @@ async function start() {
     const decoModels = {
       "deko-daisy": assets.decoDaisy,
       "deko-fountain": assets.decoFountain,
+      "deko-lantern": createDecoMesh("deko-lantern"),
+      "deko-bench": createDecoMesh("deko-bench"),
+      "deko-scarecrow": createDecoMesh("deko-scarecrow"),
     };
     const mountedDecos = new Set();
     const decoRoots = new Map();
