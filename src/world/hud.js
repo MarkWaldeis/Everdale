@@ -488,6 +488,9 @@ export function createHud({
       );
     }
     let action = "";
+    if (construction) {
+      action += `<button class="sheet-action" type="button" data-worker="${id}">Baumeister auswählen · 3× schneller</button>`;
+    }
     if (id === "kitchen") {
       action += `<button class="sheet-action" type="button" data-cook>Koch auswählen · Suppe kochen</button>`;
     }
