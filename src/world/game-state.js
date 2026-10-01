@@ -72,6 +72,10 @@ import {
   upgradeBuilding as simUpgrade,
   BUILDING_CATALOG,
   RESEARCH_NODES,
+  tickWishes as simTickWishes,
+  getWish,
+  grantWish,
+  assignWish,
 } from "./simulation.js";
 
 const STORAGE_KEY = "everdale-game-v2";
@@ -110,6 +114,7 @@ export function createGameState() {
         brewing: { ...base.brewing, ...saved.brewing },
         decorations: saved.decorations ?? base.decorations,
         decoSeq: saved.decoSeq ?? base.decoSeq,
+        wishes: { ...base.wishes, ...saved.wishes },
         valley: {
           ...base.valley,
           ...saved.valley,
@@ -294,6 +299,10 @@ export function createGameState() {
     getMineProgress: () => getMineProgress(data),
     buildMonumentStage: () => wrap(() => simBuildMonumentStage(data)),
     getMonumentStage: () => getMonumentStage(data),
+    getWish: (id) => getWish(data, id),
+    grantWish: (id) => wrap(() => grantWish(data, id)),
+    assignWish: (id, def) => wrap(() => assignWish(data, id, def)),
+    tickWishes: (delta) => wrap(() => simTickWishes(data, delta)),
     monumentStages: MONUMENT_STAGES,
     getShip: () => getShip(data),
     getVillagerInfo: (id) => getVillagerInfo(data, id),

@@ -400,6 +400,8 @@ function defaultVillager(id, name, unlocked = true) {
     workSeconds: 0,
     hungry: false,
     unlocked,
+    wish: null,
+    wishesFulfilled: 0,
   };
 }
 
@@ -525,6 +527,7 @@ export function createDefaultState() {
       karl: defaultVillager("karl", "Karl", false),
       mia: defaultVillager("mia", "Mia", false),
     },
+    wishes: { cooldown: 60 },
     timings: {
       cookSeconds: 45,
       harvestSeconds: 8,
@@ -1503,3 +1506,105 @@ export function listHudControls() {
 }
 
 export { XP_PER_HARVEST, XP_PER_RESEARCH, XP_PER_LEVEL, clone };
+
+// ------- Bewohner-Wünsche -------
+export const WISH_LIFETIME_SECONDS = 120;
+export const WISH_INTERVAL_SECONDS = 150;
+export const WISH_REWARD = Object.freeze({ rep: 6, xp: 12 });
+
+const WISH_DEFINITIONS = [
+  { item: "soup", amount: 1, icon: "🍲", label: "eine heiße Suppe" },
+  { item: "pumpkins", amount: 2, icon: "🎃", label: "2 Kürbisse" },
+  { item: "wood", amount: 4, icon: "🪵", label: "4 Holz" },
+  { item: "stone", amount: 3, icon: "🪨", label: "3 Steine" },
+  { item: "clay", amount: 2, icon: "🏺", label: "2 Lehm" },
+  { item: "bread", amount: 1, icon: "🍞", label: "ein frisches Brot" },
+  { item: "planks", amount: 2, icon: "🪚", label: "2 Bretter" },
+  { item: "rope", amount: 1, icon: "🪢", label: "ein Seil" },
+  { item: "blanket", amount: 1, icon: "🧣", label: "eine Decke" },
+];
+
+const WISH_RESOURCE_ID = { pumpkins: "pumpkin" };
+
+function wishCollectable(state, def) {
+  const resourceId = WISH_RESOURCE_ID[def.item] ?? def.item;
+  return canCollectResource(state, resourceId);
+}
+
+export function assignWish(state, villagerId, def) {
+  const villager = state.villagers?.[villagerId];
+  if (!villager?.unlocked || !def) return { ok: false };
+  villager.wish = {
+    item: def.item,
+    amount: def.amount,
+    icon: def.icon,
+    label: def.label,
+    remaining: WISH_LIFETIME_SECONDS,
+  };
+  return { ok: true };
+}
+
+function spawnWish(state) {
+  const candidates = Object.values(state.villagers ?? {}).filter(
+    (villager) => villager.unlocked && !villager.wish,
+  );
+  const options = WISH_DEFINITIONS.filter((def) => wishCollectable(state, def));
+  if (!candidates.length || !options.length) return;
+  const villager = candidates[Math.floor(Math.random() * candidates.length)];
+  const def = options[Math.floor(Math.random() * options.length)];
+  assignWish(state, villager.id, def);
+}
+
+export function tickWishes(state, deltaSeconds) {
+  const delta = Math.max(0, Number(deltaSeconds) || 0);
+  Object.values(state.villagers ?? {}).forEach((villager) => {
+    if (!villager.wish) return;
+    villager.wish.remaining = (villager.wish.remaining ?? 0) - delta;
+    if (villager.wish.remaining <= 0) {
+      villager.wish = null;
+    }
+  });
+  if (!state.wishes) {
+    state.wishes = { cooldown: WISH_INTERVAL_SECONDS };
+  }
+  state.wishes.cooldown -= delta;
+  if (state.wishes.cooldown <= 0) {
+    state.wishes.cooldown = WISH_INTERVAL_SECONDS;
+    spawnWish(state);
+  }
+}
+
+export function getWish(state, villagerId) {
+  const wish = state.villagers?.[villagerId]?.wish;
+  return wish ? { ...wish } : null;
+}
+
+export function grantWish(state, villagerId) {
+  const villager = state.villagers?.[villagerId];
+  const wish = villager?.wish;
+  if (!villager?.unlocked || !wish) {
+    return { ok: false, reason: "none" };
+  }
+  if (wish.item === "soup") {
+    if (!consumeSoup(state, wish.amount)) {
+      return { ok: false, reason: "missing" };
+    }
+  } else {
+    if ((state.village[wish.item] ?? 0) < wish.amount) {
+      return { ok: false, reason: "missing" };
+    }
+    spendCost(state, { [wish.item]: wish.amount });
+  }
+  villager.wish = null;
+  villager.wishesFulfilled = (villager.wishesFulfilled ?? 0) + 1;
+  state.village.reputation = (state.village.reputation ?? 0) + WISH_REWARD.rep;
+  addPlayerXp(state, WISH_REWARD.xp);
+  return {
+    ok: true,
+    item: wish.item,
+    amount: wish.amount,
+    rep: WISH_REWARD.rep,
+    xp: WISH_REWARD.xp,
+    wishesFulfilled: villager.wishesFulfilled,
+  };
+}

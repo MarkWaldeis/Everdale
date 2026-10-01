@@ -57,6 +57,13 @@ import {
   recordSkillHit,
   hitsForSkill,
   placeDecoration,
+  assignWish,
+  getWish,
+  grantWish,
+  tickWishes,
+  WISH_LIFETIME_SECONDS,
+  WISH_INTERVAL_SECONDS,
+  WISH_REWARD,
 } from "../src/world/simulation.js";
 
 test("fresh start keeps later buildings locked", () => {
@@ -791,4 +798,39 @@ test("house-iii research, construction and mia move-in", () => {
   assert.equal(state.constructions["house-iii"].remaining, 60);
   tickConstructions(state, 61);
   assert.equal(state.villagers.mia.unlocked, true);
+});
+
+test("villager wish grants reputation and player xp when fulfilled", () => {
+  const state = createDefaultState();
+  state.village.soup = 3;
+  assert.equal(assignWish(state, "lena", { item: "soup", amount: 1, icon: "🍲", label: "eine heiße Suppe" }).ok, true);
+  assert.equal(getWish(state, "lena").item, "soup");
+  const result = grantWish(state, "lena");
+  assert.equal(result.ok, true);
+  assert.equal(state.village.soup, 2);
+  assert.equal(state.village.reputation, WISH_REWARD.rep);
+  assert.equal(state.player.xp, WISH_REWARD.xp);
+  assert.equal(state.villagers.lena.wish, null);
+  assert.equal(state.villagers.lena.wishesFulfilled, 1);
+});
+
+test("wish fails without stock and locked villagers get none", () => {
+  const state = createDefaultState();
+  state.village.wood = 0;
+  assignWish(state, "lena", { item: "wood", amount: 4, icon: "🪵", label: "4 Holz" });
+  assert.equal(grantWish(state, "lena").ok, false);
+  assert.equal(state.villagers.lena.wish.item, "wood");
+  assert.equal(assignWish(state, "sophie", { item: "soup", amount: 1 }).ok, false);
+});
+
+test("wishes expire and tickWishes spawns a new one", () => {
+  const state = createDefaultState();
+  assignWish(state, "lena", { item: "wood", amount: 4, icon: "🪵", label: "4 Holz" });
+  tickWishes(state, WISH_LIFETIME_SECONDS + 1);
+  assert.equal(state.villagers.lena.wish, null);
+  for (let i = 0; i < WISH_INTERVAL_SECONDS + 1; i++) {
+    tickWishes(state, 1);
+  }
+  const anyWish = Object.values(state.villagers).some((villager) => Boolean(villager.wish));
+  assert.equal(anyWish, true);
 });

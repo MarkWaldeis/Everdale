@@ -173,6 +173,77 @@ function updateWind(elapsed) {
   });
 }
 
+const needBubblesEl = document.querySelector("#need-bubbles");
+const wishBubbleEls = new Map();
+const wishProjector = new THREE.Vector3();
+
+function grantWishAt(villagerId, el) {
+  const result = animationState.game?.grantWish?.(villagerId);
+  if (!result) return;
+  if (!result.ok) {
+    el.classList.remove("need-bubble-shake");
+    void el.offsetWidth;
+    el.classList.add("need-bubble-shake");
+    return;
+  }
+  const grant = document.createElement("div");
+  grant.className = "need-bubble-grant";
+  grant.textContent = `+${result.rep} Ruf · +${result.xp} EP`;
+  grant.style.left = el.style.left;
+  grant.style.top = el.style.top;
+  needBubblesEl.appendChild(grant);
+  grant.addEventListener("animationend", () => grant.remove());
+}
+
+function updateWishBubbles() {
+  if (!needBubblesEl) return;
+  const game = animationState.game;
+  const activeIds = new Set();
+  if (game && animationState.view !== "valley") {
+    animationState.villagers.forEach((member) => {
+      const id = member.getId();
+      const wish = game.getWish?.(id);
+      if (!wish) return;
+      activeIds.add(id);
+      let el = wishBubbleEls.get(id);
+      if (!el) {
+        el = document.createElement("button");
+        el.type = "button";
+        el.className = "need-bubble";
+        el.innerHTML =
+          '<span class="need-bubble-icon" aria-hidden="true"></span>' +
+          '<span class="need-bubble-text"></span>';
+        el.addEventListener("click", () => grantWishAt(id, el));
+        needBubblesEl.appendChild(el);
+        wishBubbleEls.set(id, el);
+      }
+      const iconEl = el.querySelector(".need-bubble-icon");
+      const icon = wish.icon ?? "💭";
+      if (iconEl.textContent !== icon) iconEl.textContent = icon;
+      const textEl = el.querySelector(".need-bubble-text");
+      const label = `${member.getLabel?.() ?? id} wünscht sich ${wish.label}`;
+      if (textEl.textContent !== label) textEl.textContent = label;
+      el.title = "Wunsch erfüllen";
+      wishProjector.copy(member.root.position);
+      wishProjector.y += 2.35;
+      wishProjector.project(camera);
+      if (wishProjector.z > 1) {
+        el.hidden = true;
+        return;
+      }
+      el.hidden = false;
+      el.style.left = `${(wishProjector.x * 0.5 + 0.5) * window.innerWidth}px`;
+      el.style.top = `${(-wishProjector.y * 0.5 + 0.5) * window.innerHeight}px`;
+    });
+  }
+  wishBubbleEls.forEach((el, id) => {
+    if (!activeIds.has(id)) {
+      el.remove();
+      wishBubbleEls.delete(id);
+    }
+  });
+}
+
 function setFollowTarget() {}
 
 function bindInterface() {}
@@ -204,6 +275,7 @@ function animate(now = 0) {
     animationState.game?.tickBrewing?.(delta);
     animationState.game?.tickBuffs?.(delta);
     animationState.game?.tickValley?.(delta);
+    animationState.game?.tickWishes?.(delta);
     animationState.valley?.update?.(delta);
     animationState.clouds?.update?.(delta, now * 0.001);
     animationState.critters?.update?.(delta);
@@ -243,6 +315,7 @@ function animate(now = 0) {
     controls.target.copy(animationState.frozenCamera.target);
     camera.lookAt(animationState.frozenCamera.target);
   }
+  updateWishBubbles();
   renderer.render(scene, camera);
 }
 
