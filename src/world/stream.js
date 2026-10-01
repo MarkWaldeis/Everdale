@@ -19,14 +19,7 @@ export function streamReservedCells(cellSize) {
   const point = new THREE.Vector3();
   for (let i = 0; i <= 140; i += 1) {
     curve.getPoint(i / 140, point);
-    const reach = WIDTH / 2 + 0.4;
-    for (let dx = -1; dx <= 1; dx += 1) {
-      for (let dz = -1; dz <= 1; dz += 1) {
-        const x = point.x + dx * reach;
-        const z = point.z + dz * reach;
-        reserved.add(`${Math.round(x / cellSize)},${Math.round(z / cellSize)}`);
-      }
-    }
+    reserved.add(`${Math.round(point.x / cellSize)},${Math.round(point.z / cellSize)}`);
   }
   return reserved;
 }
@@ -98,14 +91,14 @@ export function createStream(surfaceY) {
 
   const curve = new THREE.CatmullRomCurve3(POINTS);
   const bed = new THREE.Mesh(
-    ribbonGeometry(curve, WIDTH + 0.7, surfaceY - 0.12),
+    ribbonGeometry(curve, WIDTH + 0.7, surfaceY + 0.006),
     new THREE.MeshStandardMaterial({ color: 0x4a5a3a, roughness: 1, flatShading: true }),
   );
   bed.receiveShadow = true;
   root.add(bed);
 
   const water = new THREE.Mesh(
-    ribbonGeometry(curve, WIDTH, surfaceY - 0.045),
+    ribbonGeometry(curve, WIDTH, surfaceY + 0.022),
     new THREE.MeshStandardMaterial({
       color: 0x5fb8d9,
       transparent: true,
@@ -118,7 +111,7 @@ export function createStream(surfaceY) {
   root.add(water);
 
   const foam = new THREE.Mesh(
-    ribbonGeometry(curve, WIDTH * 0.35, surfaceY - 0.035),
+    ribbonGeometry(curve, WIDTH * 0.35, surfaceY + 0.03),
     new THREE.MeshBasicMaterial({ color: 0xcdeef8, transparent: true, opacity: 0.16 }),
   );
   root.add(foam);
@@ -128,7 +121,7 @@ export function createStream(surfaceY) {
   [0.18, 0.36, 0.68, 0.86].forEach((t, i) => {
     const point = curve.getPoint(t);
     const pad = new THREE.Mesh(new THREE.CylinderGeometry(0.11 + i * 0.015, 0.11 + i * 0.015, 0.02, 8), lilyMat);
-    pad.position.set(point.x + (i % 2 ? 0.3 : -0.28), surfaceY - 0.02, point.z);
+    pad.position.set(point.x + (i % 2 ? 0.3 : -0.28), surfaceY + 0.04, point.z);
     pads.push(pad);
     root.add(pad);
   });
@@ -150,7 +143,7 @@ export function createStream(surfaceY) {
       const offset = WIDTH / 2 + 0.35 + Math.random() * 0.35;
       dummy.position.set(
         point.x + normal.x * offset * side + (Math.random() - 0.5) * 0.3,
-        surfaceY + 0.2,
+        surfaceY + 0.22,
         point.z + normal.z * offset * side + (Math.random() - 0.5) * 0.3,
       );
       dummy.rotation.set((Math.random() - 0.5) * 0.25, Math.random() * Math.PI, (Math.random() - 0.5) * 0.25);
@@ -179,7 +172,7 @@ export function createStream(surfaceY) {
     foam.position.x = Math.sin(elapsed * 0.4) * 0.06;
     foam.material.opacity = 0.12 + Math.sin(elapsed * 1.3) * 0.06;
     pads.forEach((pad, i) => {
-      pad.position.y = surfaceY - 0.02 + Math.sin(elapsed * 1.4 + i * 1.9) * 0.012;
+      pad.position.y = surfaceY + 0.04 + Math.sin(elapsed * 1.4 + i * 1.9) * 0.012;
       pad.rotation.y += delta * 0.04;
     });
   }
