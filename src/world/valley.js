@@ -192,6 +192,54 @@ function createMineModel() {
   return mine;
 }
 
+function createMonumentModel() {
+  const monument = new THREE.Group();
+  monument.name = "valley-monument";
+  const stone = new THREE.MeshStandardMaterial({ color: 0xa9a396, roughness: 0.85 });
+  const darkStone = new THREE.MeshStandardMaterial({ color: 0x7c766b, roughness: 0.9 });
+  const gold = new THREE.MeshStandardMaterial({
+    color: 0xf2c14e,
+    metalness: 0.7,
+    roughness: 0.3,
+    emissive: 0xa36b00,
+    emissiveIntensity: 0.25,
+  });
+
+  const stage1 = new THREE.Group();
+  const ring = new THREE.Mesh(new THREE.CylinderGeometry(1.5, 1.7, 0.35, 10), stone);
+  ring.position.y = 0.18;
+  stage1.add(ring);
+
+  const stage2 = new THREE.Group();
+  const pedestal = new THREE.Mesh(new THREE.BoxGeometry(1.5, 0.8, 1.5), darkStone);
+  pedestal.position.y = 0.75;
+  stage2.add(pedestal);
+  const column = new THREE.Mesh(new THREE.CylinderGeometry(0.5, 0.62, 1.7, 8), stone);
+  column.position.y = 1.95;
+  stage2.add(column);
+
+  const stage3 = new THREE.Group();
+  const statue = new THREE.Mesh(new THREE.CylinderGeometry(0.3, 0.45, 1.1, 8), darkStone);
+  statue.position.y = 3.3;
+  stage3.add(statue);
+  const head = new THREE.Mesh(new THREE.SphereGeometry(0.3, 10, 8), stone);
+  head.position.y = 4.0;
+  stage3.add(head);
+  const flame = new THREE.Mesh(new THREE.ConeGeometry(0.34, 0.8, 8), gold);
+  flame.position.y = 4.7;
+  stage3.add(flame);
+
+  stage1.visible = stage2.visible = stage3.visible = false;
+  monument.add(stage1, stage2, stage3);
+  monument.traverse((node) => {
+    if (node.isMesh) {
+      node.castShadow = true;
+      node.receiveShadow = true;
+    }
+  });
+  return { monument, stage1, stage2, stage3 };
+}
+
 function createCrate() {
   const crate = new THREE.Group();
   const body = new THREE.Mesh(
@@ -267,6 +315,11 @@ export function createValleyHarbor(model, surfaceY) {
   mine.rotation.y = 2.55;
   mine.visible = false;
   root.add(mine);
+
+  const monumentParts = createMonumentModel();
+  const monument = monumentParts.monument;
+  monument.position.set(-6.4, surfaceY - 0.02, 2.7);
+  root.add(monument);
 
   const crates = [0, 1, 2, 3].map((index) => {
     const crate = createCrate();
@@ -353,6 +406,11 @@ export function createValleyHarbor(model, surfaceY) {
     },
     setMineBuilt(value) {
       mine.visible = Boolean(value);
+    },
+    setMonumentStage(stage = 0) {
+      monumentParts.stage1.visible = stage >= 1;
+      monumentParts.stage2.visible = stage >= 2;
+      monumentParts.stage3.visible = stage >= 3;
     },
     update,
     getSailPhase: () => sail.phase,

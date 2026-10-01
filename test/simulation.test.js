@@ -47,6 +47,8 @@ import {
   isMineBuilt,
   getMineProgress,
   MINE_SECONDS,
+  buildMonumentStage,
+  getMonumentStage,
   isVillagerUnlocked,
   tickResearch,
   villagerSkillLevel,
@@ -742,4 +744,31 @@ test("everstone mine yields gems over time", () => {
   tickValley(state, MINE_SECONDS * 0.6);
   assert.equal(state.village.gems, 1);
   assert.ok(getMineProgress(state) < 0.5);
+});
+
+test("valley monument builds in three escalating stages", () => {
+  const state = createDefaultState();
+  state.valleyUnlocked = true;
+  state.village.wood = 60;
+  state.village.stone = 120;
+  state.village.clay = 50;
+  state.village.gems = 10;
+
+  assert.equal(getMonumentStage(state), 0);
+  assert.equal(buildMonumentStage(state).ok, true);
+  assert.equal(buildMonumentStage(state).ok, true);
+  assert.equal(getMonumentStage(state), 2);
+  assert.equal(buildMonumentStage(state).ok, true);
+  assert.equal(getMonumentStage(state), 3);
+  assert.equal(buildMonumentStage(state).ok, false); // done
+  assert.equal(state.village.gems, 5);
+
+  // Completed monument pays +5 extra gems per ship return.
+  state.valley.crates.forEach((crate) => {
+    crate.filledBy = "lena";
+  });
+  state.village.gems = 0;
+  tickValley(state, 0.1); // depart
+  tickValley(state, 90.1); // return
+  assert.equal(state.village.gems, 7);
 });

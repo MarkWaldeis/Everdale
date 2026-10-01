@@ -460,6 +460,7 @@ export function createDefaultState() {
       library: { built: false },
       guildhall: { built: false },
       mine: { built: false, progress: 0 },
+      monument: { stage: 0 },
     },
     orders: {
       next: 0,
@@ -1265,7 +1266,7 @@ export function tickValley(state, deltaSeconds) {
     ship.remaining = 0;
     ship.voyages += 1;
     reloadCrates(state);
-    state.village.gems = (state.village.gems ?? 0) + 2;
+    state.village.gems = (state.village.gems ?? 0) + 2 + (getMonumentStage(state) >= 3 ? 5 : 0);
     state.village.reputation = (state.village.reputation ?? 0) + 10;
     if (isLibraryBuilt(state)) {
       Object.keys(state.villagers ?? {}).forEach((villagerId) => {
@@ -1373,6 +1374,29 @@ export function getMineProgress(state) {
   const mine = state.valley.mine;
   if (!mine?.built) return 0;
   return Math.min(1, (mine.progress ?? 0) / MINE_SECONDS);
+}
+
+export const MONUMENT_STAGES = Object.freeze([
+  Object.freeze({ wood: 20, stone: 20 }),
+  Object.freeze({ wood: 30, stone: 40, clay: 10 }),
+  Object.freeze({ stone: 60, clay: 30, gems: 5 }),
+]);
+
+export function getMonumentStage(state) {
+  return state.valley.monument?.stage ?? 0;
+}
+
+export function buildMonumentStage(state) {
+  if (!state.valleyUnlocked) return { ok: false, reason: "locked" };
+  const stage = getMonumentStage(state);
+  if (stage >= MONUMENT_STAGES.length) return { ok: false, reason: "done" };
+  const cost = MONUMENT_STAGES[stage];
+  if (!canAfford(state, cost)) return { ok: false, reason: "cost" };
+  spendCost(state, cost);
+  state.valley.monument.stage = stage + 1;
+  state.village.reputation = (state.village.reputation ?? 0) + 15 * (stage + 1);
+  addPlayerXp(state, 30 * (stage + 1));
+  return { ok: true, stage: stage + 1 };
 }
 
 export function isGuildhallBuilt(state) {

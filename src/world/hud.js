@@ -504,10 +504,17 @@ export function createHud({
           <strong>⛏️ Everstein-Mine errichten</strong>
           <small>${formatCost({ wood: 15, stone: 30, clay: 5 })} · Erzeugt alle 4 Minuten ein Gem</small>
         </button>`;
+    const monumentStage = game.getMonumentStage?.() ?? 0;
+    const monument = monumentStage >= 3
+      ? `<div class="inv-row"><span>🏛️ Tal-Denkmal</span><strong>Vollendet · +5 💎 je Schiffsreise</strong></div>`
+      : `<button class="sheet-card" type="button" data-monument="1">
+          <strong>🏛️ Tal-Denkmal · Stufe ${monumentStage + 1}/3</strong>
+          <small>${formatCost(game.monumentStages?.[monumentStage] ?? {})} · +${15 * (monumentStage + 1)} Ruf${monumentStage === 2 ? " · fertig: +5 💎 je Reise" : ""}</small>
+        </button>`;
     openSheet(
       "valley",
       "Hafen",
-      `${shipLine}${crates}${library}${guildhall}${mine}<p class="sheet-hint">Sind alle Kisten beladen, läuft das Schiff aus — es bringt Diamanten und neue Aufträge mit.</p>`,
+      `${shipLine}${crates}${library}${guildhall}${mine}${monument}<p class="sheet-hint">Sind alle Kisten beladen, läuft das Schiff aus — es bringt Diamanten und neue Aufträge mit.</p>`,
     );
   }
 
@@ -558,6 +565,13 @@ export function createHud({
     els.sheetBody?.querySelectorAll("[data-mine]").forEach((button) => {
       button.addEventListener("click", () => {
         game.buildMine?.();
+        renderValley();
+        refresh();
+      });
+    });
+    els.sheetBody?.querySelectorAll("[data-monument]").forEach((button) => {
+      button.addEventListener("click", () => {
+        game.buildMonumentStage?.();
         renderValley();
         refresh();
       });
