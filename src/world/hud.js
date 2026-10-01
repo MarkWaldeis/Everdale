@@ -30,6 +30,7 @@ const COST_ROW_LABELS = {
   apple: "Äpfel",
   berry: "Beeren",
   egg: "Eier",
+  fish: "Fische",
 };
 
 const FIELD_LABELS = {
@@ -49,6 +50,7 @@ const FIELD_LABELS = {
   apple: "Apfel",
   berry: "Beeren",
   egg: "Eier",
+  fish: "Fische",
 };
 
 const ORDER_SINGULAR_LABELS = {
@@ -63,6 +65,7 @@ const ORDER_SINGULAR_LABELS = {
   apple: "Apfel",
   berry: "Beere",
   egg: "Ei",
+  fish: "Fisch",
 };
 
 const BUILDING_INFO = {
@@ -120,6 +123,14 @@ const BUILDING_INFO = {
     resourceLabel: "Eier",
     worker: "Hühnerwirtin",
     blurb: "Glückliche Hühner — die Hühnerwirtin sammelt frische Eier.",
+  },
+  "fishing-dock": {
+    label: "Angelsteg",
+    icon: "🎣",
+    resource: "fish",
+    resourceLabel: "Fische",
+    worker: "Angler",
+    blurb: "Ruhiges Wasser, dicke Fische — der Angler füllt den Eimer.",
   },
   well: {
     label: "Brunnen",
@@ -516,6 +527,7 @@ export function createHud({
     apple: "Äpfel",
     berry: "Beeren",
     egg: "Eier",
+    fish: "Fische",
   };
 
   function renderOrders() {

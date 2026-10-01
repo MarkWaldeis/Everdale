@@ -986,3 +986,15 @@ test("cancelling a placement refunds costs and removes the building", () => {
   assert.equal(state.village.wood, 18);
   assert.equal(state.village.clay, 8);
 });
+
+test("fish harvest stops at cap and fishing-dock gate works", () => {
+  const state = createDefaultState();
+  state.village.fish = 14;
+  assert.equal(canCollectResource(state, "fish"), false);
+  state.placed["fishing-dock"] = true;
+  const before = state.village.fish;
+  harvestResource(state, "fish", 4);
+  assert.equal(state.village.fish, state.village.fishCap);
+  assert.ok(state.village.fish <= 15);
+  assert.equal(before, 14);
+});

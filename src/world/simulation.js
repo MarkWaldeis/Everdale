@@ -15,6 +15,7 @@ export const RESOURCES = Object.freeze({
   apple: { capKey: "appleCap", requiresPlaced: "apple-tree" },
   berry: { capKey: "berryCap", requiresPlaced: "berry-bush" },
   egg: { capKey: "eggCap", requiresPlaced: "chicken-coop" },
+  fish: { capKey: "fishCap", requiresPlaced: "fishing-dock" },
   wool: { capKey: "woolCap", requiresPlaced: "sheep-pen" },
   planks: { requiresPlaced: "wood-workshop" },
   bucket: { requiresPlaced: "wood-workshop" },
@@ -45,6 +46,7 @@ export const COST_LABELS = Object.freeze({
   apple: "Äpfel",
   berry: "Beeren",
   egg: "Eier",
+  fish: "Fische",
 });
 
 export const RECIPES = Object.freeze([
@@ -242,6 +244,14 @@ export const BUILDING_CATALOG = Object.freeze([
     constructionSeconds: 35,
     description: "Glückliche Hühner — die Hühnerwirtin sammelt frische Eier.",
   },
+  {
+    id: "fishing-dock",
+    label: "Angelsteg",
+    placeable: true,
+    cost: { wood: 10, planks: 2 },
+    constructionSeconds: 30,
+    description: "Ein kleiner Steg — der Angler fängt Fische für Aufträge.",
+  },
 ]);
 
 export const RESEARCH_NODES = Object.freeze([
@@ -406,6 +416,16 @@ export const RESEARCH_NODES = Object.freeze([
     completable: true,
   },
   {
+    id: "fishing-dock",
+    name: "Angelsteg",
+    detail: "Ein Steg am Bach — der Angler fängt Fische für Aufträge und Wünsche.",
+    icon: "🎣",
+    requires: ["berry-bush"],
+    cost: { wood: 8, stone: 4 },
+    unlocksBuilding: "fishing-dock",
+    completable: true,
+  },
+  {
     id: "potions",
     name: "Tränke",
     detail: "Brau Buffs für deine Bewohner am Alchemielabor.",
@@ -446,6 +466,8 @@ export const ORDER_DECK = Object.freeze([
   { requests: { berry: 3, apple: 2 }, rewardGold: 14, rewardScrolls: 1, requiresPlaced: "berry-bush" },
   { requests: { egg: 3 }, rewardGold: 11, requiresPlaced: "chicken-coop" },
   { requests: { egg: 4, bread: 1 }, rewardGold: 22, rewardScrolls: 1, requiresPlaced: "chicken-coop" },
+  { requests: { fish: 3 }, rewardGold: 13, requiresPlaced: "fishing-dock" },
+  { requests: { fish: 5, soup: 1 }, rewardGold: 24, rewardScrolls: 2, requiresPlaced: "fishing-dock" },
   { requests: { stone: 5, wood: 10 }, rewardGold: 21, rewardScrolls: 2, requiresPlaced: "stone-storage" },
   { requests: { clay: 8, stone: 6 }, rewardGold: 26, rewardScrolls: 2, requiresPlaced: "stone-storage" },
   { requests: { bread: 2 }, rewardGold: 24, rewardScrolls: 2, requiresPlaced: "bakery" },
@@ -581,6 +603,7 @@ export function createDefaultState() {
     "apple-tree": false,
     "berry-bush": false,
     "chicken-coop": false,
+    "fishing-dock": false,
   };
   const nodes = {};
   RESEARCH_NODES.forEach((node) => {
@@ -617,6 +640,8 @@ export function createDefaultState() {
       berryCap: 15,
       egg: 0,
       eggCap: 15,
+      fish: 0,
+      fishCap: 15,
       bread: 0,
       breadCap: 15,
       planks: 0,
@@ -1189,6 +1214,7 @@ const SKILL_FOR_TASK = Object.freeze({
   "pick-apples": "farming",
   "pick-berries": "farming",
   "collect-eggs": "farming",
+  "catch-fish": "farming",
   mill: "building",
 });
 
@@ -1726,6 +1752,7 @@ const WISH_DEFINITIONS = [
   { item: "apple", amount: 2, icon: "🍎", label: "2 Äpfel" },
   { item: "berry", amount: 3, icon: "🫐", label: "3 Beeren" },
   { item: "egg", amount: 2, icon: "🥚", label: "2 Eier" },
+  { item: "fish", amount: 2, icon: "🐟", label: "2 Fische" },
 ];
 
 const WISH_RESOURCE_ID = { pumpkins: "pumpkin" };
