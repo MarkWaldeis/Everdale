@@ -16,6 +16,7 @@ const BUILDING_INFO = {
   "stone-storage": { label: "Steinlager", icon: "🪨", resource: "stone", resourceLabel: "Stein" },
   "clay-storage": { label: "Lehmlager", icon: "🧱", resource: "clay", resourceLabel: "Lehm" },
   kitchen: { label: "Küche", icon: "🍲", resource: "soup", resourceLabel: "Suppe" },
+  bakery: { label: "Bäckerei", icon: "🍞", resource: "bread", resourceLabel: "Brot" },
   well: {
     label: "Brunnen",
     icon: "💧",
@@ -42,6 +43,7 @@ export function createHud({
   onFocusVillager,
   onReset,
   onKitchen,
+  onBakery,
 }) {
   const els = {
     level: document.querySelector("#hud-level"),
@@ -217,6 +219,19 @@ export function createHud({
     }
     const effect = upgrade?.effect ?? info.blurb ?? "";
     if (effect) rows.push(`<p class="sheet-hint">${effect}</p>`);
+    if (id === "bakery") {
+      const production = game.getProduction?.("bakery");
+      if (production) {
+        const label = production.current?.label;
+        rows.push(
+          `<div class="inv-row"><span>Backen</span><strong>${production.queue.length}${production.queue.length ? `× ${label}` : " — leer"}</strong></div>`,
+        );
+        if (production.current) {
+          const pct = Math.min(100, Math.round((production.progress / (production.seconds || 1)) * 100));
+          rows.push(`<div class="inv-row"><span>Fortschritt</span><strong>${pct}%</strong></div>`);
+        }
+      }
+    }
     const construction = game.getConstruction?.(id);
     if (construction) {
       rows.push(
@@ -226,6 +241,10 @@ export function createHud({
     let action = "";
     if (id === "kitchen") {
       action += `<button class="sheet-action" type="button" data-cook>Koch auswählen · Suppe kochen</button>`;
+    }
+    if (id === "bakery") {
+      action += `<button class="sheet-action" type="button" data-bake>Brot backen · 2 Kürbisse + 1 Holz</button>`;
+      action += `<button class="sheet-action" type="button" data-baker>Bäcker auswählen</button>`;
     }
     if (upgrade) {
       if (upgrade.atMax) {
@@ -358,6 +377,15 @@ export function createHud({
     els.sheetBody?.querySelector("[data-cook]")?.addEventListener("click", () => {
       closeSheet();
       onKitchen?.();
+    });
+    els.sheetBody?.querySelector("[data-bake]")?.addEventListener("click", () => {
+      game.queueRecipe?.("bakery", "bread");
+      refresh();
+      renderBuilding("bakery");
+    });
+    els.sheetBody?.querySelector("[data-baker]")?.addEventListener("click", () => {
+      closeSheet();
+      onBakery?.();
     });
     els.sheetBody?.querySelector("#btn-mute")?.addEventListener("click", () => {
       game.setMuted(!game.getMuted());

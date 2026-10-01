@@ -24,6 +24,8 @@ import { createStudyLoop } from "./world/study-loop.js";
 import { createValleyHarbor } from "./world/valley.js";
 import { createOrderBoard } from "./world/order-board.js";
 import { createHouseIi } from "./world/house-ii.js";
+import { createBakery } from "./world/bakery.js";
+import { createBakeLoop } from "./world/bake-loop.js";
 import { createDirtPaths } from "./world/dirt-paths.js";
 import { createHud } from "./world/hud.js";
 import "./styles.css";
@@ -132,6 +134,8 @@ const animationState = {
   village: null,
   paths: null,
   houseIi: null,
+  bakery: null,
+  bakeLoop: null,
   view: "village",
   debugPaused: false,
   windEnabled: !window.matchMedia("(prefers-reduced-motion: reduce)").matches,
@@ -180,8 +184,14 @@ function animate(now = 0) {
     animationState.soupLoop?.update(delta, now * 0.001);
     animationState.clayLoop?.update(delta, now * 0.001);
     animationState.studyLoop?.update(delta, now * 0.001);
+    animationState.bakeLoop?.update(delta, now * 0.001);
     animationState.game?.tickConstructions?.(delta);
     animationState.houseIi?.update?.(camera);
+    const production = animationState.game?.getProduction?.("bakery");
+    animationState.bakery?.setBaking?.(
+      production?.current ? production.progress / (production.seconds || 1) : null,
+    );
+    animationState.bakery?.update?.(camera);
     controls.update();
     const clampedX = THREE.MathUtils.clamp(controls.target.x, -14, 16);
     const clampedZ = THREE.MathUtils.clamp(controls.target.z, -11, 12);
@@ -266,6 +276,7 @@ async function start() {
     animationState.valley = createValleyHarbor(assets.valleyHarbor, world.walkArea.surfaceY);
     animationState.orderBoard = createOrderBoard(assets.orderBoard, world.walkArea.surfaceY);
     animationState.houseIi = createHouseIi(assets.cottage.clone(true), world.walkArea.surfaceY);
+    animationState.bakery = createBakery(assets.bakery, world.walkArea.surfaceY);
     animationState.game = createGameState();
     animationState.windEnabled = animationState.game.getWind();
     animationState.yard.setWood(animationState.game.getWood());
@@ -350,6 +361,11 @@ async function start() {
       study: animationState.study,
       villagers: animationState.villagers,
     });
+    animationState.bakeLoop = createBakeLoop({
+      game: animationState.game,
+      bakery: animationState.bakery,
+      villagers: animationState.villagers,
+    });
     animationState.harvest = createHarvestDirector({
       trees: harvestables,
       camera,
@@ -378,6 +394,8 @@ async function start() {
       onOpenBuilding: (id) => animationState.hud?.renderBuilding?.(id),
       orderBoard: animationState.orderBoard,
       onOpenOrders: () => animationState.hud?.renderOrders?.(),
+      bakery: animationState.bakery,
+      bakeLoop: animationState.bakeLoop,
     });
     animationState.village = createVillageEditor({
       scene: world.root,
@@ -548,6 +566,18 @@ async function start() {
         setYaw: (yaw) => animationState.houseIi.setYaw(yaw),
         refresh: () => animationState.houseIi.refreshAnchors(),
       },
+      bakery: {
+        id: "bakery",
+        label: "Bäckerei",
+        root: animationState.bakery.root,
+        size: animationState.bakery.size,
+        w: 2,
+        h: 2,
+        padding: 1,
+        setWorldPosition: (x, z) => animationState.bakery.setWorldPosition(x, z),
+        setYaw: (yaw) => animationState.bakery.setYaw(yaw),
+        refresh: () => animationState.bakery.refreshAnchors(),
+      },
     };
 
     animationState.paths = createDirtPaths();
@@ -578,7 +608,7 @@ async function start() {
     }
 
     ["cottage", "wood-storage", "kitchen", "pumpkin-patch", "well", "study", "order-board"].forEach(mountPlaced);
-    ["clay-pit", "clay-storage", "stone-storage", "house-ii"].forEach((id) => {
+    ["clay-pit", "clay-storage", "stone-storage", "house-ii", "bakery"].forEach((id) => {
       if (animationState.game.isPlaced(id)) mountPlaced(id);
     });
 
@@ -637,6 +667,9 @@ async function start() {
       onFocusVillager: focusVillager,
       onKitchen: () => {
         animationState.harvest?.selectKitchen();
+      },
+      onBakery: () => {
+        animationState.harvest?.selectBakery();
       },
       onReset: () => {
         animationState.game.resetSave();
@@ -718,6 +751,8 @@ async function start() {
       clayYard: animationState.clayYard,
       orderBoard: animationState.orderBoard,
       houseIi: animationState.houseIi,
+      bakery: animationState.bakery,
+      bakeLoop: animationState.bakeLoop,
       clayLoop: animationState.clayLoop,
       soupLoop: animationState.soupLoop,
       game: animationState.game,
@@ -750,6 +785,19 @@ async function start() {
       assignClay: (id) => {
         const member = animationState.villagers.find((entry) => entry.getId() === id);
         return animationState.clayLoop?.assignDigger(member);
+      },
+      selectBakery: () => animationState.harvest?.selectBakery?.(),
+      queueBread: () => animationState.game?.queueRecipe?.("bakery", "bread"),
+      assignBaker: (id) => {
+        const member = animationState.villagers.find((entry) => entry.getId() === id);
+        return animationState.bakeLoop?.assignBaker(member);
+      },
+      finishBake: () => {
+        const production = animationState.game?.getProduction?.("bakery");
+        if (production?.current) {
+          animationState.game.getRaw().buildings.bakery.productionProgress =
+            production.seconds - 0.05;
+        }
       },
       setPaused: (paused) => {
         animationState.debugPaused = Boolean(paused);

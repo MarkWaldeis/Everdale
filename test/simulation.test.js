@@ -25,6 +25,8 @@ import {
   getConstruction,
   tickConstructions,
   applyOfflineProgress,
+  queueRecipe,
+  tickProduction,
 } from "../src/world/simulation.js";
 
 test("fresh start keeps later buildings locked", () => {
@@ -329,4 +331,95 @@ test("offline progress completes an active research", () => {
   assert.equal(summary.researchDone, "clay-pit");
   assert.equal(state.nodes["clay-pit"], "done");
   assert.equal(state.unlocked["clay-pit"], true);
+});
+
+test("bakery research unlocks a placeable bakery", () => {
+  const state = createDefaultState();
+  state.nodes["valley-access"] = "done";
+  state.placed["clay-pit"] = true;
+  state.placed["clay-storage"] = true;
+  state.placed["stone-storage"] = true;
+  state.placed["house-ii"] = true;
+  state.village.wood = 50;
+  state.village.clay = 20;
+  const done = completeResearch(state, "bakery");
+  assert.equal(done.ok, true);
+  assert.equal(done.unlockedBuilding, "bakery");
+  assert.equal(canPlaceBuilding(state, "bakery"), true);
+  const placed = placeBuilding(state, "bakery");
+  assert.equal(placed.ok, true);
+  assert.equal(state.placed.bakery, true);
+});
+
+test("bake queue spends inputs up front and produces bread", () => {
+  const state = createDefaultState();
+  state.unlocked.bakery = true;
+  state.village.wood = 40;
+  state.village.clay = 20;
+  state.village.pumpkins = 6;
+  placeBuilding(state, "bakery");
+
+  const queued = queueRecipe(state, "bakery", "bread");
+  assert.equal(queued.ok, true);
+  assert.equal(state.village.pumpkins, 4);
+  assert.equal(state.village.wood, 23);
+  assert.equal(state.buildings.bakery.productionQueue.length, 1);
+
+  const produced = tickProduction(state, "bakery", 31);
+  assert.equal(produced.produced, "bread");
+  assert.equal(state.village.bread, 1);
+  assert.equal(state.buildings.bakery.productionQueue.length, 0);
+});
+
+test("bake queue rejects when broke or full and stalls on full storage", () => {
+  const state = createDefaultState();
+  state.unlocked.bakery = true;
+  state.village.wood = 40;
+  state.village.clay = 20;
+  state.village.pumpkins = 2;
+  placeBuilding(state, "bakery");
+  assert.equal(queueRecipe(state, "bakery", "bread").ok, true);
+  assert.equal(queueRecipe(state, "bakery", "bread").ok, false);
+  state.village.pumpkins = 20;
+  assert.equal(queueRecipe(state, "bakery", "bread").ok, true);
+  assert.equal(queueRecipe(state, "bakery", "bread").ok, true);
+  assert.equal(queueRecipe(state, "bakery", "bread").ok, true);
+  assert.equal(queueRecipe(state, "bakery", "bread").ok, false);
+  assert.equal(state.buildings.bakery.productionQueue.length, 4);
+
+  state.village.bread = state.village.breadCap;
+  const stalled = tickProduction(state, "bakery", 60);
+  assert.equal(stalled.blocked, "cap");
+  assert.equal(state.buildings.bakery.productionQueue.length, 4);
+});
+
+test("bread orders only appear once the bakery stands", () => {
+  const state = createDefaultState();
+  const without = listOrders(state).filter((slot) =>
+    slot && Object.keys(slot.requests).includes("bread"),
+  );
+  assert.equal(without.length, 0);
+  state.unlocked.bakery = true;
+  state.village.wood = 200;
+  state.village.clay = 100;
+  state.village.pumpkins = 100;
+  state.village.soup = 50;
+  state.village.stone = 100;
+  placeBuilding(state, "bakery");
+  let found = 0;
+  for (let i = 0; i < 40 && found === 0; i += 1) {
+    const slots = listOrders(state);
+    const slot = slots.findIndex(
+      (entry) => entry && Object.keys(entry.requests).includes("bread"),
+    );
+    if (slot >= 0) {
+      state.village.bread = 10;
+      if (fillOrder(state, slot).ok) found = 1;
+      break;
+    }
+    const fillIdx = slots.findIndex((entry, index) => entry && canFillOrder(state, index));
+    if (fillIdx < 0) break;
+    fillOrder(state, fillIdx);
+  }
+  assert.equal(found, 1);
 });

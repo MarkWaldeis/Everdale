@@ -9,6 +9,8 @@ import { buildClayPit } from "../src/world/models/clay-pit.js";
 import { buildClayStorage } from "../src/world/models/clay-storage.js";
 import { buildStudyHall } from "../src/world/models/study-hall.js";
 import { buildValleyHarbor } from "../src/world/models/valley-harbor.js";
+import { buildOrderBoard } from "../src/world/models/order-board.js";
+import { buildBakery } from "../src/world/models/bakery.js";
 
 const here = dirname(fileURLToPath(import.meta.url));
 const outDir = resolve(here, "../3d Assets");
@@ -24,6 +26,8 @@ const jobs = [
   ["clay-storage-full.glb", () => buildClayStorage(1)],
   ["study-hall.glb", buildStudyHall],
   ["valley-harbor.glb", buildValleyHarbor],
+  ["order-board.glb", buildOrderBoard],
+  ["bakery.glb", buildBakery],
 ];
 
 for (const [fileName, build] of jobs) {

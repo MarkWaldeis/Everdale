@@ -28,6 +28,9 @@ import {
   getConstruction,
   tickConstructions as simTickConstructions,
   applyOfflineProgress,
+  queueRecipe,
+  tickProduction,
+  getProduction,
   getCatalogItem,
   getResearchNode,
   canAfford,
@@ -194,6 +197,8 @@ export function createGameState() {
     getStoneCap: () => data.village.stoneCap,
     setStone: (amount) => wrap(() => setResource(data, "stone", amount)),
     addStone: (amount) => wrap(() => simHarvest(data, "stone", amount).total),
+    getBread: () => data.village.bread,
+    getBreadCap: () => data.village.breadCap,
     getClay: () => data.village.clay,
     getClayCap: () => data.village.clayCap,
     setClay: (amount) => wrap(() => setResource(data, "clay", amount)),
@@ -223,6 +228,9 @@ export function createGameState() {
       data.timings.hungerInterval = Math.max(0.4, value);
       persist();
     },
+    queueRecipe: (buildingId, recipeId) => wrap(() => queueRecipe(data, buildingId, recipeId)),
+    tickProduction: (buildingId, delta) => wrap(() => tickProduction(data, buildingId, delta)),
+    getProduction: (buildingId) => getProduction(data, buildingId),
     tickVillagerWork: (id, delta) => wrap(() => simTickWork(data, id, delta)),
     resetVillagerWork: (id) =>
       wrap(() => {

@@ -144,6 +144,11 @@ export const ASSETS = Object.freeze({
     url: new URL("../../3d Assets/valley-harbor.glb", import.meta.url).href,
     height: 2.4,
   },
+  bakery: {
+    label: "Bäckerei",
+    url: new URL("../../3d Assets/bakery.glb", import.meta.url).href,
+    height: 2.1,
+  },
 });
 
 export const TREE_WEIGHTS = Object.freeze([

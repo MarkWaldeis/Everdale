@@ -10,6 +10,7 @@ export const RESOURCES = Object.freeze({
   clay: { capKey: "clayCap", requiresPlaced: "clay-storage" },
   soup: { capKey: "soupCap" },
   pumpkin: { field: "pumpkins" },
+  bread: { capKey: "breadCap", requiresPlaced: "bakery" },
   gold: {},
   gems: {},
   reputation: {},
@@ -22,7 +23,22 @@ export const COST_LABELS = Object.freeze({
   stone: "Stein",
   clay: "Lehm",
   scrolls: "Schriftrollen",
+  pumpkin: "Kürbisse",
+  soup: "Suppe",
+  bread: "Brot",
 });
+
+export const RECIPES = Object.freeze([
+  {
+    id: "bread",
+    label: "Brot",
+    building: "bakery",
+    inputs: { pumpkin: 2, wood: 1 },
+    output: "bread",
+    amount: 1,
+    seconds: 30,
+  },
+]);
 
 export function formatCost(cost = {}) {
   const parts = Object.entries(cost)
@@ -80,10 +96,9 @@ export const BUILDING_CATALOG = Object.freeze([
   {
     id: "bakery",
     label: "Bäckerei",
-    placeable: false,
-    later: true,
+    placeable: true,
     cost: { wood: 16, clay: 8 },
-    description: "Später: Brot und Kuchen für den Handel.",
+    description: "Ein Bäcker backt Brot aus Kürbissen — für Aufträge und Schiffe.",
   },
   {
     id: "tailor",
@@ -157,12 +172,12 @@ export const RESEARCH_NODES = Object.freeze([
   {
     id: "bakery",
     name: "Bäckerei",
-    detail: "Kommt später: Mehl zu Brot und Kuchen.",
+    detail: "Brot aus Kürbissen backen — Auftragsware mit gutem Gold.",
     icon: "🍞",
     requires: ["valley-access"],
     cost: { wood: 16 },
-    later: true,
-    completable: false,
+    unlocksBuilding: "bakery",
+    completable: true,
   },
   {
     id: "tailor",
@@ -211,6 +226,8 @@ export const ORDER_DECK = Object.freeze([
   { requests: { soup: 3, pumpkin: 4 }, rewardGold: 16, rewardRep: 2 },
   { requests: { stone: 5, wood: 10 }, rewardGold: 21, rewardScrolls: 2, requiresPlaced: "stone-storage" },
   { requests: { clay: 8, stone: 6 }, rewardGold: 26, rewardScrolls: 2, requiresPlaced: "stone-storage" },
+  { requests: { bread: 2 }, rewardGold: 24, rewardScrolls: 2, requiresPlaced: "bakery" },
+  { requests: { bread: 3, soup: 2 }, rewardGold: 34, rewardRep: 3, requiresPlaced: "bakery" },
 ]);
 
 export const BUILDING_UPGRADES = Object.freeze({
@@ -313,6 +330,8 @@ export function createDefaultState() {
       clay: 0,
       clayCap: 20,
       flour: 0,
+      bread: 0,
+      breadCap: 15,
       harvestCount: 0,
     },
     placed,
@@ -471,6 +490,61 @@ export function placeBuilding(state, id) {
     };
   }
   return { ok: true, id, village: { ...state.village } };
+}
+
+export function queueRecipe(state, buildingId, recipeId) {
+  const recipe = RECIPES.find((entry) => entry.id === recipeId && entry.building === buildingId);
+  if (!recipe) return { ok: false, reason: "missing" };
+  if (!state.placed[buildingId]) return { ok: false, reason: "locked" };
+  if (state.constructions?.[buildingId]) return { ok: false, reason: "constructing" };
+  const building = state.buildings[buildingId];
+  if (!building) return { ok: false, reason: "missing" };
+  building.productionQueue ??= [];
+  if (building.productionQueue.length >= 4) return { ok: false, reason: "queue-full" };
+  if (!orderCanAfford(state, recipe.inputs)) return { ok: false, reason: "cost" };
+  orderSpend(state, recipe.inputs);
+  building.productionQueue.push(recipeId);
+  return { ok: true, queue: building.productionQueue.length };
+}
+
+export function tickProduction(state, buildingId, deltaSeconds) {
+  const building = state.buildings[buildingId];
+  const queue = building?.productionQueue ?? [];
+  if (!queue.length) {
+    if (building) building.productionProgress = 0;
+    return { produced: null };
+  }
+  const recipe = RECIPES.find((entry) => entry.id === queue[0]);
+  if (!recipe) {
+    queue.shift();
+    return { produced: null };
+  }
+  const field = villageField(recipe.output);
+  const capKey = RESOURCES[recipe.output]?.capKey;
+  const cap = capKey ? state.village[capKey] : Infinity;
+  if ((state.village[field] ?? 0) + recipe.amount > cap) {
+    building.productionProgress = recipe.seconds;
+    return { produced: null, blocked: "cap" };
+  }
+  building.productionProgress = (building.productionProgress ?? 0) + deltaSeconds;
+  if (building.productionProgress < recipe.seconds) return { produced: null };
+  building.productionProgress = 0;
+  queue.shift();
+  state.village[field] = Math.min(cap, (state.village[field] ?? 0) + recipe.amount);
+  addPlayerXp(state, 6);
+  return { produced: recipe.id, output: recipe.output, amount: recipe.amount };
+}
+
+export function getProduction(state, buildingId) {
+  const building = state.buildings[buildingId];
+  const queue = building?.productionQueue ?? [];
+  const recipe = queue.length ? RECIPES.find((entry) => entry.id === queue[0]) : null;
+  return {
+    queue: [...queue],
+    progress: building?.productionProgress ?? 0,
+    current: recipe,
+    seconds: recipe?.seconds ?? 0,
+  };
 }
 
 export function getConstruction(state, id) {

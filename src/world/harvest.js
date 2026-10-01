@@ -111,6 +111,8 @@ export function createHarvestDirector({
   orderBoard,
   onOpenOrders,
   houseIi,
+  bakery,
+  bakeLoop,
 }) {
   const raycaster = new THREE.Raycaster();
   const marker = createGroundMarker();
@@ -218,6 +220,7 @@ export function createHarvestDirector({
     if (kind === "cook") return "Kocht";
     if (kind === "harvest") return "Erntet";
     if (kind === "dig") return "Gräbt";
+    if (kind === "work") return "Backt";
     if (!member.isBusy()) return "Frei";
     const state = member.getState();
     if (state === "job-walk-home" || state === "home-approach" || state === "ascend-porch") {
@@ -572,6 +575,23 @@ export function createHarvestDirector({
     return pickBuilding(clientX, clientY, houseIi);
   }
 
+  function pickBakery(clientX, clientY) {
+    if (!bakery?.root?.parent) return null;
+    return pickBuilding(clientX, clientY, bakery);
+  }
+
+  function selectBakery() {
+    if (pointerState.selected?.userData.harvestState === "selected") {
+      pointerState.selected.userData.harvestState = "idle";
+    }
+    pointerState.selected = null;
+    pointerState.mode = "bakery";
+    placeMarker(null);
+    if (trayTitle) trayTitle.textContent = "Bäckerei · Brot backen";
+    refreshWorkerCard();
+    setTrayOpen(true);
+  }
+
   function pickInfoBuilding(clientX, clientY) {
     const candidates = [
       { id: "wood-storage", ref: yard },
@@ -605,6 +625,7 @@ export function createHarvestDirector({
       yardBlock(clayYard),
       yardBlock(orderBoard),
       yardBlock(houseIi),
+      yardBlock(bakery),
     ].filter(Boolean);
   }
 
@@ -657,6 +678,14 @@ export function createHarvestDirector({
       refreshWorkerCard();
       selectTree(null);
       setFollowTarget?.(member.root, clayPit?.root ?? clayYard?.root, member);
+      return;
+    }
+    if (pointerState.mode === "bakery") {
+      const accepted = bakeLoop?.assignBaker?.(member);
+      if (!accepted) return;
+      refreshWorkerCard();
+      selectTree(null);
+      setFollowTarget?.(member.root, bakery?.root, member);
       return;
     }
     const tree = pointerState.selected;
@@ -961,6 +990,11 @@ export function createHarvestDirector({
       onOpenBuilding?.("house-ii");
       return;
     }
+    if (pickBakery(event.clientX, event.clientY)) {
+      selectTree(null);
+      onOpenBuilding?.("bakery");
+      return;
+    }
     const infoId = pickInfoBuilding(event.clientX, event.clientY);
     if (infoId) {
       selectTree(null);
@@ -1015,6 +1049,7 @@ export function createHarvestDirector({
     selectKitchen,
     selectPatch,
     selectClay,
+    selectBakery,
     assignSelectedWorker,
     cancelWorker,
   };
