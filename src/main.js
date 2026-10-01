@@ -25,6 +25,7 @@ import { createStudy } from "./world/study.js";
 import { createStudyLoop } from "./world/study-loop.js";
 import { createValleyHarbor } from "./world/valley.js";
 import { createClouds } from "./world/clouds.js";
+import { LANTERN_GLASS } from "./world/decos.js";
 import { createCritters } from "./world/critters.js";
 import { createOrderBoard } from "./world/order-board.js";
 import { createHouseIi } from "./world/house-ii.js";
@@ -140,6 +141,83 @@ scene.add(hemisphere);
 
 const sun = new THREE.DirectionalLight(0xfff1c8, 4.1);
 sun.position.set(-22, 34, 24);
+
+// Day/night cycle: the sun orbits the meadow over CYCLE_SECONDS.
+// Warm dusk on the way down, a blue night dome with stars, gentle dawn.
+const DAY_NIGHT = {
+  cycle: 360,
+  daySky: new THREE.Color(0xb9d8e7),
+  duskSky: new THREE.Color(0xf0a86e),
+  nightSky: new THREE.Color(0x17233f),
+  dayFog: new THREE.Color(0xb9d8e7),
+  nightFog: new THREE.Color(0x1a2540),
+  sunDay: new THREE.Color(0xfff1c8),
+  sunDusk: new THREE.Color(0xff9a5c),
+  sunNight: new THREE.Color(0x8899cc),
+  hemiSkyDay: new THREE.Color(0xeaf8ff),
+  hemiSkyNight: new THREE.Color(0x2a3860),
+  tmp: new THREE.Color(),
+};
+const stars = (() => {
+  const count = 180;
+  const positions = new Float32Array(count * 3);
+  let seed = 20261001;
+  const rand = () => {
+    seed = (seed * 1664525 + 1013904223) >>> 0;
+    return seed / 4294967296;
+  };
+  for (let i = 0; i < count; i += 1) {
+    const a = rand() * Math.PI * 2;
+    const r = 60 + rand() * 40;
+    const y = 24 + rand() * 46;
+    positions[i * 3] = Math.cos(a) * r;
+    positions[i * 3 + 1] = y;
+    positions[i * 3 + 2] = Math.sin(a) * r;
+  }
+  const geo = new THREE.BufferGeometry();
+  geo.setAttribute("position", new THREE.BufferAttribute(positions, 3));
+  const mat = new THREE.PointsMaterial({
+    color: 0xffffff,
+    size: 0.55,
+    transparent: true,
+    opacity: 0,
+    sizeAttenuation: true,
+    depthWrite: false,
+  });
+  const pts = new THREE.Points(geo, mat);
+  pts.renderOrder = -1;
+  scene.add(pts);
+  return pts;
+})();
+
+function lerpPhase(t, edges) {
+  if (t <= edges[0]) return 0;
+  if (t >= edges[1]) return 1;
+  return (t - edges[0]) / (edges[1] - edges[0]);
+}
+
+function updateDayNight(now) {
+  const t = ((now * 0.001) / DAY_NIGHT.cycle) % 1;
+  // 0.0 sunrise → 0.5 midday-high; sunset ~0.62, night 0.70-0.95, dawn 0.95+
+  const orbit = t * Math.PI * 2;
+  const sunY = Math.sin(orbit);
+  sun.position.set(Math.cos(orbit) * 46, Math.max(-18, sunY * 42), 20 + Math.sin(orbit * 0.5) * 6);
+  const duskMix = Math.max(0, 1 - Math.abs(sunY) * 2.6); // near horizon → warm
+  const night = THREE.MathUtils.smoothstep(-sunY, 0.05, 0.45); // below horizon → night
+  const sky = DAY_NIGHT.tmp
+    .copy(DAY_NIGHT.daySky)
+    .lerp(DAY_NIGHT.duskSky, duskMix * (1 - night))
+    .lerp(DAY_NIGHT.nightSky, night);
+  scene.background.copy(sky);
+  scene.fog.color.copy(sky);
+  sun.color.copy(DAY_NIGHT.sunDay).lerp(DAY_NIGHT.sunDusk, duskMix).lerp(DAY_NIGHT.sunNight, night);
+  sun.intensity = THREE.MathUtils.lerp(4.1, 0.35, night);
+  hemisphere.color.copy(DAY_NIGHT.hemiSkyDay).lerp(DAY_NIGHT.hemiSkyNight, night);
+  hemisphere.intensity = THREE.MathUtils.lerp(2.3, 0.85, night);
+  stars.material.opacity = night * 0.9;
+  LANTERN_GLASS.emissiveIntensity = THREE.MathUtils.lerp(0.25, 1.5, night);
+  return { phase: t, night };
+}
 sun.castShadow = true;
 sun.shadow.mapSize.set(2048, 2048);
 sun.shadow.camera.left = -36;
@@ -524,6 +602,7 @@ function animate(now = 0) {
     animationState.fishingDock?.update?.(delta, now * 0.001);
     animationState.quarry?.update?.(delta, now * 0.001);
     animationState.apiary?.update?.(delta, now * 0.001);
+    animationState.dayNight = updateDayNight(now);
     animationState.giftBox?.update?.(delta, now * 0.001);
     if (animationState.giftBox && !animationState.giftBox.root.visible) {
       if (now * 0.001 >= (animationState.giftNextAt ?? 0)) {

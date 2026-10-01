@@ -5,7 +5,7 @@ const WOOD_DARK = new THREE.MeshStandardMaterial({ color: 0x6f4527, roughness: 0
 const STRAW = new THREE.MeshStandardMaterial({ color: 0xd9b95c, roughness: 1, flatShading: true });
 const CLOTH = new THREE.MeshStandardMaterial({ color: 0xa8543c, roughness: 0.85, flatShading: true });
 const SKIN = new THREE.MeshStandardMaterial({ color: 0xe0b07a, roughness: 0.8, flatShading: true });
-const LANTERN_GLASS = new THREE.MeshStandardMaterial({
+export const LANTERN_GLASS = new THREE.MeshStandardMaterial({
   color: 0xffd98a,
   emissive: 0xffb84d,
   emissiveIntensity: 0.85,
