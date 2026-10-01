@@ -1,5 +1,6 @@
 import * as THREE from "three";
 import { MapControls } from "three/addons/controls/MapControls.js";
+import { clone as cloneSkinned } from "three/addons/utils/SkeletonUtils.js";
 import { ASSETS } from "./world/assets.js";
 import { loadWorldAssets } from "./world/asset-loader.js";
 import { buildForestWorld } from "./world/forest.js";
@@ -239,7 +240,8 @@ async function start() {
   try {
     const assets = await loadWorldAssets(ASSETS, updateLoadingScreen);
     if (loadingLabel) loadingLabel.textContent = "Welt wird aufgebaut …";
-    const karlModel = assets.characterJohn.clone(true);
+    const karlModel = cloneSkinned(assets.characterJohn);
+    karlModel.userData.animationClips = assets.characterJohn.userData.animationClips;
     const portraitMap = {
       lena: assets.character,
       john: assets.characterJohn,
