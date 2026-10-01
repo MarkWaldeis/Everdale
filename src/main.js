@@ -203,15 +203,17 @@ function animate(now = 0) {
       module?.update?.(camera);
     });
     controls.update();
-    const clampedX = THREE.MathUtils.clamp(controls.target.x, -14, 16);
-    const clampedZ = THREE.MathUtils.clamp(controls.target.z, -11, 12);
-    if (clampedX !== controls.target.x) {
-      camera.position.x += clampedX - controls.target.x;
-      controls.target.x = clampedX;
-    }
-    if (clampedZ !== controls.target.z) {
-      camera.position.z += clampedZ - controls.target.z;
-      controls.target.z = clampedZ;
+    if (animationState.view !== "valley") {
+      const clampedX = THREE.MathUtils.clamp(controls.target.x, -14, 16);
+      const clampedZ = THREE.MathUtils.clamp(controls.target.z, -11, 12);
+      if (clampedX !== controls.target.x) {
+        camera.position.x += clampedX - controls.target.x;
+        controls.target.x = clampedX;
+      }
+      if (clampedZ !== controls.target.z) {
+        camera.position.z += clampedZ - controls.target.z;
+        controls.target.z = clampedZ;
+      }
     }
   }
   if (animationState.frozenCamera) {
