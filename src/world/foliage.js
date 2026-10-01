@@ -41,7 +41,7 @@ function tuftGeometry() {
 }
 
 function flowerGeometry() {
-  const stem = new THREE.CylinderGeometry(0.008, 0.012, 0.14, 4);
+  const stem = new THREE.CylinderGeometry(0.008, 0.012, 0.14, 4).toNonIndexed();
   stem.translate(0, 0.07, 0);
   const head = new THREE.IcosahedronGeometry(0.045, 0);
   head.scale(1, 0.7, 1);
