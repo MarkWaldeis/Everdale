@@ -143,6 +143,55 @@ function createGuildhallModel() {
   return hall;
 }
 
+function createMineModel() {
+  const mine = new THREE.Group();
+  mine.name = "valley-mine";
+  const rock = new THREE.MeshStandardMaterial({ color: 0x6f6a60, roughness: 0.95 });
+  const wood = new THREE.MeshStandardMaterial({ color: 0x8a613c, roughness: 0.9 });
+  const crystal = new THREE.MeshStandardMaterial({
+    color: 0x9fd4ff,
+    emissive: 0x3f7fb5,
+    emissiveIntensity: 0.8,
+    roughness: 0.3,
+  });
+
+  const face = new THREE.Mesh(new THREE.BoxGeometry(2.6, 1.8, 0.9), rock);
+  face.position.y = 0.9;
+  mine.add(face);
+
+  const mouth = new THREE.Mesh(
+    new THREE.CylinderGeometry(0.55, 0.7, 0.95, 10),
+    new THREE.MeshStandardMaterial({ color: 0x1c1712, roughness: 1 }),
+  );
+  mouth.rotation.x = Math.PI / 2;
+  mouth.position.set(0, 0.55, 0.48);
+  mine.add(mouth);
+
+  const lintel = new THREE.Mesh(new THREE.BoxGeometry(1.5, 0.14, 0.14), wood);
+  lintel.position.set(0, 1.1, 0.5);
+  mine.add(lintel);
+  [-0.68, 0.68].forEach((x) => {
+    const post = new THREE.Mesh(new THREE.BoxGeometry(0.12, 1.1, 0.12), wood);
+    post.position.set(x, 0.55, 0.5);
+    mine.add(post);
+  });
+
+  [[-0.95, 0.12, 0.55, 0.55], [0.9, 0.1, 0.6, 0.4], [0.35, 1.62, 0.3, 0.34]].forEach(([x, y, z, s]) => {
+    const shard = new THREE.Mesh(new THREE.OctahedronGeometry(s, 0), crystal);
+    shard.position.set(x, y + s * 0.5, z);
+    shard.scale.y = 1.7;
+    mine.add(shard);
+  });
+
+  mine.traverse((node) => {
+    if (node.isMesh) {
+      node.castShadow = true;
+      node.receiveShadow = true;
+    }
+  });
+  return mine;
+}
+
 function createCrate() {
   const crate = new THREE.Group();
   const body = new THREE.Mesh(
@@ -212,6 +261,12 @@ export function createValleyHarbor(model, surfaceY) {
   guildhall.rotation.y = -0.35;
   guildhall.visible = false;
   root.add(guildhall);
+
+  const mine = createMineModel();
+  mine.position.set(-1.6, surfaceY - 0.02, -4.6);
+  mine.rotation.y = 2.55;
+  mine.visible = false;
+  root.add(mine);
 
   const crates = [0, 1, 2, 3].map((index) => {
     const crate = createCrate();
@@ -295,6 +350,9 @@ export function createValleyHarbor(model, surfaceY) {
     },
     setGuildhallBuilt(value) {
       guildhall.visible = Boolean(value);
+    },
+    setMineBuilt(value) {
+      mine.visible = Boolean(value);
     },
     update,
     getSailPhase: () => sail.phase,

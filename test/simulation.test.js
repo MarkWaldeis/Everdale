@@ -43,6 +43,10 @@ import {
   isLibraryBuilt,
   buildGuildhall,
   isGuildhallBuilt,
+  buildMine,
+  isMineBuilt,
+  getMineProgress,
+  MINE_SECONDS,
   isVillagerUnlocked,
   tickResearch,
   villagerSkillLevel,
@@ -721,4 +725,21 @@ test("guildhall unlocks karl as a fourth villager", () => {
   assert.equal(state.villagers.karl.unlocked, true);
   assert.equal(isVillagerUnlocked(state, "karl"), true);
   assert.equal(state.village.gems, 0);
+});
+
+test("everstone mine yields gems over time", () => {
+  const state = createDefaultState();
+  state.valleyUnlocked = true;
+  state.village.wood = 20;
+  state.village.stone = 40;
+  state.village.clay = 10;
+
+  assert.equal(isMineBuilt(state), false);
+  assert.equal(buildMine(state).ok, true);
+
+  tickValley(state, MINE_SECONDS * 0.5);
+  assert.equal(state.village.gems, 0);
+  tickValley(state, MINE_SECONDS * 0.6);
+  assert.equal(state.village.gems, 1);
+  assert.ok(getMineProgress(state) < 0.5);
 });

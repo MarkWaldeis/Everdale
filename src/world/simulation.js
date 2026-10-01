@@ -456,6 +456,10 @@ export function createDefaultState() {
         { id: 3, item: "wood", amount: 10, rewardGold: 20, rewardRep: 8, filledBy: null },
       ],
       memberFills: 0,
+      ship: { status: "loading", remaining: 0, voyages: 0 },
+      library: { built: false },
+      guildhall: { built: false },
+      mine: { built: false, progress: 0 },
     },
     orders: {
       next: 0,
@@ -1234,6 +1238,15 @@ function reloadCrates(state) {
 }
 
 export function tickValley(state, deltaSeconds) {
+  if (isMineBuilt(state)) {
+    const mine = state.valley.mine;
+    mine.progress = (mine.progress ?? 0) + deltaSeconds;
+    const yielded = Math.floor(mine.progress / MINE_SECONDS);
+    if (yielded > 0) {
+      state.village.gems = (state.village.gems ?? 0) + yielded;
+      mine.progress -= yielded * MINE_SECONDS;
+    }
+  }
   const ship = (state.valley.ship ??= { status: "loading", remaining: 0, voyages: 0 });
   if (ship.status === "loading") {
     const allFilled = state.valley.crates.length > 0 &&
@@ -1337,6 +1350,30 @@ export function buildLibrary(state) {
 }
 
 export const GUILDHALL_COST = Object.freeze({ wood: 30, stone: 20, gems: 3 });
+
+export const MINE_COST = Object.freeze({ wood: 15, stone: 30, clay: 5 });
+export const MINE_SECONDS = 240;
+
+export function isMineBuilt(state) {
+  return Boolean(state.valley.mine?.built);
+}
+
+export function buildMine(state) {
+  if (!state.valleyUnlocked) return { ok: false, reason: "locked" };
+  if (isMineBuilt(state)) return { ok: false, reason: "built" };
+  if (!canAfford(state, MINE_COST)) return { ok: false, reason: "cost" };
+  spendCost(state, MINE_COST);
+  (state.valley.mine ??= { built: false, progress: 0 }).built = true;
+  state.village.reputation = (state.village.reputation ?? 0) + 10;
+  addPlayerXp(state, 25);
+  return { ok: true };
+}
+
+export function getMineProgress(state) {
+  const mine = state.valley.mine;
+  if (!mine?.built) return 0;
+  return Math.min(1, (mine.progress ?? 0) / MINE_SECONDS);
+}
 
 export function isGuildhallBuilt(state) {
   return Boolean(state.valley.guildhall?.built);

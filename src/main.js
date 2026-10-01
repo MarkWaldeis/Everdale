@@ -904,6 +904,7 @@ async function start() {
       animationState.valley?.setCrates?.(snap.valley?.crates);
       animationState.valley?.setLibraryBuilt?.(Boolean(snap.valley?.library?.built));
       animationState.valley?.setGuildhallBuilt?.(Boolean(snap.valley?.guildhall?.built));
+      animationState.valley?.setMineBuilt?.(Boolean(snap.valley?.mine?.built));
       syncStorageCaps(snap);
     });
 

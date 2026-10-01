@@ -497,10 +497,17 @@ export function createHud({
           <strong>⛺ Gildenhalle errichten</strong>
           <small>${formatCost({ wood: 30, stone: 20, gems: 3 })} · Schaltet Karl als vierten Bewohner frei</small>
         </button>`;
+    const mineProgress = Math.round((game.getMineProgress?.() ?? 0) * 100);
+    const mine = game.isMineBuilt?.()
+      ? `<div class="inv-row"><span>⛏️ Everstein-Mine</span><strong>Aktiv · ${mineProgress} % bis zum nächsten Gem</strong></div>`
+      : `<button class="sheet-card" type="button" data-mine="1">
+          <strong>⛏️ Everstein-Mine errichten</strong>
+          <small>${formatCost({ wood: 15, stone: 30, clay: 5 })} · Erzeugt alle 4 Minuten ein Gem</small>
+        </button>`;
     openSheet(
       "valley",
       "Hafen",
-      `${shipLine}${crates}${library}${guildhall}<p class="sheet-hint">Sind alle Kisten beladen, läuft das Schiff aus — es bringt Diamanten und neue Aufträge mit.</p>`,
+      `${shipLine}${crates}${library}${guildhall}${mine}<p class="sheet-hint">Sind alle Kisten beladen, läuft das Schiff aus — es bringt Diamanten und neue Aufträge mit.</p>`,
     );
   }
 
@@ -544,6 +551,13 @@ export function createHud({
     els.sheetBody?.querySelectorAll("[data-guildhall]").forEach((button) => {
       button.addEventListener("click", () => {
         game.buildGuildhall?.();
+        renderValley();
+        refresh();
+      });
+    });
+    els.sheetBody?.querySelectorAll("[data-mine]").forEach((button) => {
+      button.addEventListener("click", () => {
+        game.buildMine?.();
         renderValley();
         refresh();
       });
