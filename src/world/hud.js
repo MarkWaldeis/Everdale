@@ -282,6 +282,7 @@ export function createHud({
   }
 
   function renderBuilding(id) {
+    if (id === "valley-harbor") return renderValley();
     if (id.startsWith("deko-")) {
       const item = DECORATIONS.find((deco) => id === deco.id || id.startsWith(`${deco.id}-`));
       openArg = id;

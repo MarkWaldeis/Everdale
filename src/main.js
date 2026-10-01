@@ -192,6 +192,7 @@ function animate(now = 0) {
     animationState.game?.tickBrewing?.(delta);
     animationState.game?.tickBuffs?.(delta);
     animationState.game?.tickValley?.(delta);
+    animationState.valley?.update?.(delta);
     animationState.game?.tickConstructions?.(delta);
     animationState.houseIi?.update?.(camera);
     Object.entries(animationState.workshopModules ?? {}).forEach(([id, module]) => {
@@ -448,6 +449,7 @@ async function start() {
       setFollowTarget,
       isPlacementActive: () => Boolean(animationState.village?.isActive()),
       onOpenResearch: () => animationState.hud?.renderResearch?.(),
+      valleyHarbor: animationState.valley,
       onOpenBuilding: (id) => animationState.hud?.renderBuilding?.(id),
       orderBoard: animationState.orderBoard,
       onOpenOrders: () => animationState.hud?.renderOrders?.(),
@@ -881,6 +883,8 @@ async function start() {
       if (snap.valleyUnlocked && animationState.view === "valley") {
         animationState.valley.setVisible(true);
       }
+      animationState.valley?.setShip?.(snap.valley?.ship);
+      animationState.valley?.setCrates?.(snap.valley?.crates);
       syncStorageCaps(snap);
     });
 
@@ -900,6 +904,7 @@ async function start() {
       clayYard: animationState.clayYard,
       orderBoard: animationState.orderBoard,
       houseIi: animationState.houseIi,
+      valley: animationState.valley,
       bakery: animationState.bakery,
       tailor: animationState.tailor,
       woodWorkshop: animationState.woodWorkshop,

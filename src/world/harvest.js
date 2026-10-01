@@ -107,6 +107,7 @@ export function createHarvestDirector({
   setFollowTarget,
   isPlacementActive,
   onOpenResearch,
+  valleyHarbor,
   onOpenBuilding,
   orderBoard,
   onOpenOrders,
@@ -671,6 +672,7 @@ export function createHarvestDirector({
       { id: "clay-storage", ref: clayYard },
       { id: "well", ref: well },
       { id: "cottage", ref: cottage },
+      { id: "valley-harbor", ref: valleyHarbor },
     ];
     for (const entry of candidates) {
       if (!entry.ref?.root?.parent || entry.ref.root.visible === false) continue;
