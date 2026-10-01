@@ -26,6 +26,11 @@ const BUILDING_INFO = {
     icon: "🏠",
     blurb: "Zuhause der Dorfbewohner. Neue Häuser locken neue Bewohner an.",
   },
+  "house-ii": {
+    label: "Wohnhaus II",
+    icon: "🏠",
+    blurb: "Sophies Zuhause. Nach der Bauzeit zieht sie ein.",
+  },
 };
 
 export function createHud({
@@ -212,6 +217,12 @@ export function createHud({
     }
     const effect = upgrade?.effect ?? info.blurb ?? "";
     if (effect) rows.push(`<p class="sheet-hint">${effect}</p>`);
+    const construction = game.getConstruction?.(id);
+    if (construction) {
+      rows.push(
+        `<div class="inv-row"><span>Im Bau</span><strong>${Math.max(1, Math.ceil(construction.remaining))}s</strong></div>`,
+      );
+    }
     let action = "";
     if (id === "kitchen") {
       action += `<button class="sheet-action" type="button" data-cook>Koch auswählen · Suppe kochen</button>`;

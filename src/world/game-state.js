@@ -25,6 +25,8 @@ import {
   listOrders,
   canFillOrder,
   fillOrder,
+  getConstruction,
+  tickConstructions as simTickConstructions,
   getCatalogItem,
   getResearchNode,
   canAfford,
@@ -153,6 +155,15 @@ export function createGameState() {
     listOrders: () => listOrders(data),
     canFillOrder: (slot) => canFillOrder(data, slot),
     fillOrder: (slot) => wrap(() => fillOrder(data, slot)),
+    getConstruction: (id) => getConstruction(data, id),
+    hasConstructions: () =>
+      Object.values(data.constructions ?? {}).some((entry) => entry.remaining > 0),
+    tickConstructions: (delta) => {
+      if (!Object.values(data.constructions ?? {}).some((entry) => entry.remaining > 0)) {
+        return null;
+      }
+      return wrap(() => simTickConstructions(data, delta));
+    },
     getCatalogItem: (id) => getCatalogItem(id),
     getSoup: () => data.village.soup,
     getSoupCap: () => data.village.soupCap,

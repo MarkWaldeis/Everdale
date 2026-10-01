@@ -49,6 +49,14 @@ export const BUILDING_CATALOG = Object.freeze([
     description: "Steht bereits im Dorf. Ottos Aufträge zahlen mit Gold und Schriftrollen.",
   },
   {
+    id: "house-ii",
+    label: "Wohnhaus II",
+    placeable: true,
+    cost: { wood: 12, stone: 6 },
+    constructionSeconds: 24,
+    description: "Neues Zuhause für Sophie — braucht kurze Bauzeit.",
+  },
+  {
     id: "clay-pit",
     label: "Lehmgrube",
     placeable: true,
@@ -129,11 +137,11 @@ export const RESEARCH_NODES = Object.freeze([
   {
     id: "house-ii",
     name: "Neues Wohnhaus",
-    detail: "Sophie zieht ins Dorf und hilft mit.",
+    detail: "Schaltet den Bauplatz frei — Sophie zieht ein, wenn das Haus steht.",
     icon: "🏠",
     requires: ["stone-storage"],
     cost: { wood: 12 },
-    unlocksVillager: "sophie",
+    unlocksBuilding: "house-ii",
     completable: true,
   },
   {
@@ -279,6 +287,7 @@ export function createDefaultState() {
     tailor: false,
     "wood-workshop": false,
     "order-board": true,
+    "house-ii": false,
   };
   const nodes = {};
   RESEARCH_NODES.forEach((node) => {
@@ -328,6 +337,7 @@ export function createDefaultState() {
       next: 0,
       slots: [],
     },
+    constructions: {},
     recipes: [
       {
         id: "pumpkin-soup",
@@ -452,7 +462,37 @@ export function placeBuilding(state, id) {
       productionQueue: [],
     };
   }
+  if (item.constructionSeconds) {
+    state.buildings[id].status = "CONSTRUCTION";
+    state.constructions ??= {};
+    state.constructions[id] = {
+      remaining: item.constructionSeconds,
+      total: item.constructionSeconds,
+    };
+  }
   return { ok: true, id, village: { ...state.village } };
+}
+
+export function getConstruction(state, id) {
+  return state.constructions?.[id] ?? null;
+}
+
+export function tickConstructions(state, deltaSeconds) {
+  const constructions = state.constructions ?? {};
+  const completed = [];
+  Object.entries(constructions).forEach(([id, entry]) => {
+    entry.remaining -= deltaSeconds;
+    if (entry.remaining <= 0) {
+      delete constructions[id];
+      if (state.buildings[id]) state.buildings[id].status = "ACTIVE";
+      if (id === "house-ii" && state.villagers.sophie) {
+        state.villagers.sophie.unlocked = true;
+      }
+      addPlayerXp(state, 20);
+      completed.push(id);
+    }
+  });
+  return { completed };
 }
 
 export function getBuildingLevel(state, id) {
@@ -790,6 +830,9 @@ export function getActiveQuest(state) {
   }
   if (state.nodes["house-ii"] !== "done") {
     return { id: "research-house", text: "Erforsche ein neues Wohnhaus — Sophie zieht ein." };
+  }
+  if (state.nodes["house-ii"] === "done" && !state.villagers.sophie?.unlocked) {
+    return { id: "build-house", text: "Baue das neue Wohnhaus — Sophie zieht dann ein." };
   }
   if (state.nodes["valley-access"] !== "done") {
     return { id: "research-valley", text: "Erforsche den Zugang zum Tal." };

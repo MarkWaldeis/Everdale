@@ -23,6 +23,7 @@ import { createStudy } from "./world/study.js";
 import { createStudyLoop } from "./world/study-loop.js";
 import { createValleyHarbor } from "./world/valley.js";
 import { createOrderBoard } from "./world/order-board.js";
+import { createHouseIi } from "./world/house-ii.js";
 import { createDirtPaths } from "./world/dirt-paths.js";
 import { createHud } from "./world/hud.js";
 import "./styles.css";
@@ -130,6 +131,7 @@ const animationState = {
   harvest: null,
   village: null,
   paths: null,
+  houseIi: null,
   view: "village",
   debugPaused: false,
   windEnabled: !window.matchMedia("(prefers-reduced-motion: reduce)").matches,
@@ -178,6 +180,8 @@ function animate(now = 0) {
     animationState.soupLoop?.update(delta, now * 0.001);
     animationState.clayLoop?.update(delta, now * 0.001);
     animationState.studyLoop?.update(delta, now * 0.001);
+    animationState.game?.tickConstructions?.(delta);
+    animationState.houseIi?.update?.(camera);
     controls.update();
     const clampedX = THREE.MathUtils.clamp(controls.target.x, -14, 16);
     const clampedZ = THREE.MathUtils.clamp(controls.target.z, -11, 12);
@@ -261,6 +265,7 @@ async function start() {
     );
     animationState.valley = createValleyHarbor(assets.valleyHarbor, world.walkArea.surfaceY);
     animationState.orderBoard = createOrderBoard(assets.orderBoard, world.walkArea.surfaceY);
+    animationState.houseIi = createHouseIi(assets.cottage.clone(true), world.walkArea.surfaceY);
     animationState.game = createGameState();
     animationState.windEnabled = animationState.game.getWind();
     animationState.yard.setWood(animationState.game.getWood());
@@ -361,6 +366,7 @@ async function start() {
       well: animationState.well,
       clayPit: animationState.clayPit,
       clayYard: animationState.clayYard,
+      houseIi: animationState.houseIi,
       soupLoop: animationState.soupLoop,
       clayLoop: animationState.clayLoop,
       studyLoop: animationState.studyLoop,
@@ -530,6 +536,18 @@ async function start() {
         setYaw: (yaw) => animationState.orderBoard.setYaw(yaw),
         refresh: () => animationState.orderBoard.refreshAnchors(),
       },
+      "house-ii": {
+        id: "house-ii",
+        label: "Wohnhaus II",
+        root: animationState.houseIi.root,
+        size: animationState.houseIi.size,
+        w: 2,
+        h: 2,
+        padding: 1,
+        setWorldPosition: (x, z) => animationState.houseIi.setWorldPosition(x, z),
+        setYaw: (yaw) => animationState.houseIi.setYaw(yaw),
+        refresh: () => animationState.houseIi.refreshAnchors(),
+      },
     };
 
     animationState.paths = createDirtPaths();
@@ -560,7 +578,7 @@ async function start() {
     }
 
     ["cottage", "wood-storage", "kitchen", "pumpkin-patch", "well", "study", "order-board"].forEach(mountPlaced);
-    ["clay-pit", "clay-storage", "stone-storage"].forEach((id) => {
+    ["clay-pit", "clay-storage", "stone-storage", "house-ii"].forEach((id) => {
       if (animationState.game.isPlaced(id)) mountPlaced(id);
     });
 
@@ -632,7 +650,13 @@ async function start() {
       animationState.clayYard.setMax?.(snap.village.clayCap);
     };
     syncStorageCaps(animationState.game.getSnapshot());
+    const syncConstruction = (snap) => {
+      const entry = snap.constructions?.["house-ii"];
+      animationState.houseIi?.setConstruction(entry ? 1 - entry.remaining / entry.total : null);
+    };
+    syncConstruction(animationState.game.getSnapshot());
     animationState.game.subscribe((snap) => {
+      syncConstruction(snap);
       const sophie = animationState.villagers.find((entry) => entry.getId() === "sophie");
       if (sophie) sophie.root.visible = Boolean(snap.villagers.sophie?.unlocked);
       if (snap.valleyUnlocked && animationState.view === "valley") {
@@ -656,6 +680,7 @@ async function start() {
       clayPit: animationState.clayPit,
       clayYard: animationState.clayYard,
       orderBoard: animationState.orderBoard,
+      houseIi: animationState.houseIi,
       clayLoop: animationState.clayLoop,
       soupLoop: animationState.soupLoop,
       game: animationState.game,
@@ -696,6 +721,10 @@ async function start() {
         animationState.follow = null;
         animationState.cameraTween = null;
         animationState.cameraUserControlled = true;
+      },
+      finishConstruction: () => {
+        const entry = animationState.game.getRaw().constructions?.["house-ii"];
+        if (entry) entry.remaining = 0.01;
       },
       snapCamera: (x, y, z, tx, ty, tz) => {
         animationState.follow = null;

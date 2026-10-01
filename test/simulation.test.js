@@ -22,6 +22,8 @@ import {
   canFillOrder,
   fillOrder,
   ORDER_SLOTS,
+  getConstruction,
+  tickConstructions,
 } from "../src/world/simulation.js";
 
 test("fresh start keeps later buildings locked", () => {
@@ -260,4 +262,48 @@ test("fillOrder rejects orders that cannot be afforded", () => {
   assert.equal(blocked.ok, false);
   assert.equal(blocked.reason, "items");
   assert.equal(state.village.gold, 0);
+});
+
+test("house-ii research unlocks the build, not the villager", () => {
+  const state = createDefaultState();
+  state.nodes["stone-storage"] = "done";
+  state.village.wood = 60;
+  assert.equal(canPlaceBuilding(state, "house-ii"), false);
+  const done = completeResearch(state, "house-ii");
+  assert.equal(done.ok, true);
+  assert.equal(done.unlockedBuilding, "house-ii");
+  assert.equal(state.villagers.sophie.unlocked, false);
+});
+
+test("house-ii construction completes into sophie moving in", () => {
+  const state = createDefaultState();
+  state.unlocked["house-ii"] = true;
+  state.village.wood = 20;
+  state.village.stone = 10;
+  const placed = placeBuilding(state, "house-ii");
+  assert.equal(placed.ok, true);
+  const construction = getConstruction(state, "house-ii");
+  assert.ok(construction);
+  assert.equal(construction.total, 24);
+  assert.equal(state.buildings["house-ii"].status, "CONSTRUCTION");
+  assert.equal(state.villagers.sophie.unlocked, false);
+
+  tickConstructions(state, 30);
+  assert.equal(getConstruction(state, "house-ii"), null);
+  assert.equal(state.buildings["house-ii"].status, "ACTIVE");
+  assert.equal(state.villagers.sophie.unlocked, true);
+  assert.equal(getActiveQuest(state).id === "build-house", false);
+});
+
+test("quest asks to build the house before valley research", () => {
+  const state = createDefaultState();
+  state.nodes["clay-pit"] = "done";
+  state.nodes["clay-storage"] = "done";
+  state.nodes["stone-storage"] = "done";
+  state.nodes["house-ii"] = "done";
+  state.placed["clay-pit"] = true;
+  state.placed["clay-storage"] = true;
+  state.placed["stone-storage"] = true;
+  const quest = getActiveQuest(state);
+  assert.equal(quest.id, "build-house");
 });

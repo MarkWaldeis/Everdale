@@ -110,6 +110,7 @@ export function createHarvestDirector({
   onOpenBuilding,
   orderBoard,
   onOpenOrders,
+  houseIi,
 }) {
   const raycaster = new THREE.Raycaster();
   const marker = createGroundMarker();
@@ -566,6 +567,11 @@ export function createHarvestDirector({
     return pickBuilding(clientX, clientY, orderBoard);
   }
 
+  function pickHouseIi(clientX, clientY) {
+    if (!houseIi?.root?.parent) return null;
+    return pickBuilding(clientX, clientY, houseIi);
+  }
+
   function pickInfoBuilding(clientX, clientY) {
     const candidates = [
       { id: "wood-storage", ref: yard },
@@ -598,6 +604,7 @@ export function createHarvestDirector({
       yardBlock(clayPit),
       yardBlock(clayYard),
       yardBlock(orderBoard),
+      yardBlock(houseIi),
     ].filter(Boolean);
   }
 
@@ -873,6 +880,14 @@ export function createHarvestDirector({
     const labHit = !tree && !kitchenHit && !patchHit && !clayHit && pickResearch(event.clientX, event.clientY);
     const boardHit =
       !tree && !kitchenHit && !patchHit && !clayHit && !labHit && pickOrderBoard(event.clientX, event.clientY);
+    const houseHit =
+      !tree &&
+      !kitchenHit &&
+      !patchHit &&
+      !clayHit &&
+      !labHit &&
+      !boardHit &&
+      pickHouseIi(event.clientX, event.clientY);
     const infoHit =
       !tree &&
       !kitchenHit &&
@@ -880,8 +895,10 @@ export function createHarvestDirector({
       !clayHit &&
       !labHit &&
       !boardHit &&
+      !houseHit &&
       pickInfoBuilding(event.clientX, event.clientY);
-    pointerState.hovered = tree || kitchenHit || patchHit || clayHit || labHit || boardHit || infoHit;
+    pointerState.hovered =
+      tree || kitchenHit || patchHit || clayHit || labHit || boardHit || houseHit || infoHit;
     canvas.classList.toggle("is-over-tree", Boolean(pointerState.hovered));
   }
 
@@ -937,6 +954,11 @@ export function createHarvestDirector({
     if (boardHit) {
       selectTree(null);
       onOpenOrders?.();
+      return;
+    }
+    if (pickHouseIi(event.clientX, event.clientY)) {
+      selectTree(null);
+      onOpenBuilding?.("house-ii");
       return;
     }
     const infoId = pickInfoBuilding(event.clientX, event.clientY);
