@@ -443,7 +443,7 @@ function animate(now = 0) {
     animationState.clouds?.update?.(delta, now * 0.001);
     animationState.critters?.update?.(delta);
     animationState.game?.tickConstructions?.(delta);
-    syncConstructionEntries();
+    animationState.syncConstructionEntries?.();
     animationState.houseIi?.update?.(camera);
     animationState.houseIii?.update?.(camera);
     animationState.houseIv?.update?.(camera);
@@ -1319,7 +1319,7 @@ async function start() {
 
     const constructionLoops = new Map();
     const productionEntries = new Map();
-    function syncConstructionEntries() {
+    animationState.syncConstructionEntries = function syncConstructionEntries() {
       const game = animationState.game;
       if (!game || !animationState.workshops) return;
       const constructions = game.getSnapshot?.()?.constructions ?? {};
