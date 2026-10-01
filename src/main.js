@@ -1189,6 +1189,12 @@ async function start() {
           animationState.game?.startConstruction?.(catalogId);
         } else {
           animationState.village?.grid?.remove?.(gridId);
+          const spec = placeable[catalogId];
+          if (spec?.root) {
+            spec.root.visible = false;
+            spec.root.parent?.remove(spec.root);
+          }
+          mounted.delete(catalogId);
         }
       },
       onCancelPlacement: (id) => {
