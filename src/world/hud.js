@@ -407,12 +407,12 @@ export function createHud({
   }
 
   const VILLAGER_META = {
-    lena: { name: "Lena", icon: "👩‍🌾" },
-    john: { name: "John", icon: "👨‍🔧" },
-    sophie: { name: "Sophie", icon: "👩‍🔬" },
-    karl: { name: "Karl", icon: "🧔" },
-    mia: { name: "Mia", icon: "👩‍🌾" },
-    lukas: { name: "Lukas", icon: "🧑‍🔧" },
+    lena: { name: "Lena", icon: "👩‍🌾", specialty: "farming" },
+    john: { name: "John", icon: "👨‍🔧", specialty: "woodcutting" },
+    sophie: { name: "Sophie", icon: "👩‍🔬", specialty: "building" },
+    karl: { name: "Karl", icon: "🧔", specialty: "research" },
+    mia: { name: "Mia", icon: "👩‍🌾", specialty: "stoneMining" },
+    lukas: { name: "Lukas", icon: "🧑‍🔧", specialty: "building" },
   };
 
   const BUFF_LABELS = { speed: "Energietrank ⚡", meal: "Sattmacher 🍲" };
@@ -425,6 +425,9 @@ export function createHud({
     const hunger = info.hungry
       ? "hungrig — erst Suppe essen"
       : `noch ${Math.max(0, Math.ceil(info.hungerInterval - info.workSeconds))} s arbeitsfähig`;
+    const specialtyLabel = meta.specialty
+      ? `<div class="inv-row"><span>Spezialgebiet</span><strong>⭐ ${SKILL_LABELS[meta.specialty] ?? meta.specialty} · +25 %</strong></div>`
+      : "";
     const buff = info.buff
       ? `<div class="inv-row"><span>Trank</span><strong>${BUFF_LABELS[info.buff.effect] ?? info.buff.effect} · ${Math.ceil(info.buff.remaining)} s</strong></div>`
       : "";
@@ -442,7 +445,7 @@ export function createHud({
       "villager",
       `${meta.icon} ${meta.name}`,
       `<div class="inv-row"><span>Status</span><strong>${info.hungry ? "Hungrig" : info.state === "WORKING" ? "Arbeitet" : "Frei"}</strong></div>
-       <div class="inv-row"><span>Ausdauer</span><strong>${hunger}</strong></div>${buff}
+       <div class="inv-row"><span>Ausdauer</span><strong>${hunger}</strong></div>${specialtyLabel}${buff}
        <h3 class="sheet-subtitle">Fähigkeiten</h3>${skillRows}
        <p class="sheet-hint">Fähigkeiten wachsen beim Arbeiten — jede Stufe macht schneller.</p>`,
     );
