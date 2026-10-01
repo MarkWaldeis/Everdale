@@ -25,6 +25,7 @@ import { createStudy } from "./world/study.js";
 import { createStudyLoop } from "./world/study-loop.js";
 import { createValleyHarbor } from "./world/valley.js";
 import { createClouds } from "./world/clouds.js";
+import { createCritters } from "./world/critters.js";
 import { createOrderBoard } from "./world/order-board.js";
 import { createHouseIi } from "./world/house-ii.js";
 import { createBakery } from "./world/bakery.js";
@@ -196,6 +197,7 @@ function animate(now = 0) {
     animationState.game?.tickValley?.(delta);
     animationState.valley?.update?.(delta);
     animationState.clouds?.update?.(delta, now * 0.001);
+    animationState.critters?.update?.(delta);
     animationState.game?.tickConstructions?.(delta);
     animationState.houseIi?.update?.(camera);
     Object.entries(animationState.workshopModules ?? {}).forEach(([id, module]) => {
@@ -769,6 +771,8 @@ async function start() {
     scene.add(world.root);
     animationState.clouds = createClouds();
     scene.add(animationState.clouds.root);
+    animationState.critters = createCritters(world.walkArea.surfaceY);
+    scene.add(animationState.critters.root);
 
     const focusVillager = (id) => {
       const member = animationState.villagers.find((entry) => entry.getId() === id);

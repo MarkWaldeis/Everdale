@@ -2,7 +2,7 @@ import * as THREE from "three";
 
 const CLOUD_COUNT = 6;
 const DRIFT_SPEED = 0.55;
-const WRAP_X = 62;
+const WRAP_X = 78;
 
 function createPuff(material) {
   const puff = new THREE.Group();
@@ -35,10 +35,12 @@ export function createClouds() {
   const clouds = [];
   for (let i = 0; i < CLOUD_COUNT; i += 1) {
     const cloud = createPuff(material);
+    // Sit low on the horizon ring so the fixed 61° camera pitch still
+    // catches them near the top edge of the frame.
     const angle = (i / CLOUD_COUNT) * Math.PI * 2;
-    const radius = 26 + (i % 3) * 8;
-    cloud.position.set(Math.cos(angle) * radius, 17 + (i % 4) * 3.2, Math.sin(angle) * radius - 6);
-    cloud.scale.setScalar(0.9 + (i % 3) * 0.45);
+    const radius = 44 + (i % 3) * 10;
+    cloud.position.set(Math.cos(angle) * radius, 5.5 + (i % 4) * 1.6, Math.sin(angle) * radius - 8);
+    cloud.scale.setScalar(1.4 + (i % 3) * 0.5);
     cloud.userData.speed = DRIFT_SPEED * (0.8 + (i % 3) * 0.3);
     cloud.userData.bob = i * 1.7;
     root.add(cloud);
