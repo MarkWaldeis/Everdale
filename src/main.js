@@ -57,6 +57,8 @@ import { createQuarry } from "./world/quarry.js";
 import { createStoneLoop } from "./world/stone-loop.js";
 import { createApiary } from "./world/apiary.js";
 import { createHoneyLoop } from "./world/honey-loop.js";
+import { createMarketStall } from "./world/market-stall.js";
+import { createMarketLoop } from "./world/market-loop.js";
 import { createSocialLayer } from "./world/social.js";
 import { createHud } from "./world/hud.js";
 import "./styles.css";
@@ -409,6 +411,7 @@ const TASK_ICONS = Object.freeze({
   "collect-eggs": "🥚",
   "catch-fish": "🎣",
   "collect-honey": "🍯",
+  "sell-goods": "🧺",
   "visit-study": "📚",
 });
 const taskBubbleEls = new Map();
@@ -609,6 +612,7 @@ function animate(now = 0) {
     animationState.fishingDock?.update?.(delta, now * 0.001);
     animationState.quarry?.update?.(delta, now * 0.001);
     animationState.apiary?.update?.(delta, now * 0.001);
+    animationState.market?.update?.(delta, now * 0.001);
     animationState.weather?.update?.(delta);
     animationState.dayNight = updateDayNight(now);
     const nightness = animationState.dayNight.night;
@@ -789,6 +793,7 @@ async function start() {
     animationState.fishingDock = createFishingDock(world.walkArea.surfaceY);
     animationState.quarry = createQuarry(world.walkArea.surfaceY);
     animationState.apiary = createApiary(world.walkArea.surfaceY);
+    animationState.market = createMarketStall(world.walkArea.surfaceY);
     animationState.giftBox = createGiftBox(world.walkArea.surfaceY);
     world.root.add(animationState.giftBox.root);
     animationState.giftNextAt = 140 + Math.random() * 60;
@@ -951,6 +956,11 @@ async function start() {
       apiary: animationState.apiary,
       storages: [animationState.yard, animationState.kitchen],
     });
+    animationState.marketLoop = createMarketLoop({
+      game: animationState.game,
+      market: animationState.market,
+      storages: [animationState.yard, animationState.kitchen],
+    });
     animationState.stoneLoop = createStoneLoop({
       game: animationState.game,
       quarry: animationState.quarry,
@@ -1088,6 +1098,13 @@ async function start() {
         module: animationState.apiary,
         loop: animationState.honeyLoop,
         title: "Imkerei · Honig ernten",
+        usesQueue: false,
+        jobKinds: ["harvest"],
+      },
+      market: {
+        module: animationState.market,
+        loop: animationState.marketLoop,
+        title: "Marktstand · Waren verkaufen",
         usesQueue: false,
         jobKinds: ["harvest"],
       },
@@ -1475,6 +1492,18 @@ async function start() {
         setYaw: (yaw) => animationState.quarry.setYaw(yaw),
         refresh: () => animationState.quarry.refreshAnchors(),
       },
+      market: {
+        id: "market",
+        label: "Marktstand",
+        root: animationState.market.root,
+        size: animationState.market.size,
+        w: 2,
+        h: 2,
+        padding: 0,
+        setWorldPosition: (x, z) => animationState.market.setWorldPosition(x, z),
+        setYaw: (yaw) => animationState.market.setYaw(yaw),
+        refresh: () => animationState.market.refreshAnchors(),
+      },
       apiary: {
         id: "apiary",
         label: "Imkerei",
@@ -1616,7 +1645,7 @@ async function start() {
     };
 
     ["cottage", "wood-storage", "kitchen", "pumpkin-patch", "well", "study", "order-board"].forEach(mountPlaced);
-    ["clay-pit", "clay-storage", "stone-storage", "house-ii", "house-iii", "bakery", "tailor", "wood-workshop", "wheat-field", "mill", "sheep-pen", "apple-tree", "berry-bush", "chicken-coop", "fishing-dock", "quarry", "apiary", "house-iv"].forEach((id) => {
+    ["clay-pit", "clay-storage", "stone-storage", "house-ii", "house-iii", "bakery", "tailor", "wood-workshop", "wheat-field", "mill", "sheep-pen", "apple-tree", "berry-bush", "chicken-coop", "fishing-dock", "quarry", "apiary", "market", "house-iv"].forEach((id) => {
       if (animationState.game.isPlaced(id)) mountPlaced(id);
     });
 

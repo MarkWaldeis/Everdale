@@ -18,6 +18,7 @@ export const RESOURCES = Object.freeze({
   egg: { capKey: "eggCap", requiresPlaced: "chicken-coop" },
   fish: { capKey: "fishCap", requiresPlaced: "fishing-dock" },
   honey: { capKey: "honeyCap", requiresPlaced: "apiary" },
+  gold: { capKey: null },
   wool: { capKey: "woolCap", requiresPlaced: "sheep-pen" },
   planks: { requiresPlaced: "wood-workshop" },
   bucket: { requiresPlaced: "wood-workshop" },
@@ -51,6 +52,7 @@ export const COST_LABELS = Object.freeze({
   egg: "Eier",
   fish: "Fische",
   honey: "Honig",
+  gold: "Gold",
 });
 
 export const RECIPES = Object.freeze([
@@ -274,6 +276,14 @@ export const BUILDING_CATALOG = Object.freeze([
     description: "Felsausbeute — ein Buddler fördert laufend Stein.",
   },
   {
+    id: "market",
+    label: "Marktstand",
+    placeable: true,
+    cost: { wood: 12, stone: 6 },
+    constructionSeconds: 45,
+    description: "Überschuss flattert weg, Gold flattert rein — die Händlerin verkauft.",
+  },
+  {
     id: "apiary",
     label: "Imkerei",
     placeable: true,
@@ -462,6 +472,16 @@ export const RESEARCH_NODES = Object.freeze([
     requires: ["stone-storage"],
     cost: { wood: 10, stone: 8 },
     unlocksBuilding: "quarry",
+    completable: true,
+  },
+  {
+    id: "market",
+    name: "Marktstand",
+    detail: "Überschuss zu Gold — die Händlerin handelt stetig.",
+    icon: "🧺",
+    requires: ["stone-storage"],
+    cost: { wood: 12, scrolls: 2 },
+    unlocksBuilding: "market",
     completable: true,
   },
   {
@@ -682,6 +702,7 @@ export function createDefaultState() {
     "fishing-dock": false,
     quarry: false,
     apiary: false,
+    market: false,
   };
   const nodes = {};
   RESEARCH_NODES.forEach((node) => {
@@ -1330,6 +1351,7 @@ export const SKILL_FOR_TASK = Object.freeze({
   "collect-eggs": "farming",
   "catch-fish": "farming",
   "collect-honey": "farming",
+  "sell-goods": "farming",
   build: "building",
   mill: "building",
 });
@@ -1354,6 +1376,43 @@ export function tickVillagerSkill(state, villagerId, delta) {
   const villager = state.villagers[villagerId];
   const key = tickSkillKey(villager);
   if (key) addSkillXp(state, villagerId, key, delta * 0.5);
+}
+
+const SELLABLE = Object.freeze([
+  "wood",
+  "stone",
+  "clay",
+  "wheat",
+  "flour",
+  "berry",
+  "apple",
+  "egg",
+  "fish",
+  "honey",
+  "wool",
+  "bread",
+  "soup",
+  "pancake",
+  "pumpkin",
+]);
+
+export function sellSurplus(state, { amount = 2, keepFloor = 4, price = 2 } = {}) {
+  let best = null;
+  let bestSurplus = 0;
+  for (const key of SELLABLE) {
+    const surplus = (state.village[key] ?? 0) - keepFloor;
+    if (surplus > bestSurplus) {
+      bestSurplus = surplus;
+      best = key;
+    }
+  }
+  if (!best) return { ok: false };
+  const sold = Math.min(amount, state.village[best]);
+  if (sold <= 0) return { ok: false };
+  state.village[best] -= sold;
+  const gain = sold * price;
+  state.village.gold += gain;
+  return { ok: true, item: best, sold, gold: state.village.gold };
 }
 
 export function recordSkillHit(state, villagerId, key) {

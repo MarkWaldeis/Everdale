@@ -150,6 +150,14 @@ const BUILDING_INFO = {
     worker: "Buddler",
     blurb: "Rohblock für Lager und Gebäude — der Buddler haut Stein aus dem Fels.",
   },
+  market: {
+    label: "Marktstand",
+    icon: "🧺",
+    resource: "gold",
+    resourceLabel: "Verkauf",
+    worker: "Händlerin",
+    blurb: "Was im Überfluss liegt, wandert auf den Tresen — und kommt als Gold zurück.",
+  },
   apiary: {
     label: "Imkerei",
     icon: "🍯",
