@@ -13,6 +13,13 @@ export const LANTERN_GLASS = new THREE.MeshStandardMaterial({
   flatShading: true,
 });
 const IRON = new THREE.MeshStandardMaterial({ color: 0x4a4640, roughness: 0.55, metalness: 0.5, flatShading: true });
+export const LANTERN_HALO = new THREE.MeshBasicMaterial({
+  color: 0xffc76a,
+  transparent: true,
+  opacity: 0.12,
+  blending: THREE.AdditiveBlending,
+  depthWrite: false,
+});
 
 function mesh(geo, mat, x, y, z) {
   const m = new THREE.Mesh(geo, mat);
@@ -30,6 +37,9 @@ function lantern() {
   cage.material.side = THREE.DoubleSide;
   g.add(cage);
   g.add(mesh(new THREE.SphereGeometry(0.075, 8, 6), LANTERN_GLASS, 0, 1.55, 0));
+  const halo = mesh(new THREE.SphereGeometry(0.22, 10, 8), LANTERN_HALO, 0, 1.55, 0);
+  halo.castShadow = false;
+  g.add(halo);
   g.add(mesh(new THREE.ConeGeometry(0.14, 0.14, 6), WOOD_DARK, 0, 1.74, 0));
   const arm = mesh(new THREE.BoxGeometry(0.34, 0.05, 0.05), WOOD_DARK, 0, 1.66, 0);
   g.add(arm);

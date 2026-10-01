@@ -25,7 +25,7 @@ import { createStudy } from "./world/study.js";
 import { createStudyLoop } from "./world/study-loop.js";
 import { createValleyHarbor } from "./world/valley.js";
 import { createClouds } from "./world/clouds.js";
-import { LANTERN_GLASS } from "./world/decos.js";
+import { LANTERN_GLASS, LANTERN_HALO } from "./world/decos.js";
 import { createCritters } from "./world/critters.js";
 import { createOrderBoard } from "./world/order-board.js";
 import { createHouseIi } from "./world/house-ii.js";
@@ -198,7 +198,7 @@ function lerpPhase(t, edges) {
 
 function updateDayNight(now) {
   const t = ((now * 0.001) / DAY_NIGHT.cycle) % 1;
-  // 0.0 sunrise → 0.5 midday-high; sunset ~0.62, night 0.70-0.95, dawn 0.95+
+  // 0.0 sunrise → 0.5 sunset; dusk ~0.47-0.56, night ~0.58-0.92, dawn after
   const orbit = t * Math.PI * 2;
   const sunY = Math.sin(orbit);
   sun.position.set(Math.cos(orbit) * 46, Math.max(-18, sunY * 42), 20 + Math.sin(orbit * 0.5) * 6);
@@ -216,6 +216,7 @@ function updateDayNight(now) {
   hemisphere.intensity = THREE.MathUtils.lerp(2.3, 0.85, night);
   stars.material.opacity = night * 0.9;
   LANTERN_GLASS.emissiveIntensity = THREE.MathUtils.lerp(0.25, 1.5, night);
+  LANTERN_HALO.opacity = THREE.MathUtils.lerp(0.12, 0.4, night);
   return { phase: t, night };
 }
 sun.castShadow = true;
