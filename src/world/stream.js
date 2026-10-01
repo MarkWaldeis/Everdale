@@ -92,7 +92,12 @@ export function createStream(surfaceY) {
   const curve = new THREE.CatmullRomCurve3(POINTS);
   const bed = new THREE.Mesh(
     ribbonGeometry(curve, WIDTH + 0.7, surfaceY + 0.006),
-    new THREE.MeshStandardMaterial({ color: 0x4a5a3a, roughness: 1, flatShading: true }),
+    new THREE.MeshStandardMaterial({
+      color: 0x4a5a3a,
+      roughness: 1,
+      flatShading: true,
+      side: THREE.DoubleSide,
+    }),
   );
   bed.receiveShadow = true;
   root.add(bed);
@@ -106,13 +111,19 @@ export function createStream(surfaceY) {
       roughness: 0.35,
       metalness: 0.15,
       flatShading: true,
+      side: THREE.DoubleSide,
     }),
   );
   root.add(water);
 
   const foam = new THREE.Mesh(
     ribbonGeometry(curve, WIDTH * 0.35, surfaceY + 0.03),
-    new THREE.MeshBasicMaterial({ color: 0xcdeef8, transparent: true, opacity: 0.16 }),
+    new THREE.MeshBasicMaterial({
+      color: 0xcdeef8,
+      transparent: true,
+      opacity: 0.16,
+      side: THREE.DoubleSide,
+    }),
   );
   root.add(foam);
 
