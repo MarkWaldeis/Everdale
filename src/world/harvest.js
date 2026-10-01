@@ -115,6 +115,7 @@ export function createHarvestDirector({
   decoRoots,
   houseIi,
   workshops,
+  wheatLoop,
 }) {
   const raycaster = new THREE.Raycaster();
   const marker = createGroundMarker();
@@ -264,6 +265,8 @@ export function createHarvestDirector({
     const potionStock = (game?.getPotions?.()?.[pointerState.potionId] ?? 0) > 0;
     const workshopQueued =
       visitingWorkshop && (game?.getProduction?.(pointerState.mode)?.queue.length ?? 0) > 0;
+    const wheatFieldFull =
+      pointerState.mode === "wheat-field" && Boolean(wheatLoop?.isFull?.());
     const clayLocked = visitingClay && !game?.canCollectResource?.("clay");
     const storageFull =
       visitingClay
@@ -278,7 +281,9 @@ export function createHarvestDirector({
       : visitingClay
         ? !storageFull
         : visitingWorkshop
-          ? workshopQueued
+          ? pointerState.mode === "wheat-field"
+            ? !wheatFieldFull
+            : workshopQueued
           : visitingPotion
             ? potionStock
             : Boolean(
@@ -740,6 +745,7 @@ export function createHarvestDirector({
         pumpkin: ["cook", "harvest"],
         clay: ["dig"],
         research: ["visit"],
+        "wheat-field": ["harvest"],
       };
       const kinds = modeKinds[pointerState.mode] ??
         (workshops?.[pointerState.mode] ? ["work"] : []);

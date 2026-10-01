@@ -11,6 +11,7 @@ export const RESOURCES = Object.freeze({
   soup: { capKey: "soupCap" },
   pumpkin: { field: "pumpkins" },
   bread: { capKey: "breadCap", requiresPlaced: "bakery" },
+  wheat: { capKey: "wheatCap", requiresPlaced: "wheat-field" },
   planks: { requiresPlaced: "wood-workshop" },
   bucket: { requiresPlaced: "wood-workshop" },
   rope: { requiresPlaced: "tailor" },
@@ -19,7 +20,7 @@ export const RESOURCES = Object.freeze({
   gems: {},
   reputation: {},
   scrolls: {},
-  flour: {},
+  flour: { capKey: "flourCap" },
 });
 
 export const COST_LABELS = Object.freeze({
@@ -34,6 +35,8 @@ export const COST_LABELS = Object.freeze({
   bucket: "Eimer",
   rope: "Seile",
   blanket: "Decken",
+  wheat: "Weizen",
+  flour: "Mehl",
 });
 
 export const RECIPES = Object.freeze([
@@ -41,10 +44,19 @@ export const RECIPES = Object.freeze([
     id: "bread",
     label: "Brot",
     building: "bakery",
-    inputs: { pumpkin: 2, wood: 1 },
+    inputs: { flour: 1, pumpkin: 1, wood: 1 },
     output: "bread",
     amount: 1,
     seconds: 30,
+  },
+  {
+    id: "flour",
+    label: "Mehl",
+    building: "mill",
+    inputs: { wheat: 2 },
+    output: "flour",
+    amount: 1,
+    seconds: 35,
   },
   {
     id: "planks",
@@ -166,6 +178,22 @@ export const BUILDING_CATALOG = Object.freeze([
     constructionSeconds: 60,
     description: "Mias Zuhause — sie zieht ein, sobald das Haus steht.",
   },
+  {
+    id: "wheat-field",
+    label: "Weizenfeld",
+    placeable: true,
+    cost: { wood: 10 },
+    constructionSeconds: 30,
+    description: "Goldene Ähren für die Mühle — ein Mäher erntet Weizen.",
+  },
+  {
+    id: "mill",
+    label: "Windmühle",
+    placeable: true,
+    cost: { wood: 18, stone: 10 },
+    constructionSeconds: 45,
+    description: "Der Müller mahlt Weizen zu Mehl für die Bäckerei.",
+  },
 ]);
 
 export const RESEARCH_NODES = Object.freeze([
@@ -257,6 +285,26 @@ export const RESEARCH_NODES = Object.freeze([
     requires: ["wood-workshop"],
     cost: { wood: 24, stone: 18, gems: 4 },
     unlocksBuilding: "house-iii",
+    completable: true,
+  },
+  {
+    id: "wheat-field",
+    name: "Weizenfeld",
+    detail: "Ein Feld für goldene Ähren — Mäher bringt Weizen ein.",
+    icon: "🌾",
+    requires: ["wood-workshop"],
+    cost: { wood: 14 },
+    unlocksBuilding: "wheat-field",
+    completable: true,
+  },
+  {
+    id: "mill",
+    name: "Windmühle",
+    detail: "Mahlt Weizen zu Mehl — die Bäckerei braucht es für Brot.",
+    icon: "🌬️",
+    requires: ["wheat-field"],
+    cost: { wood: 16, stone: 8, clay: 4 },
+    unlocksBuilding: "mill",
     completable: true,
   },
   {
@@ -421,6 +469,9 @@ export function createDefaultState() {
     "wood-workshop": false,
     "order-board": true,
     "house-ii": false,
+    "house-iii": false,
+    "wheat-field": false,
+    mill: false,
   };
   const nodes = {};
   RESEARCH_NODES.forEach((node) => {
@@ -446,6 +497,9 @@ export function createDefaultState() {
       clay: 0,
       clayCap: 20,
       flour: 0,
+      flourCap: 20,
+      wheat: 0,
+      wheatCap: 20,
       bread: 0,
       breadCap: 15,
       planks: 0,
@@ -995,6 +1049,8 @@ const SKILL_FOR_TASK = Object.freeze({
   sew: "building",
   craft: "building",
   research: "research",
+  "harvest-wheat": "farming",
+  mill: "building",
 });
 
 // Hit-based jobs gain XP per impact, not per second — skip them in timed ticks.

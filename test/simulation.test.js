@@ -392,11 +392,13 @@ test("bake queue spends inputs up front and produces bread", () => {
   state.village.wood = 40;
   state.village.clay = 20;
   state.village.pumpkins = 6;
+  state.village.flour = 2;
   placeBuilding(state, "bakery");
 
   const queued = queueRecipe(state, "bakery", "bread");
   assert.equal(queued.ok, true);
-  assert.equal(state.village.pumpkins, 4);
+  assert.equal(state.village.pumpkins, 5);
+  assert.equal(state.village.flour, 1);
   assert.equal(state.village.wood, 23);
   assert.equal(state.buildings.bakery.productionQueue.length, 1);
 
@@ -411,14 +413,17 @@ test("bake queue rejects when broke or full and stalls on full storage", () => {
   state.unlocked.bakery = true;
   state.village.wood = 40;
   state.village.clay = 20;
-  state.village.pumpkins = 2;
+  state.village.pumpkins = 1;
+  state.village.flour = 1;
   placeBuilding(state, "bakery");
   assert.equal(queueRecipe(state, "bakery", "bread").ok, true);
   assert.equal(queueRecipe(state, "bakery", "bread").ok, false);
   state.village.pumpkins = 20;
+  state.village.flour = 20;
   assert.equal(queueRecipe(state, "bakery", "bread").ok, true);
   assert.equal(queueRecipe(state, "bakery", "bread").ok, true);
   assert.equal(queueRecipe(state, "bakery", "bread").ok, true);
+  state.village.pumpkins = 0;
   assert.equal(queueRecipe(state, "bakery", "bread").ok, false);
   assert.equal(state.buildings.bakery.productionQueue.length, 4);
 
@@ -831,4 +836,28 @@ test("wishes expire and tickWishes spawns a new one", () => {
   tickWishes(state, 2);
   const anyWish = Object.values(state.villagers).some((villager) => Boolean(villager.wish));
   assert.equal(anyWish, true);
+});
+
+test("wheat field and mill chain wheat into flour for bread", () => {
+  const state = createDefaultState();
+  state.unlocked["wheat-field"] = true;
+  state.unlocked.mill = true;
+  state.village.wood = 60;
+  state.village.stone = 30;
+  const before = harvestResource(state, "wheat", 2);
+  assert.equal(before.ok, false);
+  placeBuilding(state, "wheat-field");
+  placeBuilding(state, "mill");
+  assert.equal(state.placed["wheat-field"], true);
+  assert.equal(state.placed.mill, true);
+  tickConstructions(state, 50);
+
+  assert.equal(harvestResource(state, "wheat", 4).total, 4);
+  assert.equal(state.village.wheat, 4);
+
+  assert.equal(queueRecipe(state, "mill", "flour").ok, true);
+  assert.equal(state.village.wheat, 2);
+  const produced = tickProduction(state, "mill", 36);
+  assert.equal(produced.produced, "flour");
+  assert.equal(state.village.flour, 1);
 });

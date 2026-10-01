@@ -6,6 +6,7 @@ const ITEM_ROWS = [
   ["clay", "Lehm", "clayCap"],
   ["soup", "Suppe", "soupCap"],
   ["pumpkins", "Kürbisse", null],
+  ["wheat", "Weizen", "wheatCap"],
   ["scrolls", "Schriftrollen", null],
   ["gold", "Gold", null],
   ["gems", "Diamanten", null],
@@ -19,6 +20,8 @@ const COST_ROW_LABELS = {
   bucket: "Eimer",
   rope: "Seile",
   blanket: "Decken",
+  wheat: "Weizen",
+  flour: "Mehl",
 };
 
 const FIELD_LABELS = {
@@ -32,6 +35,8 @@ const FIELD_LABELS = {
   bucket: "Eimer",
   rope: "Seile",
   blanket: "Decken",
+  wheat: "Weizen",
+  flour: "Mehl",
 };
 
 const ORDER_SINGULAR_LABELS = {
@@ -40,6 +45,8 @@ const ORDER_SINGULAR_LABELS = {
   bucket: "Eimer",
   planks: "Brett",
   bread: "Brot",
+  wheat: "Weizen",
+  flour: "Mehl",
 };
 
 const BUILDING_INFO = {
@@ -398,7 +405,7 @@ export function createHud({
     recipes.forEach((recipe) => {
       action += `<button class="sheet-action" type="button" data-recipe="${recipe.id}">${recipe.label} · ${formatCost(recipe.inputs)}</button>`;
     });
-    if (recipes.length && info.worker) {
+    if (info.worker) {
       action += `<button class="sheet-action" type="button" data-worker="${id}">${info.worker} auswählen</button>`;
     }
     if (upgrade) {
@@ -431,6 +438,8 @@ export function createHud({
     rope: "Seile",
     blanket: "Decken",
     scrolls: "Schriftrollen",
+    wheat: "Weizen",
+    flour: "Mehl",
   };
 
   function renderOrders() {
