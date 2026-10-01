@@ -540,5 +540,8 @@ test("sattmacher feeds a hungry villager and energie speeds work", () => {
   applyPotion(state, "energie", "john");
   assert.equal(villagerSpeed(state, "john"), 1.6);
   tickBuffs(state, 121);
+  assert.ok(state.villagers.john.activeBuff); // buffs pause while idle
+  state.villagers.john.state = "WORKING";
+  tickBuffs(state, 121);
   assert.equal(state.villagers.john.activeBuff, null);
 });

@@ -21,6 +21,14 @@ const COST_ROW_LABELS = {
   blanket: "Decken",
 };
 
+const ORDER_SINGULAR_LABELS = {
+  rope: "Seil",
+  blanket: "Decke",
+  bucket: "Eimer",
+  planks: "Brett",
+  bread: "Brot",
+};
+
 const BUILDING_INFO = {
   "wood-storage": { label: "Holzlager", icon: "🪵", resource: "wood", resourceLabel: "Holz" },
   "stone-storage": { label: "Steinlager", icon: "🪨", resource: "stone", resourceLabel: "Stein" },
@@ -87,6 +95,7 @@ export function createHud({
   function closeSheet() {
     openId = null;
     openArg = null;
+    document.body.classList.remove("sheet-open");
     if (!els.sheet) return;
     els.sheet.hidden = true;
     els.sheet.classList.remove("is-research", "is-build");
@@ -94,6 +103,7 @@ export function createHud({
 
   function openSheet(id, title, html) {
     openId = id;
+    document.body.classList.add("sheet-open");
     if (!els.sheet) return;
     els.sheet.hidden = false;
     els.sheet.classList.toggle("is-research", id === "research");
@@ -334,7 +344,10 @@ export function createHud({
       .map((order, index) => {
         if (!order) return "";
         const needs = Object.entries(order.requests)
-          .map(([key, value]) => `${value} ${ORDER_RESOURCE_LABELS[key] ?? key}`)
+          .map(
+            ([key, value]) =>
+              `${value} ${value === 1 ? (ORDER_SINGULAR_LABELS[key] ?? ORDER_RESOURCE_LABELS[key] ?? key) : (ORDER_RESOURCE_LABELS[key] ?? key)}`,
+          )
           .join(" · ");
         const rewards = [
           `${order.rewardGold ?? 0} Gold`,

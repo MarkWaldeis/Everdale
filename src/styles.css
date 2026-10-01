@@ -663,6 +663,11 @@ a:focus-visible {
   transition: transform 280ms cubic-bezier(0.2, 0.8, 0.2, 1), opacity 220ms ease;
 }
 
+.sheet-open .worker-dock {
+  pointer-events: none;
+  opacity: 0;
+}
+
 .worker-dock.is-open {
   transform: translateY(0);
   opacity: 1;

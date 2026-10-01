@@ -657,6 +657,7 @@ export function applyPotion(state, potionId, villagerId) {
   const villager = state.villagers[villagerId];
   if (!potion || !villager?.unlocked) return { ok: false, reason: "missing" };
   if ((state.potions?.[potionId] ?? 0) <= 0) return { ok: false, reason: "empty" };
+  if (villager.activeBuff) return { ok: false, reason: "buffed" };
   state.potions[potionId] -= 1;
   villager.activeBuff = {
     id: potion.id,
@@ -675,6 +676,7 @@ export function applyPotion(state, potionId, villagerId) {
 export function tickBuffs(state, deltaSeconds) {
   Object.values(state.villagers).forEach((villager) => {
     if (!villager.activeBuff) return;
+    if (villager.state !== "WORKING") return;
     villager.activeBuff.remaining -= deltaSeconds;
     if (villager.activeBuff.remaining <= 0) villager.activeBuff = null;
   });
