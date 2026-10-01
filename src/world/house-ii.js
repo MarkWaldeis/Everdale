@@ -43,8 +43,8 @@ function buildProgressBar() {
     new THREE.MeshBasicMaterial({ color: 0x241b10, transparent: true, opacity: 0.85 }),
   );
   const fill = new THREE.Mesh(
-    new THREE.PlaneGeometry(1.06, 0.1),
-    new THREE.MeshBasicMaterial({ color: 0xf0c14d }),
+    new THREE.PlaneGeometry(1.06, 0.12),
+    new THREE.MeshBasicMaterial({ color: 0xffd75e }),
   );
   fill.position.z = 0.001;
   group.add(back, fill);
@@ -88,7 +88,7 @@ export function createHouseIi(model, surfaceY) {
     root.updateWorldMatrix(true, true);
     look.copy(root.localToWorld(localLook.clone()));
     look.y = surfaceY + Math.max(size.y * 0.5, 0.7);
-    bar.position.set(0, size.y + 0.55, 0);
+    bar.position.set(0, size.y + 0.85, 0);
   }
   refreshAnchors();
 

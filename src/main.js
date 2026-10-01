@@ -678,6 +678,9 @@ async function start() {
         const node = animationState.game.nodes.find((entry) => entry.id === offline.researchDone);
         lines.push(`<div class="inv-row"><span>Erforscht</span><strong>${node?.name ?? offline.researchDone}</strong></div>`);
       }
+      if (offline.constructions.includes("house-ii")) {
+        lines.push(`<div class="inv-row"><span>Einzug</span><strong>Sophie wohnt jetzt hier</strong></div>`);
+      }
       animationState.hud?.showNotice?.("Willkommen zurück!", lines.join(""));
     }
     let sophieWas = Boolean(animationState.game.getSnapshot().villagers.sophie?.unlocked);

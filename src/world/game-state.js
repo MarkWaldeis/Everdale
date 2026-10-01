@@ -91,6 +91,7 @@ export function createGameState() {
   let offlineSummary = null;
   if (saved) {
     offlineSummary = applyOfflineProgress(data, (Date.now() - (data.lastTick ?? Date.now())) / 1000);
+    persist();
   }
   const listeners = new Set();
 
