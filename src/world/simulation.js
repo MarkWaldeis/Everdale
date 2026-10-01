@@ -241,6 +241,16 @@ export const RESEARCH_NODES = Object.freeze([
     unlocksBuilding: "wood-workshop",
     completable: true,
   },
+  {
+    id: "potions",
+    name: "Tränke",
+    detail: "Brau Buffs für deine Bewohner am Alchemielabor.",
+    icon: "🧪",
+    requires: ["wood-workshop"],
+    cost: { wood: 10, scrolls: 2 },
+    unlocksPotions: true,
+    completable: true,
+  },
 ]);
 
 export const STARTER_PLACED = Object.freeze([
@@ -274,6 +284,27 @@ export const ORDER_DECK = Object.freeze([
   { requests: { bucket: 2, planks: 2 }, rewardGold: 30, rewardScrolls: 2, requiresPlaced: "wood-workshop" },
   { requests: { rope: 3 }, rewardGold: 26, rewardScrolls: 1, requiresPlaced: "tailor" },
   { requests: { blanket: 2, rope: 1 }, rewardGold: 36, rewardRep: 3, requiresPlaced: "tailor" },
+]);
+
+export const POTIONS = Object.freeze([
+  {
+    id: "energie",
+    label: "Energietrank",
+    inputs: { pumpkin: 1, soup: 1 },
+    seconds: 40,
+    effect: "speed",
+    effectSeconds: 120,
+    description: "Der Bewohner arbeitet 60 % schneller für 2 Minuten.",
+  },
+  {
+    id: "sattmacher",
+    label: "Stärkungstrank",
+    inputs: { pumpkin: 2, clay: 1 },
+    seconds: 35,
+    effect: "meal",
+    effectSeconds: 60,
+    description: "Stillt sofort und hält 60 Sekunden satt.",
+  },
 ]);
 
 export const BUILDING_UPGRADES = Object.freeze({
@@ -387,6 +418,9 @@ export function createDefaultState() {
     placed,
     unlocked: { study: true },
     valleyUnlocked: false,
+    potions: {},
+    potionsUnlocked: false,
+    brewing: { queue: [], progress: 0 },
     nodes,
     research: {
       activeId: null,
@@ -585,6 +619,71 @@ export function tickProduction(state, buildingId, deltaSeconds) {
   return { produced: recipe.id, output: recipe.output, amount: recipe.amount };
 }
 
+export function brewPotion(state, potionId) {
+  const potion = POTIONS.find((entry) => entry.id === potionId);
+  if (!potion) return { ok: false, reason: "missing" };
+  if (!state.potionsUnlocked) return { ok: false, reason: "locked" };
+  state.brewing ??= { queue: [], progress: 0 };
+  if (state.brewing.queue.length >= 3) return { ok: false, reason: "queue-full" };
+  if (!orderCanAfford(state, potion.inputs)) return { ok: false, reason: "cost" };
+  orderSpend(state, potion.inputs);
+  state.brewing.queue.push(potionId);
+  return { ok: true, queue: state.brewing.queue.length };
+}
+
+export function tickBrewing(state, deltaSeconds) {
+  const brewing = state.brewing ?? { queue: [], progress: 0 };
+  if (!brewing.queue.length) {
+    brewing.progress = 0;
+    return { produced: null };
+  }
+  const potion = POTIONS.find((entry) => entry.id === brewing.queue[0]);
+  if (!potion) {
+    brewing.queue.shift();
+    return { produced: null };
+  }
+  brewing.progress = (brewing.progress ?? 0) + deltaSeconds;
+  if (brewing.progress < potion.seconds) return { produced: null };
+  brewing.progress = 0;
+  brewing.queue.shift();
+  state.potions ??= {};
+  state.potions[potion.id] = (state.potions[potion.id] ?? 0) + 1;
+  addPlayerXp(state, 4);
+  return { produced: potion.id };
+}
+
+export function applyPotion(state, potionId, villagerId) {
+  const potion = POTIONS.find((entry) => entry.id === potionId);
+  const villager = state.villagers[villagerId];
+  if (!potion || !villager?.unlocked) return { ok: false, reason: "missing" };
+  if ((state.potions?.[potionId] ?? 0) <= 0) return { ok: false, reason: "empty" };
+  state.potions[potionId] -= 1;
+  villager.activeBuff = {
+    id: potion.id,
+    effect: potion.effect,
+    remaining: potion.effectSeconds,
+    total: potion.effectSeconds,
+  };
+  if (potion.effect === "meal") {
+    villager.hungry = false;
+    villager.workSeconds = 0;
+    if (villager.state === "HUNGRY") villager.state = "IDLE";
+  }
+  return { ok: true };
+}
+
+export function tickBuffs(state, deltaSeconds) {
+  Object.values(state.villagers).forEach((villager) => {
+    if (!villager.activeBuff) return;
+    villager.activeBuff.remaining -= deltaSeconds;
+    if (villager.activeBuff.remaining <= 0) villager.activeBuff = null;
+  });
+}
+
+export function villagerSpeed(state, villagerId) {
+  return state.villagers[villagerId]?.activeBuff?.effect === "speed" ? 1.6 : 1;
+}
+
 export function getProduction(state, buildingId) {
   const building = state.buildings[buildingId];
   const queue = building?.productionQueue ?? [];
@@ -702,6 +801,7 @@ export function completeResearch(state, nodeId) {
   state.research.progress = 0;
   if (node.unlocksBuilding) state.unlocked[node.unlocksBuilding] = true;
   if (node.unlocksValley) state.valleyUnlocked = true;
+  if (node.unlocksPotions) state.potionsUnlocked = true;
   if (node.unlocksVillager && state.villagers[node.unlocksVillager]) {
     state.villagers[node.unlocksVillager].unlocked = true;
   }
@@ -808,7 +908,9 @@ export function tickVillagerWork(state, villagerId, delta) {
     villager.state = "HUNGRY";
     return true;
   }
-  villager.workSeconds += delta;
+  if (villager.activeBuff?.effect !== "meal") {
+    villager.workSeconds += delta;
+  }
   if (villager.workSeconds >= state.timings.hungerInterval) {
     if (!consumeSoup(state, 1)) {
       villager.hungry = true;

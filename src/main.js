@@ -188,6 +188,8 @@ function animate(now = 0) {
     animationState.clayLoop?.update(delta, now * 0.001);
     animationState.studyLoop?.update(delta, now * 0.001);
     Object.values(animationState.workshopLoops).forEach((loop) => loop.update(delta));
+    animationState.game?.tickBrewing?.(delta);
+    animationState.game?.tickBuffs?.(delta);
     animationState.game?.tickConstructions?.(delta);
     animationState.houseIi?.update?.(camera);
     Object.entries(animationState.workshopModules ?? {}).forEach(([id, module]) => {
@@ -737,6 +739,9 @@ async function start() {
       onWorkshop: (id) => {
         animationState.harvest?.selectWorkshop?.(id);
       },
+      onPotion: (potionId) => {
+        animationState.harvest?.selectPotion?.(potionId);
+      },
       onReset: () => {
         animationState.game.resetSave();
         window.location.reload();
@@ -855,6 +860,16 @@ async function start() {
         return animationState.clayLoop?.assignDigger(member);
       },
       selectWorkshop: (id) => animationState.harvest?.selectWorkshop?.(id),
+      selectPotion: (id) => animationState.harvest?.selectPotion?.(id),
+      brewPotion: (id) => animationState.game?.brewPotion?.(id),
+      finishBrew: () => {
+        const brewing = animationState.game?.getBrewing?.();
+        if (brewing?.queue.length) {
+          animationState.game.getRaw().brewing.progress = 999;
+        }
+      },
+      givePotion: (potionId, villagerId) =>
+        animationState.game?.applyPotion?.(potionId, villagerId),
       queueRecipe: (buildingId, recipeId) =>
         animationState.game?.queueRecipe?.(buildingId, recipeId ?? "bread"),
       assignWorkshop: (buildingId, villagerId) => {

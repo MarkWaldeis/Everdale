@@ -136,6 +136,7 @@ export function createHarvestDirector({
     hovered: null,
     selected: null,
     mode: "harvest",
+    potionId: null,
     falling: [],
   };
 
@@ -214,6 +215,9 @@ export function createHarvestDirector({
   function statusFor(member) {
     if (member.isEating?.()) return "Isst";
     if (member.isHungry?.()) return "Hungrig";
+    const buff = game?.getSnapshot?.().villagers?.[member.getId()]?.activeBuff;
+    if (buff && buff.effect === "speed") return "Stark ⚗";
+    if (buff && buff.effect === "meal") return "Satt ⚗";
     if (member.isAtLab?.()) return "Im Labor";
     const kind = member.getJobKind?.();
     if (kind === "cook") return "Kocht";
@@ -247,6 +251,8 @@ export function createHarvestDirector({
     const visitingKitchen = pointerState.mode === "kitchen" || pointerState.mode === "pumpkin";
     const visitingClay = pointerState.mode === "clay";
     const visitingWorkshop = Boolean(workshops?.[pointerState.mode]);
+    const visitingPotion = pointerState.mode === "potion";
+    const potionStock = (game?.getPotions?.()?.[pointerState.potionId] ?? 0) > 0;
     const workshopQueued =
       visitingWorkshop && (game?.getProduction?.(pointerState.mode)?.queue.length ?? 0) > 0;
     const clayLocked = visitingClay && !game?.canCollectResource?.("clay");
@@ -264,7 +270,9 @@ export function createHarvestDirector({
         ? !storageFull
         : visitingWorkshop
           ? workshopQueued
-          : Boolean(
+          : visitingPotion
+            ? potionStock
+            : Boolean(
             selected &&
               !storageFull &&
               selected.userData.harvestState !== "gone" &&
@@ -605,6 +613,19 @@ export function createHarvestDirector({
     return null;
   }
 
+  function selectPotion(potionId) {
+    if (pointerState.selected?.userData.harvestState === "selected") {
+      pointerState.selected.userData.harvestState = "idle";
+    }
+    pointerState.selected = null;
+    pointerState.mode = "potion";
+    pointerState.potionId = potionId;
+    placeMarker(null);
+    if (trayTitle) trayTitle.textContent = "Trank geben · Bewohner wählen";
+    refreshWorkerCard();
+    setTrayOpen(true);
+  }
+
   function selectWorkshop(id) {
     const shop = workshops?.[id];
     if (!shop) return;
@@ -672,6 +693,15 @@ export function createHarvestDirector({
 
   function assignWorker(member) {
     if (!member) return;
+    if (pointerState.mode === "potion") {
+      const applied = game?.applyPotion?.(pointerState.potionId, member.getId());
+      if (applied?.ok !== false) {
+        refreshWorkerCard();
+        setTrayOpen(false);
+        pointerState.mode = "harvest";
+      }
+      return;
+    }
     if (member.hasJob?.() || member.isBusy() || member.isAtLab?.()) {
       const jobKind = member.getJobKind?.();
       const modeKinds = {
@@ -1092,6 +1122,7 @@ export function createHarvestDirector({
     selectPatch,
     selectClay,
     selectWorkshop,
+    selectPotion,
     assignSelectedWorker,
     cancelWorker,
   };

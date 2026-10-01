@@ -27,6 +27,11 @@ import {
   applyOfflineProgress,
   queueRecipe,
   tickProduction,
+  brewPotion,
+  tickBrewing,
+  applyPotion,
+  tickBuffs,
+  villagerSpeed,
 } from "../src/world/simulation.js";
 
 test("fresh start keeps later buildings locked", () => {
@@ -483,4 +488,57 @@ test("tailor and workshop goods join the order deck after placement", () => {
     fillOrder(state, fillIdx);
   }
   assert.ok(seen.size >= 1);
+});
+
+test("potions research unlocks brewing at the lab", () => {
+  const state = createDefaultState();
+  state.nodes["wood-workshop"] = "done";
+  state.village.wood = 30;
+  state.village.scrolls = 5;
+  assert.equal(brewPotion(state, "energie").ok, false);
+  const done = completeResearch(state, "potions");
+  assert.equal(done.ok, true);
+  assert.equal(state.potionsUnlocked, true);
+});
+
+test("brewing a potion pays inputs and produces over time", () => {
+  const state = createDefaultState();
+  state.potionsUnlocked = true;
+  state.village.pumpkins = 5;
+  state.village.soup = 3;
+  const brewed = brewPotion(state, "energie");
+  assert.equal(brewed.ok, true);
+  assert.equal(state.village.pumpkins, 4);
+  assert.equal(state.village.soup, 2);
+  assert.equal(state.brewing.queue.length, 1);
+
+  const produced = tickBrewing(state, 41);
+  assert.equal(produced.produced, "energie");
+  assert.equal(state.potions.energie, 1);
+});
+
+test("sattmacher feeds a hungry villager and energie speeds work", () => {
+  const state = createDefaultState();
+  state.potionsUnlocked = true;
+  state.village.pumpkins = 5;
+  state.village.clay = 5;
+  brewPotion(state, "sattmacher");
+  tickBrewing(state, 36);
+
+  const villager = state.villagers.lena;
+  villager.hungry = true;
+  villager.state = "HUNGRY";
+  villager.workSeconds = 99;
+  const applied = applyPotion(state, "sattmacher", "lena");
+  assert.equal(applied.ok, true);
+  assert.equal(villager.hungry, false);
+  assert.equal(villager.workSeconds, 0);
+  assert.equal(villager.activeBuff.effect, "meal");
+
+  assert.equal(villagerSpeed(state, "lena"), 1);
+  state.potions.energie = 1;
+  applyPotion(state, "energie", "john");
+  assert.equal(villagerSpeed(state, "john"), 1.6);
+  tickBuffs(state, 121);
+  assert.equal(state.villagers.john.activeBuff, null);
 });

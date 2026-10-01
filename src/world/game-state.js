@@ -31,6 +31,11 @@ import {
   queueRecipe,
   tickProduction,
   getProduction,
+  brewPotion,
+  tickBrewing,
+  applyPotion,
+  tickBuffs,
+  villagerSpeed,
   getCatalogItem,
   getResearchNode,
   canAfford,
@@ -75,6 +80,8 @@ export function createGameState() {
         unlocked: { ...base.unlocked, ...saved.unlocked },
         nodes: { ...base.nodes, ...saved.nodes },
         research: { ...base.research, ...saved.research },
+        potions: { ...base.potions, ...saved.potions },
+        brewing: { ...base.brewing, ...saved.brewing },
         valley: {
           ...base.valley,
           ...saved.valley,
@@ -231,6 +238,17 @@ export function createGameState() {
     queueRecipe: (buildingId, recipeId) => wrap(() => queueRecipe(data, buildingId, recipeId)),
     tickProduction: (buildingId, delta) => wrap(() => tickProduction(data, buildingId, delta)),
     getProduction: (buildingId) => getProduction(data, buildingId),
+    isPotionsUnlocked: () => Boolean(data.potionsUnlocked),
+    getPotions: () => ({ ...(data.potions ?? {}) }),
+    getBrewing: () => ({
+      queue: [...(data.brewing?.queue ?? [])],
+      progress: data.brewing?.progress ?? 0,
+    }),
+    brewPotion: (potionId) => wrap(() => brewPotion(data, potionId)),
+    tickBrewing: (delta) => wrap(() => tickBrewing(data, delta)),
+    applyPotion: (potionId, villagerId) => wrap(() => applyPotion(data, potionId, villagerId)),
+    tickBuffs: (delta) => wrap(() => tickBuffs(data, delta)),
+    villagerSpeed: (id) => villagerSpeed(data, id),
     tickVillagerWork: (id, delta) => wrap(() => simTickWork(data, id, delta)),
     resetVillagerWork: (id) =>
       wrap(() => {

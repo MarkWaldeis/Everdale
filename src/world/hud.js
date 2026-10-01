@@ -1,4 +1,4 @@
-import { RECIPES, formatCost } from "./simulation.js";
+import { RECIPES, POTIONS, formatCost } from "./simulation.js";
 
 const ITEM_ROWS = [
   ["wood", "Holz", "woodCap"],
@@ -56,6 +56,7 @@ export function createHud({
   onReset,
   onKitchen,
   onWorkshop,
+  onPotion,
 }) {
   const els = {
     level: document.querySelector("#hud-level"),
@@ -178,11 +179,34 @@ export function createHud({
         </div>`;
       })
       .join("");
+    let potionsHtml = "";
+    if (game.isPotionsUnlocked?.()) {
+      const brewing = game.getBrewing?.() ?? { queue: [], progress: 0 };
+      const stock = game.getPotions?.() ?? {};
+      const items = POTIONS.map((potion) => {
+        const count = stock[potion.id] ?? 0;
+        const cost = formatCost(potion.inputs);
+        return `<div class="inv-row">
+          <span>🧪 ${potion.label}${count ? ` <em>×${count}</em>` : ""}<br><small>${potion.description}</small></span>
+          <strong>
+            <button class="sheet-action" type="button" data-brew="${potion.id}">Brauen · ${cost}</button>
+            ${count > 0 ? `<button class="sheet-action" type="button" data-give="${potion.id}">Geben</button>` : ""}
+          </strong>
+        </div>`;
+      }).join("");
+      const queueLabel = brewing.queue
+        .map((id) => POTIONS.find((p) => p.id === id)?.label ?? id)
+        .join(" + ");
+      const brewingLine = brewing.queue.length
+        ? `<div class="inv-row"><span>Braut</span><strong>${queueLabel}${brewing.queue[0] ? ` (${Math.round((brewing.progress / (POTIONS.find((p) => p.id === brewing.queue[0])?.seconds || 1)) * 100)}%)` : ""}</strong></div>`
+        : "";
+      potionsHtml = `<h3 class="sheet-subtitle">Tränke</h3>${brewingLine}${items}`;
+    }
     openSheet(
       "research",
       "Forschungsbaum",
       `<p class="glass-lead">Von links nach rechts. Jeder Schritt schaltet das Nächste frei.</p>
-       <div class="research-tree">${steps}</div>`,
+       <div class="research-tree">${steps}</div>${potionsHtml}`,
     );
     if (!keepScroll) {
       requestAnimationFrame(() => {
@@ -422,6 +446,19 @@ export function createHud({
       button.addEventListener("click", () => {
         closeSheet();
         onWorkshop?.(button.dataset.worker);
+      });
+    });
+    els.sheetBody?.querySelectorAll("[data-brew]").forEach((button) => {
+      button.addEventListener("click", () => {
+        game.brewPotion?.(button.dataset.brew);
+        refresh();
+        renderResearch(true);
+      });
+    });
+    els.sheetBody?.querySelectorAll("[data-give]").forEach((button) => {
+      button.addEventListener("click", () => {
+        closeSheet();
+        onPotion?.(button.dataset.give);
       });
     });
     els.sheetBody?.querySelector("#btn-mute")?.addEventListener("click", () => {

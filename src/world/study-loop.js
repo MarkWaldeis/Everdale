@@ -47,7 +47,8 @@ export function createStudyLoop({ game, study, villagers }) {
     );
     if (!researcher) return;
     if (game.tickVillagerWork(researcher.getId(), delta)) return;
-    game.tickResearch(delta);
+    const speed = game.villagerSpeed?.(researcher.getId()) ?? 1;
+    game.tickResearch(delta * speed);
   }
 
   return {

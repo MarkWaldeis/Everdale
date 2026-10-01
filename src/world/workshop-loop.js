@@ -50,7 +50,8 @@ export function createWorkshopLoop({ game, building, buildingId, taskId, village
     );
     if (!worker) return;
     if (game.tickVillagerWork(worker.getId(), delta)) return;
-    game.tickProduction?.(buildingId, delta);
+    const speed = game.villagerSpeed?.(worker.getId()) ?? 1;
+    game.tickProduction?.(buildingId, delta * speed);
   }
 
   return {
