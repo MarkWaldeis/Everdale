@@ -819,6 +819,7 @@ async function start() {
         animationState.clayPit,
         animationState.mill,
       ],
+      onYield: () => animationState.wheatField.triggerHarvest?.(),
     });
     const decoModels = {
       "deko-daisy": assets.decoDaisy,
@@ -1267,10 +1268,10 @@ async function start() {
       const root = new THREE.Group();
       if (model) root.add(model);
       const proxy = new THREE.Mesh(
-        new THREE.CylinderGeometry(0.45, 0.45, 0.9, 10),
+        new THREE.CylinderGeometry(0.72, 0.72, 1.3, 10),
         new THREE.MeshBasicMaterial({ visible: false }),
       );
-      proxy.position.y = 0.45;
+      proxy.position.y = 0.62;
       root.add(proxy);
       root.position.y = world.walkArea.surfaceY;
       world.root.add(root);
