@@ -101,6 +101,48 @@ function createLibraryModel() {
   return lib;
 }
 
+function createGuildhallModel() {
+  const hall = new THREE.Group();
+  hall.name = "valley-guildhall";
+  const wood = new THREE.MeshStandardMaterial({ color: 0x9a6b42, roughness: 0.9 });
+  const canvasRed = new THREE.MeshStandardMaterial({ color: 0xc25b4f, roughness: 0.85 });
+
+  const base = new THREE.Mesh(new THREE.BoxGeometry(2.4, 0.9, 1.6), wood);
+  base.position.y = 0.45;
+  hall.add(base);
+
+  const roof = new THREE.Mesh(new THREE.ConeGeometry(1.7, 1.1, 4), canvasRed);
+  roof.rotation.y = Math.PI / 4;
+  roof.scale.set(1, 1, 0.72);
+  roof.position.y = 1.45;
+  hall.add(roof);
+
+  const pole = new THREE.Mesh(new THREE.CylinderGeometry(0.05, 0.05, 1.6, 6), wood);
+  pole.position.set(0, 1.9, 0);
+  hall.add(pole);
+  const banner = new THREE.Mesh(
+    new THREE.PlaneGeometry(0.55, 0.32),
+    new THREE.MeshStandardMaterial({ color: 0xf0c14b, side: THREE.DoubleSide }),
+  );
+  banner.position.set(0.32, 2.35, 0);
+  hall.add(banner);
+
+  const door = new THREE.Mesh(
+    new THREE.BoxGeometry(0.5, 0.7, 0.06),
+    new THREE.MeshStandardMaterial({ color: 0x4a3220, roughness: 0.95 }),
+  );
+  door.position.set(0, 0.36, 0.83);
+  hall.add(door);
+
+  hall.traverse((node) => {
+    if (node.isMesh) {
+      node.castShadow = true;
+      node.receiveShadow = true;
+    }
+  });
+  return hall;
+}
+
 function createCrate() {
   const crate = new THREE.Group();
   const body = new THREE.Mesh(
@@ -135,11 +177,11 @@ export function createValleyHarbor(model, surfaceY) {
 
   // Sea around the harbor so the ship has somewhere to sail.
   const water = new THREE.Mesh(
-    new THREE.CircleGeometry(20, 48),
+    new THREE.CircleGeometry(16, 48),
     new THREE.MeshStandardMaterial({ color: 0x4d9ec6, roughness: 0.55, transparent: true, opacity: 0.92 }),
   );
   water.rotation.x = -Math.PI / 2;
-  water.position.set(4, surfaceY - 0.42, 0);
+  water.position.set(10, surfaceY - 0.42, 2);
   root.add(water);
 
   const ship = createShipModel();
@@ -150,10 +192,16 @@ export function createValleyHarbor(model, surfaceY) {
   root.add(ship);
 
   const library = createLibraryModel();
-  library.position.set(-3.2, surfaceY - 0.02, -2.4);
+  library.position.set(-4.6, surfaceY - 0.02, -3.6);
   library.rotation.y = 0.6;
   library.visible = false;
   root.add(library);
+
+  const guildhall = createGuildhallModel();
+  guildhall.position.set(-4.2, surfaceY - 0.02, 0.8);
+  guildhall.rotation.y = -0.35;
+  guildhall.visible = false;
+  root.add(guildhall);
 
   const crates = [0, 1, 2, 3].map((index) => {
     const crate = createCrate();
@@ -234,6 +282,9 @@ export function createValleyHarbor(model, surfaceY) {
     setCrates,
     setLibraryBuilt(value) {
       library.visible = Boolean(value);
+    },
+    setGuildhallBuilt(value) {
+      guildhall.visible = Boolean(value);
     },
     update,
     getSailPhase: () => sail.phase,

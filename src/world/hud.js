@@ -100,6 +100,8 @@ export function createHud({
     researchBtn: document.querySelector("#btn-research"),
     sophieCard: document.querySelector('[data-hud-villager="sophie"]'),
     sophieDock: document.querySelector('#worker-dock [data-villager="sophie"]'),
+    karlCard: document.querySelector('[data-hud-villager="karl"]'),
+    karlDock: document.querySelector('#worker-dock [data-villager="karl"]'),
   };
 
   let openId = null;
@@ -285,6 +287,7 @@ export function createHud({
     lena: { name: "Lena", icon: "👩‍🌾" },
     john: { name: "John", icon: "👨‍🔧" },
     sophie: { name: "Sophie", icon: "👩‍🔬" },
+    karl: { name: "Karl", icon: "🧔" },
   };
 
   const BUFF_LABELS = { speed: "Energietrank ⚡", meal: "Sattmacher 🍲" };
@@ -488,10 +491,16 @@ export function createHud({
           <strong>📚 Große Bibliothek errichten</strong>
           <small>${formatCost({ wood: 20, stone: 10, clay: 8 })} · +25 % Forschung, +6 Skill-XP je Schiffsreise</small>
         </button>`;
+    const guildhall = game.isGuildhallBuilt?.()
+      ? `<div class="inv-row"><span>⛺ Gildenhalle</span><strong>Gebaut · Karl arbeitet im Dorf</strong></div>`
+      : `<button class="sheet-card" type="button" data-guildhall="1">
+          <strong>⛺ Gildenhalle errichten</strong>
+          <small>${formatCost({ wood: 30, stone: 20, gems: 3 })} · Schaltet Karl als vierten Bewohner frei</small>
+        </button>`;
     openSheet(
       "valley",
       "Hafen",
-      `${shipLine}${crates}${library}<p class="sheet-hint">Sind alle Kisten beladen, läuft das Schiff aus — es bringt Diamanten und neue Aufträge mit.</p>`,
+      `${shipLine}${crates}${library}${guildhall}<p class="sheet-hint">Sind alle Kisten beladen, läuft das Schiff aus — es bringt Diamanten und neue Aufträge mit.</p>`,
     );
   }
 
@@ -528,6 +537,13 @@ export function createHud({
     els.sheetBody?.querySelectorAll("[data-library]").forEach((button) => {
       button.addEventListener("click", () => {
         game.buildLibrary?.();
+        renderValley();
+        refresh();
+      });
+    });
+    els.sheetBody?.querySelectorAll("[data-guildhall]").forEach((button) => {
+      button.addEventListener("click", () => {
+        game.buildGuildhall?.();
         renderValley();
         refresh();
       });
@@ -631,6 +647,9 @@ export function createHud({
     const sophieOn = game.isVillagerUnlocked("sophie");
     if (els.sophieCard) els.sophieCard.hidden = !sophieOn;
     if (els.sophieDock) els.sophieDock.hidden = !sophieOn;
+    const karlOn = game.isVillagerUnlocked("karl");
+    if (els.karlCard) els.karlCard.hidden = !karlOn;
+    if (els.karlDock) els.karlDock.hidden = !karlOn;
     rerenderOpenSheet();
   }
 

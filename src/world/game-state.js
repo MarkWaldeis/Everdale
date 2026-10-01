@@ -50,6 +50,8 @@ import {
   getVillagerInfo,
   buildLibrary as simBuildLibrary,
   isLibraryBuilt,
+  buildGuildhall as simBuildGuildhall,
+  isGuildhallBuilt,
   rushConstruction,
   rushBrewing,
   rushProduction,
@@ -113,6 +115,7 @@ export function createGameState() {
           lena: { ...base.villagers.lena, ...saved.villagers?.lena },
           john: { ...base.villagers.john, ...saved.villagers?.john },
           sophie: { ...base.villagers.sophie, ...saved.villagers?.sophie },
+          karl: { ...base.villagers.karl, ...saved.villagers?.karl },
         },
       }
     : base;
@@ -277,6 +280,8 @@ export function createGameState() {
     tickValley: (delta) => wrap(() => tickValley(data, delta)),
     buildLibrary: () => wrap(() => simBuildLibrary(data)),
     isLibraryBuilt: () => isLibraryBuilt(data),
+    buildGuildhall: () => wrap(() => simBuildGuildhall(data)),
+    isGuildhallBuilt: () => isGuildhallBuilt(data),
     getShip: () => getShip(data),
     getVillagerInfo: (id) => getVillagerInfo(data, id),
     getVillagerSkill: (id) => {

@@ -41,6 +41,9 @@ import {
   getShip,
   buildLibrary,
   isLibraryBuilt,
+  buildGuildhall,
+  isGuildhallBuilt,
+  isVillagerUnlocked,
   tickResearch,
   villagerSkillLevel,
   tickVillagerSkill,
@@ -702,4 +705,20 @@ test("valley library boosts research and pays skill xp on ship return", () => {
   state.valley.ship = { status: "sailing", remaining: 1, voyages: 0 };
   tickValley(state, 2);
   assert.equal(state.villagers.lena.skills.building, 6);
+});
+
+test("guildhall unlocks karl as a fourth villager", () => {
+  const state = createDefaultState();
+  assert.equal(state.villagers.karl.unlocked, false);
+  assert.equal(buildGuildhall(state).ok, false); // valley locked
+
+  state.valleyUnlocked = true;
+  state.village.wood = 40;
+  state.village.stone = 25;
+  state.village.gems = 3;
+  assert.equal(buildGuildhall(state).ok, true);
+  assert.equal(isGuildhallBuilt(state), true);
+  assert.equal(state.villagers.karl.unlocked, true);
+  assert.equal(isVillagerUnlocked(state, "karl"), true);
+  assert.equal(state.village.gems, 0);
 });

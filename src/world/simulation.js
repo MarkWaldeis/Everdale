@@ -499,6 +499,7 @@ export function createDefaultState() {
       lena: defaultVillager("lena", "Lena", true),
       john: defaultVillager("john", "John", true),
       sophie: defaultVillager("sophie", "Sophie", false),
+      karl: defaultVillager("karl", "Karl", false),
     },
     timings: {
       cookSeconds: 45,
@@ -1329,6 +1330,24 @@ export function buildLibrary(state) {
   (state.valley.library ??= { built: false }).built = true;
   state.village.reputation = (state.village.reputation ?? 0) + 15;
   addPlayerXp(state, 30);
+  return { ok: true };
+}
+
+export const GUILDHALL_COST = Object.freeze({ wood: 30, stone: 20, gems: 3 });
+
+export function isGuildhallBuilt(state) {
+  return Boolean(state.valley.guildhall?.built);
+}
+
+export function buildGuildhall(state) {
+  if (!state.valleyUnlocked) return { ok: false, reason: "locked" };
+  if (isGuildhallBuilt(state)) return { ok: false, reason: "built" };
+  if (!canAfford(state, GUILDHALL_COST)) return { ok: false, reason: "cost" };
+  spendCost(state, GUILDHALL_COST);
+  (state.valley.guildhall ??= { built: false }).built = true;
+  state.village.reputation = (state.village.reputation ?? 0) + 20;
+  addPlayerXp(state, 40);
+  if (state.villagers.karl) state.villagers.karl.unlocked = true;
   return { ok: true };
 }
 

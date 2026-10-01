@@ -239,10 +239,12 @@ async function start() {
   try {
     const assets = await loadWorldAssets(ASSETS, updateLoadingScreen);
     if (loadingLabel) loadingLabel.textContent = "Welt wird aufgebaut …";
+    const karlModel = assets.characterJohn.clone(true);
     const portraitMap = {
       lena: assets.character,
       john: assets.characterJohn,
       sophie: assets.characterSophie,
+      karl: karlModel,
     };
     Object.entries(portraitMap).forEach(([id, model]) => {
       const images = document.querySelectorAll(`[data-portrait="${id}"]`);
@@ -348,6 +350,7 @@ async function start() {
       makeVillager(assets.character, "lena", "Lena"),
       makeVillager(assets.characterJohn, "john", "John"),
       makeVillager(assets.characterSophie, "sophie", "Sophie"),
+      makeVillager(karlModel, "karl", "Karl"),
     ];
     animationState.character = animationState.villagers[0];
     const villagerFacade = {
@@ -754,6 +757,9 @@ async function start() {
       if (member.getId() === "sophie" && !animationState.game.isVillagerUnlocked("sophie")) {
         member.root.visible = false;
       }
+      if (member.getId() === "karl" && !animationState.game.isVillagerUnlocked("karl")) {
+        member.root.visible = false;
+      }
     });
     world.root.add(animationState.valley.root);
     scene.add(world.root);
@@ -887,12 +893,15 @@ async function start() {
       syncConstruction(snap);
       const sophie = animationState.villagers.find((entry) => entry.getId() === "sophie");
       if (sophie) sophie.root.visible = Boolean(snap.villagers.sophie?.unlocked);
+      const karl = animationState.villagers.find((entry) => entry.getId() === "karl");
+      if (karl) karl.root.visible = Boolean(snap.villagers.karl?.unlocked);
       if (snap.valleyUnlocked && animationState.view === "valley") {
         animationState.valley.setVisible(true);
       }
       animationState.valley?.setShip?.(snap.valley?.ship);
       animationState.valley?.setCrates?.(snap.valley?.crates);
       animationState.valley?.setLibraryBuilt?.(Boolean(snap.valley?.library?.built));
+      animationState.valley?.setGuildhallBuilt?.(Boolean(snap.valley?.guildhall?.built));
       syncStorageCaps(snap);
     });
 
