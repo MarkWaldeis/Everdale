@@ -10,7 +10,7 @@ import { createHarvestDirector } from "./world/harvest.js";
 import { createWoodYard } from "./world/wood-yard.js";
 import { createStoneYard } from "./world/stone-yard.js";
 import { createVillageEditor } from "./world/village-editor.js";
-import { footprintFromSize } from "./world/village-grid.js";
+import { CELL, footprintFromSize } from "./world/village-grid.js";
 import { captureCharacterPortrait } from "./world/capture-portrait.js";
 import { createGameState } from "./world/game-state.js";
 import { createAmbientAudio } from "./audio.js";
@@ -32,6 +32,7 @@ import { createBakery } from "./world/bakery.js";
 import { createWorkshop } from "./world/workshop.js";
 import { createWorkshopLoop } from "./world/workshop-loop.js";
 import { createDirtPaths } from "./world/dirt-paths.js";
+import { createFoliage } from "./world/foliage.js";
 import { createHud } from "./world/hud.js";
 import "./styles.css";
 
@@ -880,6 +881,21 @@ async function start() {
     scene.add(animationState.clouds.root);
     animationState.critters = createCritters(world.walkArea.surfaceY);
     scene.add(animationState.critters.root);
+
+    const foliageZones = [
+      ...animationState.village.grid.list().map((building) => ({
+        x: building.root.position.x,
+        z: building.root.position.z,
+        r: Math.max(building.w, building.h) * CELL * 0.55 + (building.padding ?? 1) * CELL,
+      })),
+      ...world.animatedStones.map((stone) => ({
+        x: stone.position.x,
+        z: stone.position.z,
+        r: 0.8,
+      })),
+    ];
+    animationState.foliage = createFoliage({ area: world.walkArea, zones: foliageZones });
+    scene.add(animationState.foliage.root);
 
     const focusVillager = (id) => {
       const member = animationState.villagers.find((entry) => entry.getId() === id);
