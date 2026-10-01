@@ -57,6 +57,22 @@ const BUILDING_INFO = {
   bakery: { label: "Bäckerei", icon: "🍞", resource: "bread", resourceLabel: "Brot", worker: "Bäcker" },
   tailor: { label: "Schneiderei", icon: "🧵", worker: "Schneider" },
   "wood-workshop": { label: "Holzwerkstatt", icon: "🪚", worker: "Werker" },
+  "wheat-field": {
+    label: "Weizenfeld",
+    icon: "🌾",
+    resource: "wheat",
+    resourceLabel: "Weizen",
+    worker: "Mäher",
+    blurb: "Goldene Ähren — der Mäher erntet Weizen für die Mühle.",
+  },
+  mill: {
+    label: "Windmühle",
+    icon: "🌬️",
+    resource: "flour",
+    resourceLabel: "Mehl",
+    worker: "Müller",
+    blurb: "Der Müller mahlt Weizen zu Mehl für die Bäckerei.",
+  },
   well: {
     label: "Brunnen",
     icon: "💧",
