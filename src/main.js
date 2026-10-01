@@ -302,6 +302,70 @@ function grantWishAt(villagerId, el) {
   grant.addEventListener("animationend", () => grant.remove());
 }
 
+const TASK_ICONS = Object.freeze({
+  "cook-soup": "🍲",
+  "harvest-pumpkin": "🎃",
+  "dig-clay": "⛏️",
+  "dig-stone": "⛏️",
+  "chop-wood": "🪓",
+  bake: "🍞",
+  sew: "🧵",
+  craft: "🔨",
+  build: "🔨",
+  research: "📜",
+  "harvest-wheat": "🌾",
+  "shear-wool": "🐑",
+  "pick-apples": "🍎",
+  "pick-berries": "🫐",
+  "collect-eggs": "🥚",
+  "catch-fish": "🎣",
+  "visit-study": "📚",
+});
+const taskBubbleEls = new Map();
+const taskProjector = new THREE.Vector3();
+
+function updateTaskBubbles() {
+  if (!needBubblesEl) return;
+  const game = animationState.game;
+  const activeIds = new Set();
+  if (game && animationState.view !== "valley") {
+    const snapshot = game.getSnapshot?.()?.villagers ?? {};
+    animationState.villagers.forEach((member) => {
+      const id = member.getId();
+      const taskId = snapshot[id]?.assignedTaskId;
+      const icon = taskId ? TASK_ICONS[taskId] : null;
+      if (!icon || member.getState?.() !== "job-work") return;
+      activeIds.add(id);
+      let el = taskBubbleEls.get(id);
+      if (!el) {
+        el = document.createElement("div");
+        el.className = "need-bubble task-bubble";
+        el.innerHTML = '<span class="need-bubble-icon" aria-hidden="true"></span>';
+        needBubblesEl.appendChild(el);
+        taskBubbleEls.set(id, el);
+      }
+      const iconEl = el.querySelector(".need-bubble-icon");
+      if (iconEl.textContent !== icon) iconEl.textContent = icon;
+      taskProjector.copy(member.root.position);
+      taskProjector.y += 2.0;
+      taskProjector.project(camera);
+      if (taskProjector.z > 1) {
+        el.hidden = true;
+        return;
+      }
+      el.hidden = false;
+      el.style.left = `${(taskProjector.x * 0.5 + 0.5) * window.innerWidth}px`;
+      el.style.top = `${(-taskProjector.y * 0.5 + 0.5) * window.innerHeight}px`;
+    });
+  }
+  taskBubbleEls.forEach((el, id) => {
+    if (!activeIds.has(id)) {
+      el.remove();
+      taskBubbleEls.delete(id);
+    }
+  });
+}
+
 const workerAlertEls = new Map();
 const workerAlertProjector = new THREE.Vector3();
 
@@ -500,6 +564,7 @@ function animate(now = 0) {
   }
   updateWishBubbles();
   updateWorkerAlerts();
+  updateTaskBubbles();
   socialLayer.update(delta, now * 0.001, animationState.villagers, camera, animationState.view);
   renderer.render(scene, camera);
 }

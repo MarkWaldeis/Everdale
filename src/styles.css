@@ -1907,3 +1907,10 @@ a:focus-visible {
   border-color: rgba(216, 144, 34, 0.85);
   color: #a8621a;
 }
+
+.task-bubble {
+  padding: 4px 8px;
+  pointer-events: none;
+  font-size: 0.9rem;
+  opacity: 0.92;
+}
