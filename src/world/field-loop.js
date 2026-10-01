@@ -68,5 +68,5 @@ export function createFieldLoop({
     return true;
   }
 
-  return { assign, isFull };
+  return { assign, isFull, taskId };
 }

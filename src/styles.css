@@ -1919,3 +1919,15 @@ a:focus-visible {
   font-size: 1.5rem;
   animation: need-bubble-bob 1.6s ease-in-out infinite;
 }
+
+#worker-dock [data-villager].is-specialist::after {
+  content: "⭐";
+  position: absolute;
+  top: -6px;
+  right: -4px;
+  font-size: 15px;
+  filter: drop-shadow(0 1px 1px rgba(0, 0, 0, 0.35));
+}
+#worker-dock [data-villager] {
+  position: relative;
+}

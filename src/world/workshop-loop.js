@@ -58,5 +58,6 @@ export function createWorkshopLoop({ game, building, buildingId, taskId, village
     release,
     update,
     has: (memberId) => assigned.has(memberId),
+    taskId,
   };
 }

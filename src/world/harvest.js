@@ -279,6 +279,19 @@ export function createHarvestDirector({
           : selected
             ? (yard?.getWood?.() ?? 0) >= (yard?.max ?? 20)
             : false;
+    const pendingSkill = visitingLab
+      ? "research"
+      : visitingKitchen
+        ? "farming"
+        : visitingClay
+          ? "clayDigging"
+          : visitingWorkshop
+            ? (game?.skillForTask?.(workshops[pointerState.mode]?.loop?.taskId) ?? null)
+            : selected?.userData.harvestKind === "stone"
+              ? "stoneMining"
+              : selected
+                ? "woodcutting"
+                : null;
     const canAssign = visitingLab || visitingKitchen
       ? true
       : visitingClay
@@ -314,6 +327,10 @@ export function createHarvestDirector({
               : "";
       button.classList.toggle("is-busy", busy);
       button.classList.toggle("can-cancel", busy);
+      button.classList.toggle(
+        "is-specialist",
+        !busy && pendingSkill != null && game?.specialtyFor?.(member.getId()) === pendingSkill,
+      );
       const status = button.querySelector(".worker-state");
       if (status) {
         status.textContent = busy ? `${statusFor(member)} · Abbrechen` : statusFor(member);
