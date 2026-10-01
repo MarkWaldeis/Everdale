@@ -360,6 +360,7 @@ export function createVillageEditor({
   }
 
   function pickUp(building) {
+    if (!building || typeof building !== "object") return false;
     if (!building) return;
     if (state.holding && state.holding.id !== building.id) {
       grid.restore(state.holding.id);

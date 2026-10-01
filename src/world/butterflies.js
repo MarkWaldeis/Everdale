@@ -11,13 +11,13 @@ function makeButterfly(color) {
     side: THREE.DoubleSide,
     flatShading: true,
   });
-  const body = new THREE.Mesh(new THREE.CylinderGeometry(0.012, 0.016, 0.1, 5), bodyMat);
+  const body = new THREE.Mesh(new THREE.CylinderGeometry(0.016, 0.02, 0.13, 5), bodyMat);
   body.rotation.x = Math.PI / 2;
   g.add(body);
   const wings = [];
   for (const side of [-1, 1]) {
-    const wing = new THREE.Mesh(new THREE.PlaneGeometry(0.14, 0.1), wingMat);
-    wing.position.x = side * 0.07;
+    const wing = new THREE.Mesh(new THREE.PlaneGeometry(0.2, 0.14), wingMat);
+    wing.position.x = side * 0.1;
     g.add(wing);
     wings.push({ mesh: wing, side });
   }

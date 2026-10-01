@@ -85,6 +85,10 @@ function createBridge(surfaceY, position, yaw) {
   return bridge;
 }
 
+export const STREAM_CURVE = new THREE.CatmullRomCurve3(POINTS);
+export const STREAM_WIDTH = WIDTH;
+export const STREAM_Y = (y) => y + 0.05;
+
 export function createStream(surfaceY) {
   const root = new THREE.Group();
   root.name = "stream";

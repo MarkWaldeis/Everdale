@@ -31,6 +31,7 @@ import { createWeather } from "./world/weather.js";
 import { createFireflies } from "./world/fireflies.js";
 import { createChimneySmoke } from "./world/chimney-smoke.js";
 import { createButterflies } from "./world/butterflies.js";
+import { createDucks } from "./world/ducks.js";
 import { createCritters } from "./world/critters.js";
 import { createOrderBoard } from "./world/order-board.js";
 import { createHouseIi } from "./world/house-ii.js";
@@ -625,6 +626,7 @@ function animate(now = 0) {
     animationState.dayNight = updateDayNight(now);
     animationState.fireflies?.update?.(delta, now * 0.001, animationState.dayNight.night);
     animationState.butterflies?.update?.(delta, now * 0.001, 1 - animationState.dayNight.night);
+    animationState.ducks?.update?.(delta, now * 0.001);
     animationState.chimneySmoke?.update?.(delta, now * 0.001, animationState.windEnabled ? 1 : 0.2);
     const nightness = animationState.dayNight.night;
     if (nightness > 0.82) {
@@ -1734,6 +1736,8 @@ async function start() {
     });
     world.root.add(animationState.valley.root);
     scene.add(world.root);
+    animationState.ducks = createDucks(world.walkArea.surfaceY);
+    scene.add(animationState.ducks.root);
     animationState.butterflies = createButterflies(world.walkArea);
     scene.add(animationState.butterflies.root);
     animationState.fireflies = createFireflies(world.walkArea);
