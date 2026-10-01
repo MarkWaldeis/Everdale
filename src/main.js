@@ -27,6 +27,7 @@ import { createValleyHarbor } from "./world/valley.js";
 import { createClouds } from "./world/clouds.js";
 import { LANTERN_GLASS, LANTERN_HALO } from "./world/decos.js";
 import { createMountains } from "./world/mountains.js";
+import { createWeather } from "./world/weather.js";
 import { createCritters } from "./world/critters.js";
 import { createOrderBoard } from "./world/order-board.js";
 import { createHouseIi } from "./world/house-ii.js";
@@ -204,17 +205,21 @@ function updateDayNight(now) {
   const sunY = Math.sin(orbit);
   sun.position.set(Math.cos(orbit) * 46, Math.max(-18, sunY * 42), 20 + Math.sin(orbit * 0.5) * 6);
   const duskMix = Math.max(0, 1 - Math.abs(sunY) * 2.6); // near horizon → warm
+  const rain = animationState.weather?.state.strength ?? 0;
   const night = THREE.MathUtils.smoothstep(-sunY, 0.05, 0.45); // below horizon → night
   const sky = DAY_NIGHT.tmp
     .copy(DAY_NIGHT.daySky)
     .lerp(DAY_NIGHT.duskSky, duskMix * (1 - night))
     .lerp(DAY_NIGHT.nightSky, night);
+  if (rain > 0 && night < 0.5) {
+    sky.lerp(DAY_NIGHT.rainSky ?? (DAY_NIGHT.rainSky = new THREE.Color(0x8fa3b5)), rain * 0.55);
+  }
   scene.background.copy(sky);
   scene.fog.color.copy(sky);
   sun.color.copy(DAY_NIGHT.sunDay).lerp(DAY_NIGHT.sunDusk, duskMix).lerp(DAY_NIGHT.sunNight, night);
-  sun.intensity = THREE.MathUtils.lerp(4.1, 0.35, night);
+  sun.intensity = THREE.MathUtils.lerp(4.1, 0.35, night) * (1 - rain * 0.35);
   hemisphere.color.copy(DAY_NIGHT.hemiSkyDay).lerp(DAY_NIGHT.hemiSkyNight, night);
-  hemisphere.intensity = THREE.MathUtils.lerp(2.3, 0.85, night);
+  hemisphere.intensity = THREE.MathUtils.lerp(2.3, 0.85, night) * (1 - rain * 0.2);
   stars.material.opacity = night * 0.9;
   LANTERN_GLASS.emissiveIntensity = THREE.MathUtils.lerp(0.25, 1.5, night);
   LANTERN_HALO.opacity = THREE.MathUtils.lerp(0.12, 0.4, night);
@@ -604,6 +609,7 @@ function animate(now = 0) {
     animationState.fishingDock?.update?.(delta, now * 0.001);
     animationState.quarry?.update?.(delta, now * 0.001);
     animationState.apiary?.update?.(delta, now * 0.001);
+    animationState.weather?.update?.(delta);
     animationState.dayNight = updateDayNight(now);
     const nightness = animationState.dayNight.night;
     if (nightness > 0.82) {
@@ -1631,6 +1637,8 @@ async function start() {
     });
     world.root.add(animationState.valley.root);
     scene.add(world.root);
+    animationState.weather = createWeather();
+    scene.add(animationState.weather.root);
     animationState.mountains = createMountains(Math.max(world.walkArea.radiusX, world.walkArea.radiusZ) * 0.72);
     scene.add(animationState.mountains.root);
     animationState.clouds = createClouds();
