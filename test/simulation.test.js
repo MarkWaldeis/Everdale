@@ -61,8 +61,6 @@ import {
   getWish,
   grantWish,
   tickWishes,
-  WISH_LIFETIME_SECONDS,
-  WISH_INTERVAL_SECONDS,
   WISH_REWARD,
 } from "../src/world/simulation.js";
 
@@ -826,11 +824,11 @@ test("wish fails without stock and locked villagers get none", () => {
 test("wishes expire and tickWishes spawns a new one", () => {
   const state = createDefaultState();
   assignWish(state, "lena", { item: "wood", amount: 4, icon: "🪵", label: "4 Holz" });
-  tickWishes(state, WISH_LIFETIME_SECONDS + 1);
+  state.villagers.lena.wish.remaining = 2;
+  tickWishes(state, 3);
   assert.equal(state.villagers.lena.wish, null);
-  for (let i = 0; i < WISH_INTERVAL_SECONDS + 1; i++) {
-    tickWishes(state, 1);
-  }
+  state.wishes.cooldown = 1;
+  tickWishes(state, 2);
   const anyWish = Object.values(state.villagers).some((villager) => Boolean(villager.wish));
   assert.equal(anyWish, true);
 });
