@@ -40,6 +40,8 @@ import {
   rushResearch,
   getShip,
   buildLibrary,
+  ORDER_DECK,
+  COST_LABELS,
   isLibraryBuilt,
   buildGuildhall,
   isGuildhallBuilt,
@@ -908,4 +910,12 @@ test("berry bush gates berry harvest for orders", () => {
   assert.equal(state.placed["berry-bush"], true);
   assert.equal(harvestResource(state, "berry", 6).total, 6);
   assert.equal(state.village.berry, 6);
+});
+
+test("order deck only requests resources that have labels", () => {
+  for (const order of ORDER_DECK) {
+    for (const key of Object.keys(order.requests)) {
+      assert.ok(COST_LABELS[key], `missing COST_LABELS entry for "${key}"`);
+    }
+  }
 });
