@@ -903,6 +903,7 @@ export function placeBuilding(state, id) {
   const item = getCatalogItem(id);
   spendCost(state, item.cost);
   state.placed[id] = true;
+  bumpStat(state, "buildingsPlaced");
   if (!state.buildings[id]) {
     state.buildings[id] = {
       id,
@@ -1035,6 +1036,7 @@ export function brewPotion(state, potionId) {
   if (!orderCanAfford(state, potion.inputs)) return { ok: false, reason: "cost" };
   orderSpend(state, potion.inputs);
   state.brewing.queue.push(potionId);
+  bumpStat(state, "potionsBrewed");
   return { ok: true, queue: state.brewing.queue.length };
 }
 
@@ -1231,6 +1233,7 @@ export function completeResearch(state, nodeId) {
     spendCost(state, node.cost);
   }
   state.nodes[nodeId] = "done";
+  bumpStat(state, "researchDone");
   state.research.activeId = null;
   state.research.progress = 0;
   if (node.unlocksBuilding) state.unlocked[node.unlocksBuilding] = true;
@@ -1270,6 +1273,11 @@ export function canCollectResource(state, resourceId) {
   return true;
 }
 
+function bumpStat(state, key, by = 1) {
+  state.stats ??= {};
+  state.stats[key] = (state.stats[key] ?? 0) + by;
+}
+
 export function harvestResource(state, resourceId, amount) {
   const spec = RESOURCES[resourceId];
   if (!spec) return { ok: false, reason: "unknown", added: 0, total: 0 };
@@ -1292,6 +1300,7 @@ export function harvestResource(state, resourceId, amount) {
     state.village.harvestCount = (state.village.harvestCount ?? 0) + 1;
     state.village.scrolls = (state.village.scrolls ?? 0) + 1;
   }
+  if (added > 0) bumpStat(state, `harvested:${resourceId}`, added);
   return {
     ok: added > 0,
     added,
@@ -1413,6 +1422,8 @@ export function sellSurplus(state, { amount = 2, keepFloor = 4, price = 2 } = {}
   state.village[field] -= sold;
   const gain = sold * price;
   state.village.gold += gain;
+  bumpStat(state, "marketSales");
+  bumpStat(state, "marketGold", gain);
   return { ok: true, item: best, sold, gold: state.village.gold };
 }
 
@@ -1520,6 +1531,7 @@ export function fillValleyCrate(state, crateId, playerId = "player") {
   if (have < crate.amount) return { ok: false, reason: "items" };
   state.village[crate.item] -= crate.amount;
   crate.filledBy = playerId;
+  bumpStat(state, "cratesFilled");
   state.village.gold += crate.rewardGold;
   state.village.reputation += crate.rewardRep;
   addPlayerXp(state, 10);
@@ -1592,6 +1604,7 @@ export function fillOrder(state, slotIndex) {
     state.buildings.pumpkinPatch.storedResources.pumpkin = state.village.pumpkins;
   }
   addPlayerXp(state, 8);
+  bumpStat(state, "ordersDelivered");
   state.orders.slots[slotIndex] = drawOrder(state);
   return {
     ok: true,
@@ -1680,6 +1693,7 @@ export function tickValley(state, deltaSeconds) {
     if (allFilled) {
       ship.status = "sailing";
       ship.remaining = SHIP_SECONDS;
+      bumpStat(state, "valleyTrips");
       return { event: "departed" };
     }
     return { event: null };
@@ -2006,6 +2020,7 @@ export function grantWish(state, villagerId) {
   }
   villager.wish = null;
   villager.wishesFulfilled = (villager.wishesFulfilled ?? 0) + 1;
+  bumpStat(state, "wishesFulfilled");
   state.village.reputation = (state.village.reputation ?? 0) + WISH_REWARD.rep;
   addPlayerXp(state, WISH_REWARD.xp);
   return {

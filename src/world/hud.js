@@ -391,6 +391,24 @@ export function createHud({
     }
   }
 
+  const HARVEST_ICONS = {
+    wood: "🪵",
+    stone: "🪨",
+    clay: "🧱",
+    soup: "🍲",
+    pumpkin: "🎃",
+    wheat: "🌾",
+    flour: "🌬️",
+    bread: "🍞",
+    pancake: "🥞",
+    berry: "🫐",
+    apple: "🍎",
+    egg: "🥚",
+    wool: "🐑",
+    fish: "🐟",
+    honey: "🍯",
+  };
+
   function renderInventory() {
     const snap = game.getSnapshot();
     const rows = ITEM_ROWS.map(([key, label, capKey]) => {
@@ -398,7 +416,32 @@ export function createHud({
       const cap = capKey ? ` / ${snap.village[capKey]}` : "";
       return `<div class="inv-row"><span>${label}</span><strong>${value}${cap}</strong></div>`;
     }).join("");
-    openSheet("inventory", "Lager", rows);
+    const stats = snap.stats ?? {};
+    const harvested = Object.entries(stats)
+      .filter(([key, value]) => key.startsWith("harvested:") && value > 0)
+      .map(([key, value]) => {
+        const item = key.slice("harvested:".length);
+        const label = ORDER_RESOURCE_LABELS[item] ?? item;
+        return `<div class="inv-row"><span>${HARVEST_ICONS[item] ?? "📦"} ${label}</span><strong>${value}</strong></div>`;
+      })
+      .join("");
+    const counters = [
+      ["📜 Aufträge geliefert", stats.ordersDelivered ?? 0],
+      ["💫 Wünsche erfüllt", stats.wishesFulfilled ?? 0],
+      ["🔬 Forschungen", stats.researchDone ?? 0],
+      ["🏠 Gebäude aufgestellt", stats.buildingsPlaced ?? 0],
+      ["🧺 Markt-Verkäufe", stats.marketSales ?? 0],
+      ["🪙 Markt-Gold", stats.marketGold ?? 0],
+      ["📦 Tal-Kisten gefüllt", stats.cratesFilled ?? 0],
+      ["⛵ Schiffsreisen", stats.valleyTrips ?? 0],
+      ["🧪 Tränke gebraut", stats.potionsBrewed ?? 0],
+    ]
+      .map(([label, value]) => `<div class="inv-row"><span>${label}</span><strong>${value}</strong></div>`)
+      .join("");
+    const statsHtml =
+      `<h3 class="sheet-subtitle">Dorf-Statistik</h3>${counters}` +
+      (harvested ? `<h3 class="sheet-subtitle">Geerntet</h3>${harvested}` : "");
+    openSheet("inventory", "Lager", rows + statsHtml);
   }
 
   function renderSettings() {
