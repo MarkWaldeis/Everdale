@@ -23,6 +23,7 @@ import { createStudy } from "./world/study.js";
 import { createStudyLoop } from "./world/study-loop.js";
 import { createValleyHarbor } from "./world/valley.js";
 import { createOrderBoard } from "./world/order-board.js";
+import { createDirtPaths } from "./world/dirt-paths.js";
 import { createHud } from "./world/hud.js";
 import "./styles.css";
 
@@ -70,12 +71,14 @@ controls.enableDamping = true;
 controls.dampingFactor = 0.08;
 controls.enablePan = true;
 controls.screenSpacePanning = false;
-controls.enableRotate = true;
+controls.enableRotate = false;
+controls.mouseButtons.RIGHT = THREE.MOUSE.PAN;
+controls.touches.TWO = THREE.TOUCH.DOLLY_PAN;
 controls.zoomToCursor = true;
 controls.panSpeed = 1.55;
 controls.keyPanSpeed = 18;
-controls.minPolarAngle = THREE.MathUtils.degToRad(6);
-controls.maxPolarAngle = THREE.MathUtils.degToRad(86);
+controls.minPolarAngle = THREE.MathUtils.degToRad(61);
+controls.maxPolarAngle = THREE.MathUtils.degToRad(61);
 controls.minDistance = 2.2;
 controls.maxDistance = 110;
 controls.target.set(0.4, 0.45, 0.2);
@@ -126,6 +129,7 @@ const animationState = {
   game: null,
   harvest: null,
   village: null,
+  paths: null,
   view: "village",
   debugPaused: false,
   windEnabled: !window.matchMedia("(prefers-reduced-motion: reduce)").matches,
@@ -175,6 +179,16 @@ function animate(now = 0) {
     animationState.clayLoop?.update(delta, now * 0.001);
     animationState.studyLoop?.update(delta, now * 0.001);
     controls.update();
+    const clampedX = THREE.MathUtils.clamp(controls.target.x, -14, 16);
+    const clampedZ = THREE.MathUtils.clamp(controls.target.z, -11, 12);
+    if (clampedX !== controls.target.x) {
+      camera.position.x += clampedX - controls.target.x;
+      controls.target.x = clampedX;
+    }
+    if (clampedZ !== controls.target.z) {
+      camera.position.z += clampedZ - controls.target.z;
+      controls.target.z = clampedZ;
+    }
   }
   if (animationState.frozenCamera) {
     camera.position.copy(animationState.frozenCamera.position);
@@ -518,6 +532,15 @@ async function start() {
       },
     };
 
+    animationState.paths = createDirtPaths();
+    world.root.add(animationState.paths.group);
+    const rebuildPaths = () => {
+      animationState.paths.rebuild(
+        animationState.village.grid.list().map((building) => building.root.position),
+        world.walkArea.surfaceY,
+      );
+    };
+
     const mounted = new Set();
     function mountPlaced(id) {
       const spec = placeable[id];
@@ -525,8 +548,14 @@ async function start() {
       if (mounted.has(id)) return animationState.village.grid.get(spec.id);
       world.root.add(spec.root);
       spec.root.visible = true;
+      const relocated = spec.onRelocated;
+      spec.onRelocated = () => {
+        relocated?.();
+        rebuildPaths();
+      };
       const record = animationState.village.register(spec);
       mounted.add(id);
+      rebuildPaths();
       return record;
     }
 
