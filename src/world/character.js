@@ -1424,6 +1424,12 @@ export function createCharacterController(
     job.stuckTime = (job.stuckTime ?? 0) + delta;
     if (job.stuckTime <= 3.6 || !destination) return;
     job.stuckTime = 0;
+    job.repathCount = (job.repathCount ?? 0) + 1;
+    if (job.repathCount >= 4) {
+      job.repathCount = 0;
+      onDone();
+      return;
+    }
     const rebuilt = pathViaMeadow(root.position, destination, job.walkability);
     if (indexKey === "storagePathIndex") {
       job.storagePath = rebuilt;

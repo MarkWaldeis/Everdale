@@ -184,6 +184,16 @@ export function createValleyHarbor(model, surfaceY) {
   water.position.set(10, surfaceY - 0.42, 2);
   root.add(water);
 
+  // Sandy spit under the land-side buildings so they sit on shore.
+  const shore = new THREE.Mesh(
+    new THREE.CircleGeometry(4.6, 32),
+    new THREE.MeshStandardMaterial({ color: 0xd9b27c, roughness: 0.95 }),
+  );
+  shore.rotation.x = -Math.PI / 2;
+  shore.scale.set(1.5, 1, 1.2);
+  shore.position.set(-4.8, surfaceY - 0.03, -1.2);
+  root.add(shore);
+
   const ship = createShipModel();
   const dockAnchor = new THREE.Vector3(2.4, surfaceY - 0.4, 2.6);
   const farAnchor = new THREE.Vector3(SAIL_DISTANCE, surfaceY - 0.4, SAIL_DISTANCE * 0.5);

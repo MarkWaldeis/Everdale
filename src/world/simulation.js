@@ -365,7 +365,7 @@ function defaultVillager(id, name, unlocked = true) {
   return {
     id,
     name,
-    gender: id === "john" ? "male" : "female",
+    gender: id === "john" || id === "karl" ? "male" : "female",
     houseId: "cottage",
     state: "IDLE",
     assignedBuildingId: null,
@@ -833,6 +833,7 @@ export function startResearch(state, nodeId) {
   if (!canAfford(state, node.cost)) {
     return { ok: false, reason: "cost" };
   }
+  spendCost(state, node.cost);
   state.research.activeId = nodeId;
   state.research.progress = 0;
   state.nodes[nodeId] = "researching";
@@ -847,10 +848,12 @@ export function completeResearch(state, nodeId) {
   if (status !== "ready" && status !== "researching") {
     return { ok: false, reason: status };
   }
-  if (!canAfford(state, node.cost)) {
-    return { ok: false, reason: "cost" };
+  if (status === "ready") {
+    if (!canAfford(state, node.cost)) {
+      return { ok: false, reason: "cost" };
+    }
+    spendCost(state, node.cost);
   }
-  spendCost(state, node.cost);
   state.nodes[nodeId] = "done";
   state.research.activeId = null;
   state.research.progress = 0;
