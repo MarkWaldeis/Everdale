@@ -885,3 +885,15 @@ test("sheep pen gates wool harvest which feeds the tailor", () => {
   const produced = tickProduction(state, "tailor", 51);
   assert.equal(produced.produced, "blanket");
 });
+
+test("apple tree gates apple harvest for orders", () => {
+  const state = createDefaultState();
+  state.unlocked["apple-tree"] = true;
+  state.village.wood = 40;
+  assert.equal(harvestResource(state, "apple", 2).ok, false);
+  placeBuilding(state, "apple-tree");
+  tickConstructions(state, 30);
+  assert.equal(state.placed["apple-tree"], true);
+  assert.equal(harvestResource(state, "apple", 4).total, 4);
+  assert.equal(state.village.apple, 4);
+});

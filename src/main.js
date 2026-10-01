@@ -38,6 +38,8 @@ import { createMillModel } from "./world/mill.js";
 import { createWheatLoop } from "./world/wheat-loop.js";
 import { createSheepPen } from "./world/sheep-pen.js";
 import { createSheepLoop } from "./world/sheep-loop.js";
+import { createAppleTree } from "./world/apple-tree.js";
+import { createAppleLoop } from "./world/apple-loop.js";
 import { createStream, streamReservedCells } from "./world/stream.js";
 import { createSocialLayer } from "./world/social.js";
 import { createHud } from "./world/hud.js";
@@ -293,6 +295,7 @@ function animate(now = 0) {
     animationState.houseIii?.update?.(camera);
     animationState.wheatField?.update?.(delta, now * 0.001);
     animationState.sheepPen?.update?.(delta, now * 0.001);
+    animationState.appleTree?.update?.(delta, now * 0.001);
     animationState.stream?.update?.(delta, now * 0.001);
     if (animationState.millRotor) {
       animationState.millRotor.rotation.z -= delta * 0.85;
@@ -432,6 +435,7 @@ async function start() {
     });
     animationState.millRotor = millParts.rotor;
     animationState.sheepPen = createSheepPen(world.walkArea.surfaceY);
+    animationState.appleTree = createAppleTree(world.walkArea.surfaceY);
     animationState.workshopModules = {
       bakery: animationState.bakery,
       tailor: animationState.tailor,
@@ -569,6 +573,22 @@ async function start() {
         animationState.mill,
       ],
     });
+    animationState.appleLoop = createAppleLoop({
+      game: animationState.game,
+      appleTree: animationState.appleTree,
+      storages: [
+        animationState.yard,
+        animationState.stoneYard,
+        animationState.clayYard,
+        animationState.kitchen,
+        animationState.pumpkinField,
+        animationState.well,
+        animationState.clayPit,
+        animationState.wheatField,
+        animationState.mill,
+        animationState.sheepPen,
+      ],
+    });
     animationState.wheatLoop = createWheatLoop({
       game: animationState.game,
       wheatField: animationState.wheatField,
@@ -643,6 +663,13 @@ async function start() {
           module: animationState.sheepPen,
           loop: animationState.sheepLoop,
           title: "Schafweide · Wolle scheren",
+          usesQueue: false,
+          jobKinds: ["harvest"],
+        },
+        "apple-tree": {
+          module: animationState.appleTree,
+          loop: animationState.appleLoop,
+          title: "Apfelbaum · Äpfel pflücken",
           usesQueue: false,
           jobKinds: ["harvest"],
         },
@@ -908,6 +935,18 @@ async function start() {
         setYaw: (yaw) => animationState.sheepPen.setYaw(yaw),
         refresh: () => animationState.sheepPen.refreshAnchors(),
       },
+      "apple-tree": {
+        id: "apple-tree",
+        label: "Apfelbaum",
+        root: animationState.appleTree.root,
+        size: animationState.appleTree.size,
+        w: 1,
+        h: 1,
+        padding: 1,
+        setWorldPosition: (x, z) => animationState.appleTree.setWorldPosition(x, z),
+        setYaw: (yaw) => animationState.appleTree.setYaw(yaw),
+        refresh: () => animationState.appleTree.refreshAnchors(),
+      },
     };
 
     animationState.paths = createDirtPaths();
@@ -973,7 +1012,7 @@ async function start() {
     }
 
     ["cottage", "wood-storage", "kitchen", "pumpkin-patch", "well", "study", "order-board"].forEach(mountPlaced);
-    ["clay-pit", "clay-storage", "stone-storage", "house-ii", "house-iii", "bakery", "tailor", "wood-workshop", "wheat-field", "mill", "sheep-pen"].forEach((id) => {
+    ["clay-pit", "clay-storage", "stone-storage", "house-ii", "house-iii", "bakery", "tailor", "wood-workshop", "wheat-field", "mill", "sheep-pen", "apple-tree"].forEach((id) => {
       if (animationState.game.isPlaced(id)) mountPlaced(id);
     });
 

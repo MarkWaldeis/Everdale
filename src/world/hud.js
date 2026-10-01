@@ -8,6 +8,7 @@ const ITEM_ROWS = [
   ["pumpkins", "Kürbisse", null],
   ["wheat", "Weizen", "wheatCap"],
   ["wool", "Wolle", "woolCap"],
+  ["apple", "Äpfel", "appleCap"],
   ["scrolls", "Schriftrollen", null],
   ["gold", "Gold", null],
   ["gems", "Diamanten", null],
@@ -24,6 +25,7 @@ const COST_ROW_LABELS = {
   wheat: "Weizen",
   flour: "Mehl",
   wool: "Wolle",
+  apple: "Äpfel",
 };
 
 const FIELD_LABELS = {
@@ -40,6 +42,7 @@ const FIELD_LABELS = {
   wheat: "Weizen",
   flour: "Mehl",
   wool: "Wolle",
+  apple: "Apfel",
 };
 
 const ORDER_SINGULAR_LABELS = {
@@ -51,6 +54,7 @@ const ORDER_SINGULAR_LABELS = {
   wheat: "Weizen",
   flour: "Mehl",
   wool: "Wolle",
+  apple: "Apfel",
 };
 
 const BUILDING_INFO = {
@@ -84,6 +88,14 @@ const BUILDING_INFO = {
     resourceLabel: "Wolle",
     worker: "Hirte",
     blurb: "Flauschige Schafe — der Hirte schert Wolle für Decken.",
+  },
+  "apple-tree": {
+    label: "Apfelbaum",
+    icon: "🍎",
+    resource: "apple",
+    resourceLabel: "Äpfel",
+    worker: "Pflücker",
+    blurb: "Reife Äpfel — der Pflücker schüttelt sie vom Baum.",
   },
   well: {
     label: "Brunnen",
