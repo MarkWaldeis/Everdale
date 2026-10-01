@@ -493,6 +493,8 @@ export function createHud({
     wheat: "Weizen",
     flour: "Mehl",
     wool: "Wolle",
+    apple: "Äpfel",
+    berry: "Beeren",
   };
 
   function renderOrders() {
