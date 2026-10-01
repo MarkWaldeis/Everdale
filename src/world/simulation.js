@@ -185,6 +185,14 @@ export const BUILDING_CATALOG = Object.freeze([
     description: "Mias Zuhause — sie zieht ein, sobald das Haus steht.",
   },
   {
+    id: "house-iv",
+    label: "Wohnhaus IV",
+    placeable: true,
+    cost: { wood: 26, stone: 16 },
+    constructionSeconds: 80,
+    description: "Lukas' Zuhause — er zieht ein, sobald das Haus steht.",
+  },
+  {
     id: "wheat-field",
     label: "Weizenfeld",
     placeable: true,
@@ -315,6 +323,16 @@ export const RESEARCH_NODES = Object.freeze([
     requires: ["wood-workshop"],
     cost: { wood: 24, stone: 18, gems: 4 },
     unlocksBuilding: "house-iii",
+    completable: true,
+  },
+  {
+    id: "house-iv",
+    name: "Großes Wohnhaus II",
+    detail: "Ein viertes Haus — Lukas zieht ein, sobald es steht.",
+    icon: "🏘️",
+    requires: ["house-iii"],
+    cost: { wood: 28, stone: 22, gems: 6 },
+    unlocksBuilding: "house-iv",
     completable: true,
   },
   {
@@ -534,6 +552,7 @@ export function createDefaultState() {
     "order-board": true,
     "house-ii": false,
     "house-iii": false,
+    "house-iv": false,
     "wheat-field": false,
     mill: false,
     "sheep-pen": false,
@@ -653,6 +672,7 @@ export function createDefaultState() {
       sophie: defaultVillager("sophie", "Sophie", false),
       karl: defaultVillager("karl", "Karl", false),
       mia: defaultVillager("mia", "Mia", false),
+      lukas: defaultVillager("lukas", "Lukas", false),
     },
     wishes: { cooldown: 60 },
     timings: {
@@ -1352,6 +1372,9 @@ export function applyOfflineProgress(state, elapsedSeconds) {
       if (id === "house-iii" && state.villagers.mia) {
         state.villagers.mia.unlocked = true;
       }
+      if (id === "house-iv" && state.villagers.lukas) {
+        state.villagers.lukas.unlocked = true;
+      }
       addPlayerXp(state, 20);
       result.constructions.push(id);
     }
@@ -1451,6 +1474,9 @@ function finishConstruction(state, buildingId) {
   }
   if (buildingId === "house-iii" && state.villagers.mia) {
     state.villagers.mia.unlocked = true;
+  }
+  if (buildingId === "house-iv" && state.villagers.lukas) {
+    state.villagers.lukas.unlocked = true;
   }
   addPlayerXp(state, 20);
 }

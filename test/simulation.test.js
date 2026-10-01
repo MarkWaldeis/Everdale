@@ -919,3 +919,15 @@ test("order deck only requests resources that have labels", () => {
     }
   }
 });
+
+test("house-iv construction unlocks Lukas", () => {
+  const state = createDefaultState();
+  state.unlocked["house-iv"] = true;
+  state.village.wood = 60;
+  state.village.stone = 40;
+  assert.equal(state.villagers.lukas.unlocked, false);
+  placeBuilding(state, "house-iv");
+  tickConstructions(state, 90);
+  assert.equal(state.villagers.lukas.unlocked, true);
+  assert.equal(isVillagerUnlocked(state, "lukas"), true);
+});
