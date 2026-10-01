@@ -613,9 +613,11 @@ function animate(now = 0) {
         }
       });
       animationState.wasNight = true;
-    } else if (animationState.wasNight && nightness < 0.35) {
+    } else if (animationState.wasNight && nightness < 0.45) {
       animationState.villagers.forEach((member) => member.wakeUp?.());
-      animationState.wasNight = false;
+      if (!animationState.villagers.some((member) => member.isAsleep?.())) {
+        animationState.wasNight = false;
+      }
     }
     animationState.giftBox?.update?.(delta, now * 0.001);
     if (animationState.giftBox && !animationState.giftBox.root.visible) {
