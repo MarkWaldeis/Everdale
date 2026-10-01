@@ -12,6 +12,7 @@ import { createVillageEditor } from "./world/village-editor.js";
 import { footprintFromSize } from "./world/village-grid.js";
 import { captureCharacterPortrait } from "./world/capture-portrait.js";
 import { createGameState } from "./world/game-state.js";
+import { createAmbientAudio } from "./audio.js";
 import { createKitchen } from "./world/kitchen.js";
 import { createPumpkinField } from "./world/pumpkin-field.js";
 import { createWell } from "./world/well.js";
@@ -844,8 +845,18 @@ async function start() {
       }
       animationState.hud?.showNotice?.("Willkommen zurück!", lines.join(""));
     }
+    const audio = createAmbientAudio();
+    audio.setMuted(animationState.game.getMuted?.());
+    const startAudio = () => {
+      audio.start();
+      window.removeEventListener("pointerdown", startAudio);
+    };
+    window.addEventListener("pointerdown", startAudio, { once: false });
+    animationState.audio = audio;
+
     let sophieWas = Boolean(animationState.game.getSnapshot().villagers.sophie?.unlocked);
     animationState.game.subscribe((snap) => {
+      audio.setMuted(snap.settings?.muted);
       const sophieNow = Boolean(snap.villagers.sophie?.unlocked);
       if (sophieNow && !sophieWas) {
         animationState.hud?.showNotice?.(
