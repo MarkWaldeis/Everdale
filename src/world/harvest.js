@@ -115,7 +115,6 @@ export function createHarvestDirector({
   decoRoots,
   houseIi,
   workshops,
-  wheatLoop,
 }) {
   const raycaster = new THREE.Raycaster();
   const marker = createGroundMarker();
@@ -265,8 +264,9 @@ export function createHarvestDirector({
     const potionStock = (game?.getPotions?.()?.[pointerState.potionId] ?? 0) > 0;
     const workshopQueued =
       visitingWorkshop && (game?.getProduction?.(pointerState.mode)?.queue.length ?? 0) > 0;
-    const wheatFieldFull =
-      pointerState.mode === "wheat-field" && Boolean(wheatLoop?.isFull?.());
+    const fieldShop =
+      visitingWorkshop && workshops?.[pointerState.mode]?.usesQueue === false;
+    const fieldFull = fieldShop && Boolean(workshops[pointerState.mode].loop?.isFull?.());
     const clayLocked = visitingClay && !game?.canCollectResource?.("clay");
     const storageFull =
       visitingClay
@@ -281,8 +281,8 @@ export function createHarvestDirector({
       : visitingClay
         ? !storageFull
         : visitingWorkshop
-          ? pointerState.mode === "wheat-field"
-            ? !wheatFieldFull
+          ? fieldShop
+            ? !fieldFull
             : workshopQueued
           : visitingPotion
             ? potionStock
@@ -745,9 +745,9 @@ export function createHarvestDirector({
         pumpkin: ["cook", "harvest"],
         clay: ["dig"],
         research: ["visit"],
-        "wheat-field": ["harvest"],
       };
       const kinds = modeKinds[pointerState.mode] ??
+        workshops?.[pointerState.mode]?.jobKinds ??
         (workshops?.[pointerState.mode] ? ["work"] : []);
       const assignedBuilding = game?.getSnapshot?.().villagers?.[member.getId()]?.assignedBuildingId;
       const sameTarget = Boolean(

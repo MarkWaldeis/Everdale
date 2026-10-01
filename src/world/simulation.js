@@ -12,6 +12,7 @@ export const RESOURCES = Object.freeze({
   pumpkin: { field: "pumpkins" },
   bread: { capKey: "breadCap", requiresPlaced: "bakery" },
   wheat: { capKey: "wheatCap", requiresPlaced: "wheat-field" },
+  wool: { capKey: "woolCap", requiresPlaced: "sheep-pen" },
   planks: { requiresPlaced: "wood-workshop" },
   bucket: { requiresPlaced: "wood-workshop" },
   rope: { requiresPlaced: "tailor" },
@@ -37,6 +38,7 @@ export const COST_LABELS = Object.freeze({
   blanket: "Decken",
   wheat: "Weizen",
   flour: "Mehl",
+  wool: "Wolle",
 });
 
 export const RECIPES = Object.freeze([
@@ -89,7 +91,7 @@ export const RECIPES = Object.freeze([
     id: "blanket",
     label: "Decke",
     building: "tailor",
-    inputs: { wood: 2, clay: 3 },
+    inputs: { wood: 1, wool: 2 },
     output: "blanket",
     amount: 1,
     seconds: 50,
@@ -193,6 +195,14 @@ export const BUILDING_CATALOG = Object.freeze([
     cost: { wood: 18, stone: 10 },
     constructionSeconds: 45,
     description: "Der Müller mahlt Weizen zu Mehl für die Bäckerei.",
+  },
+  {
+    id: "sheep-pen",
+    label: "Schafweide",
+    placeable: true,
+    cost: { wood: 14, stone: 6 },
+    constructionSeconds: 40,
+    description: "Flauschige Schafe — der Hirte schert Wolle für die Schneiderei.",
   },
 ]);
 
@@ -305,6 +315,16 @@ export const RESEARCH_NODES = Object.freeze([
     requires: ["wheat-field"],
     cost: { wood: 16, stone: 8, clay: 4 },
     unlocksBuilding: "mill",
+    completable: true,
+  },
+  {
+    id: "sheep-pen",
+    name: "Schafweide",
+    detail: "Eine eingezäunte Wiese — der Hirte schert Wolle für Decken.",
+    icon: "🐑",
+    requires: ["tailor"],
+    cost: { wood: 12, clay: 4 },
+    unlocksBuilding: "sheep-pen",
     completable: true,
   },
   {
@@ -472,6 +492,7 @@ export function createDefaultState() {
     "house-iii": false,
     "wheat-field": false,
     mill: false,
+    "sheep-pen": false,
   };
   const nodes = {};
   RESEARCH_NODES.forEach((node) => {
@@ -500,6 +521,8 @@ export function createDefaultState() {
       flourCap: 20,
       wheat: 0,
       wheatCap: 20,
+      wool: 0,
+      woolCap: 20,
       bread: 0,
       breadCap: 15,
       planks: 0,
@@ -1050,6 +1073,7 @@ const SKILL_FOR_TASK = Object.freeze({
   craft: "building",
   research: "research",
   "harvest-wheat": "farming",
+  "shear-wool": "farming",
   mill: "building",
 });
 

@@ -464,17 +464,18 @@ test("bread orders only appear once the bakery stands", () => {
   assert.equal(found, 1);
 });
 
-test("tailor sews blankets from wood and clay", () => {
+test("tailor sews blankets from wood and wool", () => {
   const state = createDefaultState();
   state.unlocked.tailor = true;
   state.village.wood = 40;
   state.village.clay = 20;
+  state.village.wool = 3;
   placeBuilding(state, "tailor");
 
   const queued = queueRecipe(state, "tailor", "blanket");
   assert.equal(queued.ok, true);
-  assert.equal(state.village.wood, 24);
-  assert.equal(state.village.clay, 11);
+  assert.equal(state.village.wood, 25);
+  assert.equal(state.village.wool, 1);
 
   const produced = tickProduction(state, "tailor", 51);
   assert.equal(produced.produced, "blanket");
@@ -860,4 +861,27 @@ test("wheat field and mill chain wheat into flour for bread", () => {
   const produced = tickProduction(state, "mill", 36);
   assert.equal(produced.produced, "flour");
   assert.equal(state.village.flour, 1);
+});
+
+test("sheep pen gates wool harvest which feeds the tailor", () => {
+  const state = createDefaultState();
+  state.unlocked["sheep-pen"] = true;
+  state.village.wood = 50;
+  state.village.stone = 20;
+  assert.equal(harvestResource(state, "wool", 2).ok, false);
+  placeBuilding(state, "sheep-pen");
+  tickConstructions(state, 45);
+  assert.equal(state.placed["sheep-pen"], true);
+
+  assert.equal(harvestResource(state, "wool", 3).total, 3);
+  assert.equal(state.village.wool, 3);
+
+  state.unlocked.tailor = true;
+  state.village.wood = 40;
+  state.village.clay = 10;
+  placeBuilding(state, "tailor");
+  assert.equal(queueRecipe(state, "tailor", "blanket").ok, true);
+  assert.equal(state.village.wool, 1);
+  const produced = tickProduction(state, "tailor", 51);
+  assert.equal(produced.produced, "blanket");
 });

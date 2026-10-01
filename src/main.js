@@ -36,6 +36,8 @@ import { createFoliage } from "./world/foliage.js";
 import { createWheatField } from "./world/wheat-field.js";
 import { createMillModel } from "./world/mill.js";
 import { createWheatLoop } from "./world/wheat-loop.js";
+import { createSheepPen } from "./world/sheep-pen.js";
+import { createSheepLoop } from "./world/sheep-loop.js";
 import { createHud } from "./world/hud.js";
 import "./styles.css";
 
@@ -287,6 +289,7 @@ function animate(now = 0) {
     animationState.houseIi?.update?.(camera);
     animationState.houseIii?.update?.(camera);
     animationState.wheatField?.update?.(delta, now * 0.001);
+    animationState.sheepPen?.update?.(delta, now * 0.001);
     if (animationState.millRotor) {
       animationState.millRotor.rotation.z -= delta * 0.85;
     }
@@ -423,6 +426,7 @@ async function start() {
       proxyRadius: 1.5,
     });
     animationState.millRotor = millParts.rotor;
+    animationState.sheepPen = createSheepPen(world.walkArea.surfaceY);
     animationState.workshopModules = {
       bakery: animationState.bakery,
       tailor: animationState.tailor,
@@ -545,6 +549,21 @@ async function start() {
         villagers: animationState.villagers,
       }),
     };
+    animationState.sheepLoop = createSheepLoop({
+      game: animationState.game,
+      sheepPen: animationState.sheepPen,
+      storages: [
+        animationState.yard,
+        animationState.stoneYard,
+        animationState.clayYard,
+        animationState.kitchen,
+        animationState.pumpkinField,
+        animationState.well,
+        animationState.clayPit,
+        animationState.wheatField,
+        animationState.mill,
+      ],
+    });
     animationState.wheatLoop = createWheatLoop({
       game: animationState.game,
       wheatField: animationState.wheatField,
@@ -556,6 +575,7 @@ async function start() {
         animationState.pumpkinField,
         animationState.well,
         animationState.clayPit,
+        animationState.mill,
       ],
     });
     const decoModels = {
@@ -607,9 +627,21 @@ async function start() {
         tailor: { module: animationState.tailor, loop: animationState.workshopLoops.tailor, title: "Schneiderei · Nähen" },
         "wood-workshop": { module: animationState.woodWorkshop, loop: animationState.workshopLoops["wood-workshop"], title: "Holzwerkstatt · Werken" },
         mill: { module: animationState.mill, loop: animationState.workshopLoops.mill, title: "Windmühle · Mehl mahlen" },
-        "wheat-field": { module: animationState.wheatField, loop: animationState.wheatLoop, title: "Weizenfeld · Weizen ernten" },
+        "wheat-field": {
+          module: animationState.wheatField,
+          loop: animationState.wheatLoop,
+          title: "Weizenfeld · Weizen ernten",
+          usesQueue: false,
+          jobKinds: ["harvest"],
+        },
+        "sheep-pen": {
+          module: animationState.sheepPen,
+          loop: animationState.sheepLoop,
+          title: "Schafweide · Wolle scheren",
+          usesQueue: false,
+          jobKinds: ["harvest"],
+        },
       },
-      wheatLoop: animationState.wheatLoop,
       decoRoots,
     });
     animationState.village = createVillageEditor({
@@ -858,6 +890,18 @@ async function start() {
         setYaw: (yaw) => animationState.mill.setYaw(yaw),
         refresh: () => animationState.mill.refreshAnchors(),
       },
+      "sheep-pen": {
+        id: "sheep-pen",
+        label: "Schafweide",
+        root: animationState.sheepPen.root,
+        size: animationState.sheepPen.size,
+        w: 2,
+        h: 2,
+        padding: 1,
+        setWorldPosition: (x, z) => animationState.sheepPen.setWorldPosition(x, z),
+        setYaw: (yaw) => animationState.sheepPen.setYaw(yaw),
+        refresh: () => animationState.sheepPen.refreshAnchors(),
+      },
     };
 
     animationState.paths = createDirtPaths();
@@ -923,7 +967,7 @@ async function start() {
     }
 
     ["cottage", "wood-storage", "kitchen", "pumpkin-patch", "well", "study", "order-board"].forEach(mountPlaced);
-    ["clay-pit", "clay-storage", "stone-storage", "house-ii", "house-iii", "bakery", "tailor", "wood-workshop", "wheat-field", "mill"].forEach((id) => {
+    ["clay-pit", "clay-storage", "stone-storage", "house-ii", "house-iii", "bakery", "tailor", "wood-workshop", "wheat-field", "mill", "sheep-pen"].forEach((id) => {
       if (animationState.game.isPlaced(id)) mountPlaced(id);
     });
 

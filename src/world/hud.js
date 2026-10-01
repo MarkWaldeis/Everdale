@@ -7,6 +7,7 @@ const ITEM_ROWS = [
   ["soup", "Suppe", "soupCap"],
   ["pumpkins", "Kürbisse", null],
   ["wheat", "Weizen", "wheatCap"],
+  ["wool", "Wolle", "woolCap"],
   ["scrolls", "Schriftrollen", null],
   ["gold", "Gold", null],
   ["gems", "Diamanten", null],
@@ -22,6 +23,7 @@ const COST_ROW_LABELS = {
   blanket: "Decken",
   wheat: "Weizen",
   flour: "Mehl",
+  wool: "Wolle",
 };
 
 const FIELD_LABELS = {
@@ -37,6 +39,7 @@ const FIELD_LABELS = {
   blanket: "Decken",
   wheat: "Weizen",
   flour: "Mehl",
+  wool: "Wolle",
 };
 
 const ORDER_SINGULAR_LABELS = {
@@ -47,6 +50,7 @@ const ORDER_SINGULAR_LABELS = {
   bread: "Brot",
   wheat: "Weizen",
   flour: "Mehl",
+  wool: "Wolle",
 };
 
 const BUILDING_INFO = {
@@ -72,6 +76,14 @@ const BUILDING_INFO = {
     resourceLabel: "Mehl",
     worker: "Müller",
     blurb: "Der Müller mahlt Weizen zu Mehl für die Bäckerei.",
+  },
+  "sheep-pen": {
+    label: "Schafweide",
+    icon: "🐑",
+    resource: "wool",
+    resourceLabel: "Wolle",
+    worker: "Hirte",
+    blurb: "Flauschige Schafe — der Hirte schert Wolle für Decken.",
   },
   well: {
     label: "Brunnen",
@@ -456,6 +468,7 @@ export function createHud({
     scrolls: "Schriftrollen",
     wheat: "Weizen",
     flour: "Mehl",
+    wool: "Wolle",
   };
 
   function renderOrders() {
