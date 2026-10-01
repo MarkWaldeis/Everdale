@@ -41,6 +41,7 @@ import { createSheepLoop } from "./world/sheep-loop.js";
 import { createAppleTree } from "./world/apple-tree.js";
 import { createAppleLoop } from "./world/apple-loop.js";
 import { createStream, streamReservedCells } from "./world/stream.js";
+import { createGiftBox } from "./world/gift.js";
 import { createSocialLayer } from "./world/social.js";
 import { createHud } from "./world/hud.js";
 import "./styles.css";
@@ -83,6 +84,14 @@ renderer.toneMapping = THREE.ACESFilmicToneMapping;
 renderer.toneMappingExposure = 1.08;
 renderer.shadowMap.enabled = true;
 renderer.shadowMap.type = THREE.PCFSoftShadowMap;
+
+const GIFT_INTERVAL_MIN = 170;
+const GIFT_INTERVAL_SPAN = 90;
+const GIFT_REWARDS = [
+  { weight: 55, gold: [8, 16] },
+  { weight: 30, gold: [10, 18], scrolls: [1, 2] },
+  { weight: 15, gold: [8, 12], gems: [1, 1] },
+];
 
 const controls = new MapControls(camera, renderer.domElement);
 controls.enableDamping = true;
@@ -133,6 +142,82 @@ scene.add(sun);
 const fill = new THREE.DirectionalLight(0xaed8ff, 0.9);
 fill.position.set(10, 7, -9);
 scene.add(fill);
+
+function rollGiftReward() {
+  const total = GIFT_REWARDS.reduce((sum, entry) => sum + entry.weight, 0);
+  let pick = Math.random() * total;
+  for (const entry of GIFT_REWARDS) {
+    pick -= entry.weight;
+    if (pick > 0) continue;
+    const reward = {};
+    for (const [key, range] of Object.entries(entry)) {
+      if (key === "weight") continue;
+      reward[key] = range[0] + Math.floor(Math.random() * (range[1] - range[0] + 1));
+    }
+    return reward;
+  }
+  return { gold: 10 };
+}
+
+function collectGift() {
+  const { giftBox, game, hud } = animationState;
+  if (!giftBox?.root.visible || !game) return;
+  giftBox.hide();
+  const reward = rollGiftReward();
+  const parts = [];
+  if (reward.gold) {
+    game.addGold?.(reward.gold);
+    parts.push(`+${reward.gold} 🪙`);
+  }
+  if (reward.scrolls) {
+    game.addScrolls?.(reward.scrolls);
+    parts.push(`+${reward.scrolls} 📜`);
+  }
+  if (reward.gems) {
+    game.addGems?.(reward.gems);
+    parts.push(`+${reward.gems} 💎`);
+  }
+  game.addGiftCollected?.();
+  hud?.showNotice?.("Geschenk geöffnet", `Ein Geschenk aus dem Dorf! ${parts.join(" · ")}`);
+}
+
+function findGiftSpot() {
+  const walkArea = animationState.walkArea;
+  if (!walkArea) return null;
+  const roots = [
+    animationState.cottage,
+    animationState.yard,
+    animationState.stoneYard,
+    animationState.clayYard,
+    animationState.kitchen,
+    animationState.pumpkinField,
+    animationState.well,
+    animationState.clayPit,
+    animationState.orderBoard,
+    animationState.houseIi,
+    animationState.houseIii,
+    animationState.bakery,
+    animationState.tailor,
+    animationState.woodWorkshop,
+    animationState.wheatField,
+    animationState.mill,
+    animationState.sheepPen,
+    animationState.appleTree,
+    animationState.study,
+  ]
+    .map((module) => module?.root?.position ?? module?.position)
+    .filter(Boolean);
+  for (let attempt = 0; attempt < 14; attempt += 1) {
+    const angle = Math.random() * Math.PI * 2;
+    const radius = Math.sqrt(Math.random());
+    const x = Math.cos(angle) * radius * walkArea.radiusX * 0.86;
+    const z = Math.sin(angle) * radius * walkArea.radiusZ * 0.86;
+    if (z > 8.2) continue;
+    if (roots.some((p) => Math.hypot(p.x - x, p.z - z) < 1.35)) continue;
+    return { x, z };
+  }
+  return null;
+}
 
 const animationState = {
   trees: [],
@@ -296,6 +381,14 @@ function animate(now = 0) {
     animationState.wheatField?.update?.(delta, now * 0.001);
     animationState.sheepPen?.update?.(delta, now * 0.001);
     animationState.appleTree?.update?.(delta, now * 0.001);
+    animationState.giftBox?.update?.(delta, now * 0.001);
+    if (animationState.giftBox && !animationState.giftBox.root.visible) {
+      if (now * 0.001 >= (animationState.giftNextAt ?? 0)) {
+        const spot = findGiftSpot();
+        if (spot) animationState.giftBox.show(spot, now * 0.001);
+        animationState.giftNextAt = now * 0.001 + GIFT_INTERVAL_MIN + Math.random() * GIFT_INTERVAL_SPAN;
+      }
+    }
     animationState.stream?.update?.(delta, now * 0.001);
     if (animationState.millRotor) {
       animationState.millRotor.rotation.z -= delta * 0.85;
@@ -436,6 +529,10 @@ async function start() {
     animationState.millRotor = millParts.rotor;
     animationState.sheepPen = createSheepPen(world.walkArea.surfaceY);
     animationState.appleTree = createAppleTree(world.walkArea.surfaceY);
+    animationState.walkArea = world.walkArea;
+    animationState.giftBox = createGiftBox(world.walkArea.surfaceY);
+    world.root.add(animationState.giftBox.root);
+    animationState.giftNextAt = 140 + Math.random() * 60;
     animationState.workshopModules = {
       bakery: animationState.bakery,
       tailor: animationState.tailor,
@@ -647,6 +744,8 @@ async function start() {
       onOpenVillager: (id) => animationState.hud?.renderVillager?.(id),
       orderBoard: animationState.orderBoard,
       onOpenOrders: () => animationState.hud?.renderOrders?.(),
+      giftBox: animationState.giftBox,
+      onCollectGift: collectGift,
       workshops: {
         bakery: { module: animationState.bakery, loop: animationState.workshopLoops.bakery, title: "Bäckerei · Brot backen" },
         tailor: { module: animationState.tailor, loop: animationState.workshopLoops.tailor, title: "Schneiderei · Nähen" },
@@ -1223,6 +1322,12 @@ async function start() {
       tailor: animationState.tailor,
       woodWorkshop: animationState.woodWorkshop,
       workshopLoops: animationState.workshopLoops,
+      giftBox: animationState.giftBox,
+      spawnGift: () => {
+        const spot = findGiftSpot();
+        if (spot) animationState.giftBox.show(spot, 0);
+        return spot;
+      },
       clayLoop: animationState.clayLoop,
       soupLoop: animationState.soupLoop,
       game: animationState.game,

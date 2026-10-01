@@ -115,6 +115,8 @@ export function createHarvestDirector({
   decoRoots,
   houseIi,
   workshops,
+  giftBox,
+  onCollectGift,
 }) {
   const raycaster = new THREE.Raycaster();
   const marker = createGroundMarker();
@@ -301,6 +303,14 @@ export function createHarvestDirector({
       const alreadyInLab = visitingLab && member.isAtLab?.();
       const canTake = canAssign && !alreadyInLab;
       button.disabled = !busy && !canTake;
+      button.title =
+        !busy && fieldShop && fieldFull
+          ? "Lager voll"
+          : !busy && visitingClay && storageFull
+            ? "Lager voll"
+            : !busy && selected && storageFull
+              ? "Lager voll"
+              : "";
       button.classList.toggle("is-busy", busy);
       button.classList.toggle("can-cancel", busy);
       const status = button.querySelector(".worker-state");
@@ -656,6 +666,16 @@ export function createHarvestDirector({
     if (trayTitle) trayTitle.textContent = shop.title;
     refreshWorkerCard();
     setTrayOpen(true);
+  }
+
+  function pickGift(clientX, clientY) {
+    if (!giftBox?.root?.visible) return null;
+    const bounds = canvas.getBoundingClientRect();
+    scratch.pointer.x = ((clientX - bounds.left) / bounds.width) * 2 - 1;
+    scratch.pointer.y = -((clientY - bounds.top) / bounds.height) * 2 + 1;
+    raycaster.setFromCamera(scratch.pointer, camera);
+    const hits = raycaster.intersectObject(giftBox.root, true);
+    return hits.length ? giftBox.root : null;
   }
 
   function pickDecoration(clientX, clientY) {
@@ -1155,6 +1175,11 @@ export function createHarvestDirector({
     if (workshopHit) {
       selectTree(null);
       onOpenBuilding?.(workshopHit);
+      return;
+    }
+    const giftHit = pickGift(event.clientX, event.clientY);
+    if (giftHit) {
+      onCollectGift?.();
       return;
     }
     const decoHit = pickDecoration(event.clientX, event.clientY);
