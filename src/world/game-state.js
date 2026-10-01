@@ -27,6 +27,7 @@ import {
   fillOrder,
   getConstruction,
   tickConstructions as simTickConstructions,
+  applyOfflineProgress,
   getCatalogItem,
   getResearchNode,
   canAfford,
@@ -87,6 +88,10 @@ export function createGameState() {
     : base;
   data.placed.study = true;
   data.player.level = getPlayerLevel(data);
+  let offlineSummary = null;
+  if (saved) {
+    offlineSummary = applyOfflineProgress(data, (Date.now() - (data.lastTick ?? Date.now())) / 1000);
+  }
   const listeners = new Set();
 
   function persist() {
@@ -164,6 +169,7 @@ export function createGameState() {
       }
       return wrap(() => simTickConstructions(data, delta));
     },
+    getOfflineSummary: () => offlineSummary,
     getCatalogItem: (id) => getCatalogItem(id),
     getSoup: () => data.village.soup,
     getSoupCap: () => data.village.soupCap,

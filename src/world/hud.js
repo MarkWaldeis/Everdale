@@ -284,6 +284,10 @@ export function createHud({
     );
   }
 
+  function showNotice(title, html) {
+    openSheet("notice", title, html);
+  }
+
   function renderValley() {
     if (!game.isValleyUnlocked()) {
       openSheet("valley", "Tal", "<p>Erforsche den Tal-Zugang, dann kannst du hinreisen.</p>");
@@ -463,5 +467,6 @@ export function createHud({
     renderValley,
     renderBuilding,
     renderOrders,
+    showNotice,
   };
 }

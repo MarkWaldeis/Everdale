@@ -24,6 +24,7 @@ import {
   ORDER_SLOTS,
   getConstruction,
   tickConstructions,
+  applyOfflineProgress,
 } from "../src/world/simulation.js";
 
 test("fresh start keeps later buildings locked", () => {
@@ -306,4 +307,26 @@ test("quest asks to build the house before valley research", () => {
   state.placed["stone-storage"] = true;
   const quest = getActiveQuest(state);
   assert.equal(quest.id, "build-house");
+});
+
+test("offline progress finishes constructions while away", () => {
+  const state = createDefaultState();
+  state.unlocked["house-ii"] = true;
+  state.village.wood = 20;
+  state.village.stone = 10;
+  placeBuilding(state, "house-ii");
+  const summary = applyOfflineProgress(state, 3600);
+  assert.ok(summary.constructions.includes("house-ii"));
+  assert.equal(getConstruction(state, "house-ii"), null);
+  assert.equal(state.villagers.sophie.unlocked, true);
+});
+
+test("offline progress completes an active research", () => {
+  const state = createDefaultState();
+  state.village.wood = 20;
+  startResearch(state, "clay-pit");
+  const summary = applyOfflineProgress(state, 600);
+  assert.equal(summary.researchDone, "clay-pit");
+  assert.equal(state.nodes["clay-pit"], "done");
+  assert.equal(state.unlocked["clay-pit"], true);
 });

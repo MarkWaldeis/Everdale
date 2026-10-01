@@ -797,6 +797,38 @@ export function fillOrder(state, slotIndex) {
   };
 }
 
+export function applyOfflineProgress(state, elapsedSeconds) {
+  const result = { seconds: 0, constructions: [], researchDone: null };
+  if (!Number.isFinite(elapsedSeconds) || elapsedSeconds <= 0) return result;
+  const elapsed = Math.min(elapsedSeconds, 4 * 3600);
+  result.seconds = elapsed;
+  Object.entries(state.constructions ?? {}).forEach(([id, entry]) => {
+    entry.remaining -= elapsed;
+    if (entry.remaining <= 0) {
+      delete state.constructions[id];
+      if (state.buildings[id]) state.buildings[id].status = "ACTIVE";
+      if (id === "house-ii" && state.villagers.sophie) {
+        state.villagers.sophie.unlocked = true;
+      }
+      addPlayerXp(state, 20);
+      result.constructions.push(id);
+    }
+  });
+  if (state.research.activeId) {
+    const nodeId = state.research.activeId;
+    state.research.progress += elapsed;
+    if (state.research.progress >= state.research.required) {
+      const done = completeResearch(state, nodeId);
+      if (done.ok) {
+        result.researchDone = nodeId;
+      } else {
+        state.research.progress = state.research.required;
+      }
+    }
+  }
+  return result;
+}
+
 export function simulateValleyMembers(state, fills = 1) {
   if (!state.valleyUnlocked) return 0;
   let count = 0;

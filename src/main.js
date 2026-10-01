@@ -655,7 +655,41 @@ async function start() {
       animationState.houseIi?.setConstruction(entry ? 1 - entry.remaining / entry.total : null);
     };
     syncConstruction(animationState.game.getSnapshot());
+    const offline = animationState.game.getOfflineSummary?.();
+    if (
+      offline &&
+      offline.seconds > 60 &&
+      (offline.constructions.length || offline.researchDone)
+    ) {
+      const minutes = Math.round(offline.seconds / 60);
+      const away =
+        minutes >= 120
+          ? `${Math.floor(minutes / 60)} Std ${minutes % 60} Min`
+          : `${minutes} Min`;
+      const lines = [`<p class="sheet-hint">Du warst ${away} weg.</p>`];
+      if (offline.constructions.length) {
+        lines.push(
+          `<div class="inv-row"><span>Bau fertig</span><strong>${offline.constructions
+            .map((id) => animationState.game.getCatalogItem(id)?.label ?? id)
+            .join(", ")}</strong></div>`,
+        );
+      }
+      if (offline.researchDone) {
+        const node = animationState.game.nodes.find((entry) => entry.id === offline.researchDone);
+        lines.push(`<div class="inv-row"><span>Erforscht</span><strong>${node?.name ?? offline.researchDone}</strong></div>`);
+      }
+      animationState.hud?.showNotice?.("Willkommen zurück!", lines.join(""));
+    }
+    let sophieWas = Boolean(animationState.game.getSnapshot().villagers.sophie?.unlocked);
     animationState.game.subscribe((snap) => {
+      const sophieNow = Boolean(snap.villagers.sophie?.unlocked);
+      if (sophieNow && !sophieWas) {
+        animationState.hud?.showNotice?.(
+          "Sophie ist eingezogen!",
+          `<p class="sheet-hint">Ein neuer Bewohner hilft im Dorf — auf dem Wohnhaus II steht jetzt Sophies Zuhause.</p>`,
+        );
+      }
+      sophieWas = sophieNow;
       syncConstruction(snap);
       const sophie = animationState.villagers.find((entry) => entry.getId() === "sophie");
       if (sophie) sophie.root.visible = Boolean(snap.villagers.sophie?.unlocked);
