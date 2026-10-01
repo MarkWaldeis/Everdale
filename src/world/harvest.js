@@ -221,15 +221,17 @@ export function createHarvestDirector({
     if (buff && buff.effect === "meal") return "Satt ⚗";
     if (member.isAtLab?.()) return "Im Labor";
     const kind = member.getJobKind?.();
-    if (kind === "cook") return "Kocht";
-    if (kind === "harvest") return "Erntet";
-    if (kind === "dig") return "Gräbt";
+    const skill = game?.getVillagerSkill?.(member.getId());
+    const levelTag = skill && skill.level > 1 ? ` · Lv${skill.level}` : "";
+    if (kind === "cook") return `Kocht${levelTag}`;
+    if (kind === "harvest") return `Erntet${levelTag}`;
+    if (kind === "dig") return `Gräbt${levelTag}`;
     if (kind === "work" && member.getState?.() === "job-work") {
       const task = game?.getSnapshot?.().villagers?.[member.getId()]?.assignedTaskId;
-      if (task === "bake") return "Backt";
-      if (task === "sew") return "Näht";
-      if (task === "craft") return "Werkelt";
-      return "Arbeitet";
+      if (task === "bake") return `Backt${levelTag}`;
+      if (task === "sew") return `Näht${levelTag}`;
+      if (task === "craft") return `Werkelt${levelTag}`;
+      return `Arbeitet${levelTag}`;
     }
     if (!member.isBusy()) return "Frei";
     const state = member.getState();

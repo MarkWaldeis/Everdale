@@ -738,7 +738,9 @@ export function tickBuffs(state, deltaSeconds) {
 }
 
 export function villagerSpeed(state, villagerId) {
-  return state.villagers[villagerId]?.activeBuff?.effect === "speed" ? 1.6 : 1;
+  const buff = state.villagers[villagerId]?.activeBuff?.effect === "speed" ? 1.6 : 1;
+  const skill = 1 + 0.04 * (villagerSkillLevel(state, villagerId) - 1);
+  return buff * skill;
 }
 
 export function getProduction(state, buildingId) {
@@ -952,6 +954,29 @@ export function cookFromPumpkin(state) {
   return state.village.soup;
 }
 
+const SKILL_FOR_TASK = Object.freeze({
+  harvest: "farming",
+  cook: "farming",
+  dig: "clayDigging",
+  work: "building",
+  visit: "research",
+});
+
+export function skillLevelOf(villager, key) {
+  const xp = villager?.skills?.[key] ?? 0;
+  return Math.min(10, 1 + Math.floor(xp / 25));
+}
+
+export function villagerSkillKey(villager) {
+  return SKILL_FOR_TASK[villager?.assignedTaskId] ?? null;
+}
+
+export function villagerSkillLevel(state, villagerId) {
+  const villager = state.villagers[villagerId];
+  const key = villagerSkillKey(villager);
+  return key ? skillLevelOf(villager, key) : 1;
+}
+
 export function tickVillagerWork(state, villagerId, delta) {
   const villager = state.villagers[villagerId];
   if (!villager) return false;
@@ -959,6 +984,11 @@ export function tickVillagerWork(state, villagerId, delta) {
     villager.hungry = true;
     villager.state = "HUNGRY";
     return true;
+  }
+  const skillKey = villagerSkillKey(villager);
+  if (skillKey) {
+    villager.skills ??= {};
+    villager.skills[skillKey] = (villager.skills[skillKey] ?? 0) + delta * 0.5;
   }
   if (villager.activeBuff?.effect !== "meal") {
     villager.workSeconds += delta;

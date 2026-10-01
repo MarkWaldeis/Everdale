@@ -42,6 +42,8 @@ import {
   DECORATIONS,
   tickValley,
   getShip,
+  villagerSkillKey,
+  skillLevelOf,
   rushConstruction,
   rushBrewing,
   rushProduction,
@@ -268,6 +270,12 @@ export function createGameState() {
     removeDecoration: (uid) => wrap(() => removeDecoration(data, uid)),
     tickValley: (delta) => wrap(() => tickValley(data, delta)),
     getShip: () => getShip(data),
+    getVillagerSkill: (id) => {
+      const villager = data.villagers[id];
+      const key = villagerSkillKey(villager);
+      if (!key) return null;
+      return { key, level: skillLevelOf(villager, key), xp: villager?.skills?.[key] ?? 0 };
+    },
     rushConstruction: (id) => wrap(() => rushConstruction(data, id)),
     rushBrewing: () => wrap(() => rushBrewing(data)),
     rushProduction: (id) => wrap(() => rushProduction(data, id)),

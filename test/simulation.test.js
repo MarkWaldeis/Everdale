@@ -39,6 +39,7 @@ import {
   rushBrewing,
   rushResearch,
   getShip,
+  villagerSkillLevel,
   placeDecoration,
 } from "../src/world/simulation.js";
 
@@ -640,4 +641,22 @@ test("gem rush completes construction, brewing and research instantly", () => {
   assert.equal(state.research.progress, 12);
   assert.equal(state.village.gems, 0);
   assert.equal(rushConstruction(state, "house-ii").ok, false);
+});
+
+test("villagers gain skill xp while working and get faster", () => {
+  const state = createDefaultState();
+  const villager = state.villagers.lena;
+  villager.state = "WORKING";
+  villager.assignedTaskId = "dig";
+  state.village.soup = 10;
+
+  assert.equal(villagerSpeed(state, "lena"), 1);
+  tickVillagerWork(state, "lena", 50); // 25 xp of digging skill
+  assert.equal(villager.skills.clayDigging, 25);
+  assert.equal(villagerSkillLevel(state, "lena"), 2);
+  assert.ok(villagerSpeed(state, "lena") > 1);
+
+  // Farming is a different track — no carry-over.
+  villager.assignedTaskId = "cook";
+  assert.equal(villagerSkillLevel(state, "lena"), 1);
 });
