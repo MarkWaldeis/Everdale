@@ -27,6 +27,8 @@ import {
   canFillOrder,
   fillOrder,
   getConstruction,
+  assignConstructionWorker as simAssignConstructionWorker,
+  clearConstructionWorker as simClearConstructionWorker,
   tickConstructions as simTickConstructions,
   applyOfflineProgress,
   queueRecipe,
@@ -210,6 +212,10 @@ export function createGameState() {
     canFillOrder: (slot) => canFillOrder(data, slot),
     fillOrder: (slot) => wrap(() => fillOrder(data, slot)),
     getConstruction: (id) => getConstruction(data, id),
+    assignConstructionWorker: (buildingId, villagerId) =>
+      wrap(() => simAssignConstructionWorker(data, buildingId, villagerId)),
+    clearConstructionWorker: (buildingId) =>
+      wrap(() => simClearConstructionWorker(data, buildingId)),
     hasConstructions: () =>
       Object.values(data.constructions ?? {}).some((entry) => entry.remaining > 0),
     tickConstructions: (delta) => {

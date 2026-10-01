@@ -855,6 +855,7 @@ export function placeBuilding(state, id) {
     state.constructions[id] = {
       remaining: item.constructionSeconds,
       total: item.constructionSeconds,
+      builderId: null,
     };
   }
   return { ok: true, id, village: { ...state.village } };
@@ -1043,13 +1044,27 @@ export function tickConstructions(state, deltaSeconds) {
   const constructions = state.constructions ?? {};
   const completed = [];
   Object.entries(constructions).forEach(([id, entry]) => {
-    entry.remaining -= deltaSeconds;
+    const scale = entry.builderId ? 3 : 1;
+    entry.remaining -= deltaSeconds * scale;
     if (entry.remaining <= 0) {
       finishConstruction(state, id);
       completed.push(id);
     }
   });
   return { completed };
+}
+
+export function assignConstructionWorker(state, buildingId, villagerId) {
+  const entry = state.constructions?.[buildingId];
+  if (!entry) return { ok: false, reason: "no-construction" };
+  entry.builderId = villagerId;
+  return { ok: true };
+}
+
+export function clearConstructionWorker(state, buildingId) {
+  const entry = state.constructions?.[buildingId];
+  if (entry) entry.builderId = null;
+  return { ok: true };
 }
 
 export function getBuildingLevel(state, id) {

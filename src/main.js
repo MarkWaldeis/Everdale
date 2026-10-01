@@ -49,6 +49,7 @@ import { createFishLoop } from "./world/fish-loop.js";
 import { createStream, streamReservedCells } from "./world/stream.js";
 import { createGiftBox } from "./world/gift.js";
 import { createDecoMesh } from "./world/decos.js";
+import { createConstructionLoop } from "./world/construction-loop.js";
 import { createSocialLayer } from "./world/social.js";
 import { createHud } from "./world/hud.js";
 import "./styles.css";
@@ -442,6 +443,7 @@ function animate(now = 0) {
     animationState.clouds?.update?.(delta, now * 0.001);
     animationState.critters?.update?.(delta);
     animationState.game?.tickConstructions?.(delta);
+    syncConstructionEntries();
     animationState.houseIi?.update?.(camera);
     animationState.houseIii?.update?.(camera);
     animationState.houseIv?.update?.(camera);
@@ -1313,6 +1315,63 @@ async function start() {
       mounted.add(id);
       rebuildPaths();
       return record;
+    }
+
+    const constructionLoops = new Map();
+    const productionEntries = new Map();
+    function syncConstructionEntries() {
+      const game = animationState.game;
+      if (!game || !animationState.workshops) return;
+      const constructions = game.getSnapshot?.()?.constructions ?? {};
+      Object.entries(placeable).forEach(([id, spec]) => {
+        const inProgress = Boolean(constructions[id]) && mounted.has(id) && spec.root.visible;
+        if (inProgress) {
+          if (!productionEntries.has(id)) {
+            productionEntries.set(id, animationState.workshops[id] ?? null);
+          }
+          if (!constructionLoops.has(id)) {
+            const centerDir = spec.root.position.clone().setY(0);
+            if (centerDir.lengthSq() > 0.01) centerDir.multiplyScalar(0.9);
+            const shim = {
+              root: spec.root,
+              size: spec.size,
+              stand: centerDir.clone().setY(world.walkArea.surfaceY),
+              look: spec.root.position.clone().setY(world.walkArea.surfaceY + 0.6),
+            };
+            const module = productionEntries.get(id)?.module ?? shim;
+            constructionLoops.set(
+              id,
+              createConstructionLoop({
+                game,
+                module,
+                buildingId: id,
+                villagers: animationState.villagers,
+              }),
+            );
+          }
+          animationState.workshops[id] = {
+            module: constructionLoops.get(id).module ?? (productionEntries.get(id)?.module ?? shim),
+            loop: constructionLoops.get(id),
+            title: `Baustelle · ${spec.label}`,
+            usesQueue: false,
+            jobKinds: ["work"],
+            construction: true,
+          };
+        } else if (productionEntries.has(id) || constructionLoops.has(id)) {
+          const loop = constructionLoops.get(id);
+          if (loop) {
+            const builderId = constructions[id]?.builderId;
+            [...animationState.villagers].forEach((member) => {
+              if (loop.has(member.getId())) loop.release(member.getId());
+            });
+          }
+          constructionLoops.delete(id);
+          const previous = productionEntries.get(id);
+          productionEntries.delete(id);
+          if (previous) animationState.workshops[id] = previous;
+          else delete animationState.workshops[id];
+        }
+      });
     }
 
     ["cottage", "wood-storage", "kitchen", "pumpkin-patch", "well", "study", "order-board"].forEach(mountPlaced);
