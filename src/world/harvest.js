@@ -1123,6 +1123,11 @@ export function createHarvestDirector({
     if (travel > CLICK_SLOP) return;
     if (event.target?.closest?.(".panel, .worker-dock, .harvest-meter, .village-edit-bar, .game-hud-top, .game-hud-bottom, .game-sheet, .glass-overlay")) return;
 
+    const giftHit = pickGift(event.clientX, event.clientY);
+    if (giftHit) {
+      onCollectGift?.();
+      return;
+    }
     const kitchenHit = pickKitchen(event.clientX, event.clientY);
     if (kitchenHit) {
       selectTree(null);
@@ -1175,11 +1180,6 @@ export function createHarvestDirector({
     if (workshopHit) {
       selectTree(null);
       onOpenBuilding?.(workshopHit);
-      return;
-    }
-    const giftHit = pickGift(event.clientX, event.clientY);
-    if (giftHit) {
-      onCollectGift?.();
       return;
     }
     const decoHit = pickDecoration(event.clientX, event.clientY);

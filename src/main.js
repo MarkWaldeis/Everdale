@@ -213,7 +213,7 @@ function findGiftSpot() {
     const x = Math.cos(angle) * radius * walkArea.radiusX * 0.86;
     const z = Math.sin(angle) * radius * walkArea.radiusZ * 0.86;
     if (z > 8.2) continue;
-    if (roots.some((p) => Math.hypot(p.x - x, p.z - z) < 1.35)) continue;
+    if (roots.some((p) => Math.hypot(p.x - x, p.z - z) < 2.6)) continue;
     return { x, z };
   }
   return null;
