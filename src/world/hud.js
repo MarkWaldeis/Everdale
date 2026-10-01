@@ -150,6 +150,14 @@ const BUILDING_INFO = {
     worker: "Buddler",
     blurb: "Rohblock für Lager und Gebäude — der Buddler haut Stein aus dem Fels.",
   },
+  "town-hall": {
+    label: "Rathaus",
+    icon: "🏛️",
+    resource: "scrolls",
+    resourceLabel: "Schriftrollen",
+    worker: "Schreiberin",
+    blurb: "Im Rathaus werden die Dorfurkunden geschrieben — Schriftrollen für neue Forschung.",
+  },
   market: {
     label: "Marktstand",
     icon: "🧺",

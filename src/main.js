@@ -60,6 +60,8 @@ import { createApiary } from "./world/apiary.js";
 import { createHoneyLoop } from "./world/honey-loop.js";
 import { createMarketStall } from "./world/market-stall.js";
 import { createMarketLoop } from "./world/market-loop.js";
+import { createTownHall } from "./world/town-hall.js";
+import { createScribeLoop } from "./world/scribe-loop.js";
 import { createSocialLayer } from "./world/social.js";
 import { createHud } from "./world/hud.js";
 import "./styles.css";
@@ -413,6 +415,7 @@ const TASK_ICONS = Object.freeze({
   "catch-fish": "🎣",
   "collect-honey": "🍯",
   "sell-goods": "🧺",
+  "write-scrolls": "📜",
   "visit-study": "📚",
 });
 const taskBubbleEls = new Map();
@@ -614,6 +617,7 @@ function animate(now = 0) {
     animationState.quarry?.update?.(delta, now * 0.001);
     animationState.apiary?.update?.(delta, now * 0.001);
     animationState.market?.update?.(delta, now * 0.001);
+    animationState.townHall?.update?.(delta, now * 0.001);
     animationState.weather?.update?.(delta);
     animationState.dayNight = updateDayNight(now);
     animationState.fireflies?.update?.(delta, now * 0.001, animationState.dayNight.night);
@@ -796,6 +800,7 @@ async function start() {
     animationState.quarry = createQuarry(world.walkArea.surfaceY);
     animationState.apiary = createApiary(world.walkArea.surfaceY);
     animationState.market = createMarketStall(world.walkArea.surfaceY);
+    animationState.townHall = createTownHall(world.walkArea.surfaceY);
     animationState.giftBox = createGiftBox(world.walkArea.surfaceY);
     world.root.add(animationState.giftBox.root);
     animationState.giftNextAt = 140 + Math.random() * 60;
@@ -963,6 +968,11 @@ async function start() {
       market: animationState.market,
       storages: [animationState.yard, animationState.kitchen],
     });
+    animationState.scribeLoop = createScribeLoop({
+      game: animationState.game,
+      townHall: animationState.townHall,
+      storages: [animationState.yard, animationState.kitchen],
+    });
     animationState.stoneLoop = createStoneLoop({
       game: animationState.game,
       quarry: animationState.quarry,
@@ -1107,6 +1117,13 @@ async function start() {
         module: animationState.market,
         loop: animationState.marketLoop,
         title: "Marktstand · Waren verkaufen",
+        usesQueue: false,
+        jobKinds: ["harvest"],
+      },
+      "town-hall": {
+        module: animationState.townHall,
+        loop: animationState.scribeLoop,
+        title: "Rathaus · Schriftrollen schreiben",
         usesQueue: false,
         jobKinds: ["harvest"],
       },
@@ -1506,6 +1523,18 @@ async function start() {
         setYaw: (yaw) => animationState.market.setYaw(yaw),
         refresh: () => animationState.market.refreshAnchors(),
       },
+      "town-hall": {
+        id: "town-hall",
+        label: "Rathaus",
+        root: animationState.townHall.root,
+        size: animationState.townHall.size,
+        w: 2,
+        h: 2,
+        padding: 1,
+        setWorldPosition: (x, z) => animationState.townHall.setWorldPosition(x, z),
+        setYaw: (yaw) => animationState.townHall.setYaw(yaw),
+        refresh: () => animationState.townHall.refreshAnchors(),
+      },
       apiary: {
         id: "apiary",
         label: "Imkerei",
@@ -1647,7 +1676,7 @@ async function start() {
     };
 
     ["cottage", "wood-storage", "kitchen", "pumpkin-patch", "well", "study", "order-board"].forEach(mountPlaced);
-    ["clay-pit", "clay-storage", "stone-storage", "house-ii", "house-iii", "bakery", "tailor", "wood-workshop", "wheat-field", "mill", "sheep-pen", "apple-tree", "berry-bush", "chicken-coop", "fishing-dock", "quarry", "apiary", "market", "house-iv"].forEach((id) => {
+    ["clay-pit", "clay-storage", "stone-storage", "house-ii", "house-iii", "bakery", "tailor", "wood-workshop", "wheat-field", "mill", "sheep-pen", "apple-tree", "berry-bush", "chicken-coop", "fishing-dock", "quarry", "apiary", "market", "town-hall", "house-iv"].forEach((id) => {
       if (animationState.game.isPlaced(id)) mountPlaced(id);
     });
 

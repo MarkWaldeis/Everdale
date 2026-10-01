@@ -19,6 +19,7 @@ export const RESOURCES = Object.freeze({
   fish: { capKey: "fishCap", requiresPlaced: "fishing-dock" },
   honey: { capKey: "honeyCap", requiresPlaced: "apiary" },
   gold: { capKey: null },
+  scrolls: { capKey: null },
   wool: { capKey: "woolCap", requiresPlaced: "sheep-pen" },
   planks: { requiresPlaced: "wood-workshop" },
   bucket: { requiresPlaced: "wood-workshop" },
@@ -276,6 +277,14 @@ export const BUILDING_CATALOG = Object.freeze([
     description: "Felsausbeute — ein Buddler fördert laufend Stein.",
   },
   {
+    id: "town-hall",
+    label: "Rathaus",
+    placeable: true,
+    cost: { wood: 16, stone: 8, clay: 3 },
+    constructionSeconds: 60,
+    description: "Stolzes Rathaus mit Glockenturm — die Schreiberin fertigt Schriftrollen.",
+  },
+  {
     id: "market",
     label: "Marktstand",
     placeable: true,
@@ -472,6 +481,16 @@ export const RESEARCH_NODES = Object.freeze([
     requires: ["stone-storage"],
     cost: { wood: 10, stone: 8 },
     unlocksBuilding: "quarry",
+    completable: true,
+  },
+  {
+    id: "town-hall",
+    name: "Rathaus",
+    detail: "Verwaltung für ein wachsendes Dorf — die Schreiberin fertigt Schriftrollen.",
+    icon: "🏛️",
+    requires: ["market"],
+    cost: { wood: 14, scrolls: 3 },
+    unlocksBuilding: "town-hall",
     completable: true,
   },
   {
@@ -703,6 +722,7 @@ export function createDefaultState() {
     quarry: false,
     apiary: false,
     market: false,
+    "town-hall": false,
   };
   const nodes = {};
   RESEARCH_NODES.forEach((node) => {
@@ -1362,6 +1382,7 @@ export const SKILL_FOR_TASK = Object.freeze({
   "catch-fish": "farming",
   "collect-honey": "farming",
   "sell-goods": "farming",
+  "write-scrolls": "research",
   build: "building",
   mill: "building",
 });
