@@ -118,7 +118,7 @@ export function createHouseIi(model, surfaceY, options = {}) {
   }
 
   function update(camera) {
-    if (bar.visible && camera) {
+    if (bar.visible && camera?.position) {
       const worldPos = bar.getWorldPosition(new THREE.Vector3());
       bar.lookAt(camera.position.x, worldPos.y, camera.position.z);
     }

@@ -443,6 +443,7 @@ export function createHud({
       ["📦 Tal-Kisten gefüllt", stats.cratesFilled ?? 0],
       ["⛵ Schiffsreisen", stats.valleyTrips ?? 0],
       ["🧪 Tränke gebraut", stats.potionsBrewed ?? 0],
+      ["👥 Bewohner freigeschaltet", stats.villagersUnlocked ?? 0],
     ]
       .map(([label, value]) => `<div class="inv-row"><span>${label}</span><strong>${value}</strong></div>`)
       .join("");

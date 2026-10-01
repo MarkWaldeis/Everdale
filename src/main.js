@@ -585,6 +585,7 @@ function animate(now = 0) {
   previousFrameTime = now;
   updateWind(now * 0.001);
   if (!animationState.debugPaused) {
+    try {
     if (animationState.villagers.length) {
       animationState.villagers.forEach((member) => member.update(delta, now * 0.001));
     } else {
@@ -654,6 +655,12 @@ function animate(now = 0) {
       );
       module?.update?.(camera);
     });
+    } catch (frameError) {
+      if (now - (animationState.lastFrameErrorAt ?? 0) > 5000) {
+        animationState.lastFrameErrorAt = now;
+        console.error("frame update error", frameError);
+      }
+    }
     controls.update();
     const valleyView = animationState.view === "valley";
     const clampedX = THREE.MathUtils.clamp(
@@ -1177,7 +1184,12 @@ async function start() {
       onPlaced: (gridId) => {
         const catalogId = gridIdToCatalog.get(gridId) ?? gridId;
         if (catalogId.startsWith("deko-")) return;
-        animationState.game?.startConstruction?.(catalogId);
+        const result = animationState.game?.placeBuilding?.(catalogId);
+        if (result?.ok) {
+          animationState.game?.startConstruction?.(catalogId);
+        } else {
+          animationState.village?.grid?.remove?.(gridId);
+        }
       },
       onCancelPlacement: (id) => {
         if (id.startsWith("deko-")) {
@@ -1530,7 +1542,7 @@ async function start() {
         size: animationState.townHall.size,
         w: 2,
         h: 2,
-        padding: 1,
+        padding: 0,
         setWorldPosition: (x, z) => animationState.townHall.setWorldPosition(x, z),
         setYaw: (yaw) => animationState.townHall.setYaw(yaw),
         refresh: () => animationState.townHall.refreshAnchors(),
@@ -1759,12 +1771,11 @@ async function start() {
           }
           return result;
         }
-        const result = animationState.game.placeBuilding(id);
-        if (result.ok) {
-          const record = mountPlaced(id);
-          animationState.village?.beginPlace?.(record);
-        }
-        return result;
+        const ok = animationState.game.canPlaceBuilding?.(id) ?? false;
+        if (!ok) return { ok: false };
+        const record = mountPlaced(id);
+        animationState.village?.beginPlace?.(record);
+        return { ok: true };
       },
       onValley: () => {
         setValleyView(animationState.view !== "valley");
