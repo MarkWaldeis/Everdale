@@ -11,6 +11,8 @@ import { buildStudyHall } from "../src/world/models/study-hall.js";
 import { buildValleyHarbor } from "../src/world/models/valley-harbor.js";
 import { buildOrderBoard } from "../src/world/models/order-board.js";
 import { buildBakery } from "../src/world/models/bakery.js";
+import { buildTailor } from "../src/world/models/tailor.js";
+import { buildWoodWorkshop } from "../src/world/models/wood-workshop.js";
 
 const here = dirname(fileURLToPath(import.meta.url));
 const outDir = resolve(here, "../3d Assets");
@@ -28,6 +30,8 @@ const jobs = [
   ["valley-harbor.glb", buildValleyHarbor],
   ["order-board.glb", buildOrderBoard],
   ["bakery.glb", buildBakery],
+  ["tailor.glb", buildTailor],
+  ["wood-workshop.glb", buildWoodWorkshop],
 ];
 
 for (const [fileName, build] of jobs) {

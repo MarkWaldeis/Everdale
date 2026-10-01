@@ -1,18 +1,15 @@
 import * as THREE from "three";
 
-const BAKERY_POSITION = new THREE.Vector3(-2.2, 0, 6.6);
-const BAKERY_YAW = 0.4;
-
-export function createBakery(model, surfaceY) {
+export function createWorkshop(model, surfaceY, { id, position, yaw = 0, proxyRadius = 1.3 } = {}) {
   const root = new THREE.Group();
-  root.name = "bakery";
+  root.name = id;
   root.add(model);
-  root.position.set(BAKERY_POSITION.x, surfaceY, BAKERY_POSITION.z);
-  root.rotation.y = BAKERY_YAW;
+  root.position.set(position.x, surfaceY, position.z);
+  root.rotation.y = yaw;
   root.updateWorldMatrix(true, true);
 
   const hitProxy = new THREE.Mesh(
-    new THREE.CylinderGeometry(1.25, 1.25, 2.2, 10),
+    new THREE.CylinderGeometry(proxyRadius, proxyRadius, 2.2, 10),
     new THREE.MeshBasicMaterial({ visible: false }),
   );
   hitProxy.name = "hit-proxy";
@@ -27,7 +24,6 @@ export function createBakery(model, surfaceY) {
   look.y = surfaceY + Math.max(size.y * 0.5, 0.7);
   const localLook = root.worldToLocal(look.clone());
 
-  // Back-Station vor dem Ofenmund
   const approach = new THREE.Vector3(root.position.x, surfaceY, root.position.z + 1.7);
   const lookAt = center.clone();
   lookAt.y = surfaceY + size.y * 0.45;
@@ -42,7 +38,7 @@ export function createBakery(model, surfaceY) {
   );
   barFill.position.z = 0.001;
   const bar = new THREE.Group();
-  bar.name = "bake-bar";
+  bar.name = `${id}-bar`;
   bar.add(barBack, barFill);
   bar.visible = false;
   root.add(bar);
@@ -63,8 +59,8 @@ export function createBakery(model, surfaceY) {
     refreshAnchors();
   }
 
-  function setYaw(yaw) {
-    root.rotation.y = yaw;
+  function setYaw(nextYaw) {
+    root.rotation.y = nextYaw;
     refreshAnchors();
   }
 

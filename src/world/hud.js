@@ -1,3 +1,5 @@
+import { RECIPES, formatCost } from "./simulation.js";
+
 const ITEM_ROWS = [
   ["wood", "Holz", "woodCap"],
   ["stone", "Stein", "stoneCap"],
@@ -16,7 +18,9 @@ const BUILDING_INFO = {
   "stone-storage": { label: "Steinlager", icon: "🪨", resource: "stone", resourceLabel: "Stein" },
   "clay-storage": { label: "Lehmlager", icon: "🧱", resource: "clay", resourceLabel: "Lehm" },
   kitchen: { label: "Küche", icon: "🍲", resource: "soup", resourceLabel: "Suppe" },
-  bakery: { label: "Bäckerei", icon: "🍞", resource: "bread", resourceLabel: "Brot" },
+  bakery: { label: "Bäckerei", icon: "🍞", resource: "bread", resourceLabel: "Brot", worker: "Bäcker" },
+  tailor: { label: "Schneiderei", icon: "🧵", worker: "Schneider" },
+  "wood-workshop": { label: "Holzwerkstatt", icon: "🪚", worker: "Werker" },
   well: {
     label: "Brunnen",
     icon: "💧",
@@ -43,7 +47,7 @@ export function createHud({
   onFocusVillager,
   onReset,
   onKitchen,
-  onBakery,
+  onWorkshop,
 }) {
   const els = {
     level: document.querySelector("#hud-level"),
@@ -219,12 +223,13 @@ export function createHud({
     }
     const effect = upgrade?.effect ?? info.blurb ?? "";
     if (effect) rows.push(`<p class="sheet-hint">${effect}</p>`);
-    if (id === "bakery") {
-      const production = game.getProduction?.("bakery");
+    const recipes = RECIPES.filter((entry) => entry.building === id);
+    if (recipes.length) {
+      const production = game.getProduction?.(id);
       if (production) {
         const label = production.current?.label;
         rows.push(
-          `<div class="inv-row"><span>Backen</span><strong>${production.queue.length}${production.queue.length ? `× ${label}` : " — leer"}</strong></div>`,
+          `<div class="inv-row"><span>Warteschlange</span><strong>${production.queue.length}${production.queue.length ? `× ${label}` : " — leer"}</strong></div>`,
         );
         if (production.current) {
           const pct = Math.min(100, Math.round((production.progress / (production.seconds || 1)) * 100));
@@ -242,9 +247,11 @@ export function createHud({
     if (id === "kitchen") {
       action += `<button class="sheet-action" type="button" data-cook>Koch auswählen · Suppe kochen</button>`;
     }
-    if (id === "bakery") {
-      action += `<button class="sheet-action" type="button" data-bake>Brot backen · 2 Kürbisse + 1 Holz</button>`;
-      action += `<button class="sheet-action" type="button" data-baker>Bäcker auswählen</button>`;
+    recipes.forEach((recipe) => {
+      action += `<button class="sheet-action" type="button" data-recipe="${recipe.id}">${recipe.label} · ${formatCost(recipe.inputs)}</button>`;
+    });
+    if (recipes.length && info.worker) {
+      action += `<button class="sheet-action" type="button" data-worker="${id}">${info.worker} auswählen</button>`;
     }
     if (upgrade) {
       if (upgrade.atMax) {
@@ -379,14 +386,20 @@ export function createHud({
       closeSheet();
       onKitchen?.();
     });
-    els.sheetBody?.querySelector("[data-bake]")?.addEventListener("click", () => {
-      game.queueRecipe?.("bakery", "bread");
-      refresh();
-      renderBuilding("bakery");
+    els.sheetBody?.querySelectorAll("[data-recipe]").forEach((button) => {
+      button.addEventListener("click", () => {
+        const recipe = RECIPES.find((entry) => entry.id === button.dataset.recipe);
+        if (!recipe) return;
+        game.queueRecipe?.(recipe.building, recipe.id);
+        refresh();
+        renderBuilding(recipe.building);
+      });
     });
-    els.sheetBody?.querySelector("[data-baker]")?.addEventListener("click", () => {
-      closeSheet();
-      onBakery?.();
+    els.sheetBody?.querySelectorAll("[data-worker]").forEach((button) => {
+      button.addEventListener("click", () => {
+        closeSheet();
+        onWorkshop?.(button.dataset.worker);
+      });
     });
     els.sheetBody?.querySelector("#btn-mute")?.addEventListener("click", () => {
       game.setMuted(!game.getMuted());

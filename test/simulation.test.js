@@ -423,3 +423,64 @@ test("bread orders only appear once the bakery stands", () => {
   }
   assert.equal(found, 1);
 });
+
+test("tailor sews blankets from wood and clay", () => {
+  const state = createDefaultState();
+  state.unlocked.tailor = true;
+  state.village.wood = 40;
+  state.village.clay = 20;
+  placeBuilding(state, "tailor");
+
+  const queued = queueRecipe(state, "tailor", "blanket");
+  assert.equal(queued.ok, true);
+  assert.equal(state.village.wood, 24);
+  assert.equal(state.village.clay, 11);
+
+  const produced = tickProduction(state, "tailor", 51);
+  assert.equal(produced.produced, "blanket");
+  assert.equal(state.village.blanket, 1);
+});
+
+test("wood-workshop planes logs into two planks each run", () => {
+  const state = createDefaultState();
+  state.unlocked["wood-workshop"] = true;
+  state.village.wood = 30;
+  placeBuilding(state, "wood-workshop");
+
+  assert.equal(queueRecipe(state, "wood-workshop", "planks").ok, true);
+  assert.equal(state.village.wood, 15);
+  const produced = tickProduction(state, "wood-workshop", 36);
+  assert.equal(produced.produced, "planks");
+  assert.equal(produced.amount, 2);
+  assert.equal(state.village.planks, 2);
+
+  assert.equal(queueRecipe(state, "wood-workshop", "rope").ok, false);
+});
+
+test("tailor and workshop goods join the order deck after placement", () => {
+  const state = createDefaultState();
+  state.unlocked.tailor = true;
+  state.unlocked["wood-workshop"] = true;
+  state.village.wood = 500;
+  state.village.clay = 300;
+  state.village.pumpkins = 100;
+  state.village.soup = 50;
+  state.village.stone = 100;
+  placeBuilding(state, "tailor");
+  placeBuilding(state, "wood-workshop");
+  const seen = new Set();
+  for (let i = 0; i < 60 && seen.size < 2; i += 1) {
+    const slots = listOrders(state);
+    slots.forEach((entry) => {
+      if (!entry) return;
+      Object.keys(entry.requests).forEach((key) => {
+        if (["rope", "blanket", "planks", "bucket"].includes(key)) seen.add(key);
+      });
+    });
+    const fillIdx = slots.findIndex((entry, index) => entry && canFillOrder(state, index));
+    if (fillIdx < 0) break;
+    state.village.bread = 50;
+    fillOrder(state, fillIdx);
+  }
+  assert.ok(seen.size >= 1);
+});

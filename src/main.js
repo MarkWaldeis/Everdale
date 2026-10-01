@@ -25,7 +25,8 @@ import { createValleyHarbor } from "./world/valley.js";
 import { createOrderBoard } from "./world/order-board.js";
 import { createHouseIi } from "./world/house-ii.js";
 import { createBakery } from "./world/bakery.js";
-import { createBakeLoop } from "./world/bake-loop.js";
+import { createWorkshop } from "./world/workshop.js";
+import { createWorkshopLoop } from "./world/workshop-loop.js";
 import { createDirtPaths } from "./world/dirt-paths.js";
 import { createHud } from "./world/hud.js";
 import "./styles.css";
@@ -135,7 +136,9 @@ const animationState = {
   paths: null,
   houseIi: null,
   bakery: null,
-  bakeLoop: null,
+  tailor: null,
+  woodWorkshop: null,
+  workshopLoops: {},
   view: "village",
   debugPaused: false,
   windEnabled: !window.matchMedia("(prefers-reduced-motion: reduce)").matches,
@@ -184,14 +187,16 @@ function animate(now = 0) {
     animationState.soupLoop?.update(delta, now * 0.001);
     animationState.clayLoop?.update(delta, now * 0.001);
     animationState.studyLoop?.update(delta, now * 0.001);
-    animationState.bakeLoop?.update(delta, now * 0.001);
+    Object.values(animationState.workshopLoops).forEach((loop) => loop.update(delta));
     animationState.game?.tickConstructions?.(delta);
     animationState.houseIi?.update?.(camera);
-    const production = animationState.game?.getProduction?.("bakery");
-    animationState.bakery?.setBaking?.(
-      production?.current ? production.progress / (production.seconds || 1) : null,
-    );
-    animationState.bakery?.update?.(camera);
+    Object.entries(animationState.workshopModules ?? {}).forEach(([id, module]) => {
+      const production = animationState.game?.getProduction?.(id);
+      module?.setWorking?.(
+        production?.current ? production.progress / (production.seconds || 1) : null,
+      );
+      module?.update?.(camera);
+    });
     controls.update();
     const clampedX = THREE.MathUtils.clamp(controls.target.x, -14, 16);
     const clampedZ = THREE.MathUtils.clamp(controls.target.z, -11, 12);
@@ -277,6 +282,22 @@ async function start() {
     animationState.orderBoard = createOrderBoard(assets.orderBoard, world.walkArea.surfaceY);
     animationState.houseIi = createHouseIi(assets.cottage.clone(true), world.walkArea.surfaceY);
     animationState.bakery = createBakery(assets.bakery, world.walkArea.surfaceY);
+    animationState.tailor = createWorkshop(assets.tailor, world.walkArea.surfaceY, {
+      id: "tailor",
+      position: { x: 6.6, z: 8.8 },
+      yaw: -0.9,
+    });
+    animationState.woodWorkshop = createWorkshop(assets.woodWorkshop, world.walkArea.surfaceY, {
+      id: "wood-workshop",
+      position: { x: -6.6, z: 8.8 },
+      yaw: 0.7,
+      proxyRadius: 1.4,
+    });
+    animationState.workshopModules = {
+      bakery: animationState.bakery,
+      tailor: animationState.tailor,
+      "wood-workshop": animationState.woodWorkshop,
+    };
     animationState.game = createGameState();
     animationState.windEnabled = animationState.game.getWind();
     animationState.yard.setWood(animationState.game.getWood());
@@ -361,11 +382,29 @@ async function start() {
       study: animationState.study,
       villagers: animationState.villagers,
     });
-    animationState.bakeLoop = createBakeLoop({
-      game: animationState.game,
-      bakery: animationState.bakery,
-      villagers: animationState.villagers,
-    });
+    animationState.workshopLoops = {
+      bakery: createWorkshopLoop({
+        game: animationState.game,
+        building: animationState.bakery,
+        buildingId: "bakery",
+        taskId: "bake",
+        villagers: animationState.villagers,
+      }),
+      tailor: createWorkshopLoop({
+        game: animationState.game,
+        building: animationState.tailor,
+        buildingId: "tailor",
+        taskId: "sew",
+        villagers: animationState.villagers,
+      }),
+      "wood-workshop": createWorkshopLoop({
+        game: animationState.game,
+        building: animationState.woodWorkshop,
+        buildingId: "wood-workshop",
+        taskId: "craft",
+        villagers: animationState.villagers,
+      }),
+    };
     animationState.harvest = createHarvestDirector({
       trees: harvestables,
       camera,
@@ -394,8 +433,11 @@ async function start() {
       onOpenBuilding: (id) => animationState.hud?.renderBuilding?.(id),
       orderBoard: animationState.orderBoard,
       onOpenOrders: () => animationState.hud?.renderOrders?.(),
-      bakery: animationState.bakery,
-      bakeLoop: animationState.bakeLoop,
+      workshops: {
+        bakery: { module: animationState.bakery, loop: animationState.workshopLoops.bakery, title: "Bäckerei · Brot backen" },
+        tailor: { module: animationState.tailor, loop: animationState.workshopLoops.tailor, title: "Schneiderei · Nähen" },
+        "wood-workshop": { module: animationState.woodWorkshop, loop: animationState.workshopLoops["wood-workshop"], title: "Holzwerkstatt · Werken" },
+      },
     });
     animationState.village = createVillageEditor({
       scene: world.root,
@@ -578,6 +620,30 @@ async function start() {
         setYaw: (yaw) => animationState.bakery.setYaw(yaw),
         refresh: () => animationState.bakery.refreshAnchors(),
       },
+      tailor: {
+        id: "tailor",
+        label: "Schneiderei",
+        root: animationState.tailor.root,
+        size: animationState.tailor.size,
+        w: 2,
+        h: 2,
+        padding: 1,
+        setWorldPosition: (x, z) => animationState.tailor.setWorldPosition(x, z),
+        setYaw: (yaw) => animationState.tailor.setYaw(yaw),
+        refresh: () => animationState.tailor.refreshAnchors(),
+      },
+      "wood-workshop": {
+        id: "wood-workshop",
+        label: "Holzwerkstatt",
+        root: animationState.woodWorkshop.root,
+        size: animationState.woodWorkshop.size,
+        w: 2,
+        h: 2,
+        padding: 1,
+        setWorldPosition: (x, z) => animationState.woodWorkshop.setWorldPosition(x, z),
+        setYaw: (yaw) => animationState.woodWorkshop.setYaw(yaw),
+        refresh: () => animationState.woodWorkshop.refreshAnchors(),
+      },
     };
 
     animationState.paths = createDirtPaths();
@@ -608,7 +674,7 @@ async function start() {
     }
 
     ["cottage", "wood-storage", "kitchen", "pumpkin-patch", "well", "study", "order-board"].forEach(mountPlaced);
-    ["clay-pit", "clay-storage", "stone-storage", "house-ii", "bakery"].forEach((id) => {
+    ["clay-pit", "clay-storage", "stone-storage", "house-ii", "bakery", "tailor", "wood-workshop"].forEach((id) => {
       if (animationState.game.isPlaced(id)) mountPlaced(id);
     });
 
@@ -668,8 +734,8 @@ async function start() {
       onKitchen: () => {
         animationState.harvest?.selectKitchen();
       },
-      onBakery: () => {
-        animationState.harvest?.selectBakery();
+      onWorkshop: (id) => {
+        animationState.harvest?.selectWorkshop?.(id);
       },
       onReset: () => {
         animationState.game.resetSave();
@@ -752,7 +818,9 @@ async function start() {
       orderBoard: animationState.orderBoard,
       houseIi: animationState.houseIi,
       bakery: animationState.bakery,
-      bakeLoop: animationState.bakeLoop,
+      tailor: animationState.tailor,
+      woodWorkshop: animationState.woodWorkshop,
+      workshopLoops: animationState.workshopLoops,
       clayLoop: animationState.clayLoop,
       soupLoop: animationState.soupLoop,
       game: animationState.game,
@@ -786,16 +854,17 @@ async function start() {
         const member = animationState.villagers.find((entry) => entry.getId() === id);
         return animationState.clayLoop?.assignDigger(member);
       },
-      selectBakery: () => animationState.harvest?.selectBakery?.(),
-      queueBread: () => animationState.game?.queueRecipe?.("bakery", "bread"),
-      assignBaker: (id) => {
-        const member = animationState.villagers.find((entry) => entry.getId() === id);
-        return animationState.bakeLoop?.assignBaker(member);
+      selectWorkshop: (id) => animationState.harvest?.selectWorkshop?.(id),
+      queueRecipe: (buildingId, recipeId) =>
+        animationState.game?.queueRecipe?.(buildingId, recipeId ?? "bread"),
+      assignWorkshop: (buildingId, villagerId) => {
+        const member = animationState.villagers.find((entry) => entry.getId() === villagerId);
+        return animationState.workshopLoops?.[buildingId]?.assign?.(member);
       },
-      finishBake: () => {
-        const production = animationState.game?.getProduction?.("bakery");
+      finishWorkshop: (buildingId = "bakery") => {
+        const production = animationState.game?.getProduction?.(buildingId);
         if (production?.current) {
-          animationState.game.getRaw().buildings.bakery.productionProgress =
+          animationState.game.getRaw().buildings[buildingId].productionProgress =
             production.seconds - 0.05;
         }
       },

@@ -149,6 +149,16 @@ export const ASSETS = Object.freeze({
     url: new URL("../../3d Assets/bakery.glb", import.meta.url).href,
     height: 2.1,
   },
+  tailor: {
+    label: "Schneiderei",
+    url: new URL("../../3d Assets/tailor.glb", import.meta.url).href,
+    height: 2.3,
+  },
+  woodWorkshop: {
+    label: "Holzwerkstatt",
+    url: new URL("../../3d Assets/wood-workshop.glb", import.meta.url).href,
+    height: 2.2,
+  },
 });
 
 export const TREE_WEIGHTS = Object.freeze([

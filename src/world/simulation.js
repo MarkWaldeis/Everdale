@@ -11,6 +11,10 @@ export const RESOURCES = Object.freeze({
   soup: { capKey: "soupCap" },
   pumpkin: { field: "pumpkins" },
   bread: { capKey: "breadCap", requiresPlaced: "bakery" },
+  planks: { requiresPlaced: "wood-workshop" },
+  bucket: { requiresPlaced: "wood-workshop" },
+  rope: { requiresPlaced: "tailor" },
+  blanket: { requiresPlaced: "tailor" },
   gold: {},
   gems: {},
   reputation: {},
@@ -26,6 +30,10 @@ export const COST_LABELS = Object.freeze({
   pumpkin: "Kürbisse",
   soup: "Suppe",
   bread: "Brot",
+  planks: "Bretter",
+  bucket: "Eimer",
+  rope: "Seile",
+  blanket: "Decken",
 });
 
 export const RECIPES = Object.freeze([
@@ -37,6 +45,42 @@ export const RECIPES = Object.freeze([
     output: "bread",
     amount: 1,
     seconds: 30,
+  },
+  {
+    id: "planks",
+    label: "Bretter",
+    building: "wood-workshop",
+    inputs: { wood: 3 },
+    output: "planks",
+    amount: 2,
+    seconds: 35,
+  },
+  {
+    id: "bucket",
+    label: "Eimer",
+    building: "wood-workshop",
+    inputs: { wood: 2, stone: 1 },
+    output: "bucket",
+    amount: 1,
+    seconds: 45,
+  },
+  {
+    id: "rope",
+    label: "Seil",
+    building: "tailor",
+    inputs: { wood: 1, clay: 2 },
+    output: "rope",
+    amount: 1,
+    seconds: 40,
+  },
+  {
+    id: "blanket",
+    label: "Decke",
+    building: "tailor",
+    inputs: { wood: 2, clay: 3 },
+    output: "blanket",
+    amount: 1,
+    seconds: 50,
   },
 ]);
 
@@ -103,18 +147,16 @@ export const BUILDING_CATALOG = Object.freeze([
   {
     id: "tailor",
     label: "Schneiderei",
-    placeable: false,
-    later: true,
+    placeable: true,
     cost: { wood: 14, clay: 6 },
-    description: "Später: Kleidung für Schiffe und Quests.",
+    description: "Näht Seile und Decken — Auftragsware mit gutem Gold.",
   },
   {
     id: "wood-workshop",
     label: "Holzwerkstatt",
-    placeable: false,
-    later: true,
+    placeable: true,
     cost: { wood: 12 },
-    description: "Später: Bretter, Fässer und Spielzeug.",
+    description: "Hobelt Bretter und zimmert Eimer für Schiffe und Aufträge.",
   },
 ]);
 
@@ -182,22 +224,22 @@ export const RESEARCH_NODES = Object.freeze([
   {
     id: "tailor",
     name: "Schneiderei",
-    detail: "Kommt später: Hemden, Socken, Hosen.",
+    detail: "Näht Seile und Decken aus Lehm und Holz.",
     icon: "🧵",
     requires: ["bakery"],
     cost: { wood: 14 },
-    later: true,
-    completable: false,
+    unlocksBuilding: "tailor",
+    completable: true,
   },
   {
     id: "wood-workshop",
     name: "Holzwerkstatt",
-    detail: "Kommt später: Bretter und Fässer.",
+    detail: "Hobelt Bretter und zimmert Eimer.",
     icon: "🪚",
     requires: ["bakery"],
     cost: { wood: 12 },
-    later: true,
-    completable: false,
+    unlocksBuilding: "wood-workshop",
+    completable: true,
   },
 ]);
 
@@ -228,6 +270,10 @@ export const ORDER_DECK = Object.freeze([
   { requests: { clay: 8, stone: 6 }, rewardGold: 26, rewardScrolls: 2, requiresPlaced: "stone-storage" },
   { requests: { bread: 2 }, rewardGold: 24, rewardScrolls: 2, requiresPlaced: "bakery" },
   { requests: { bread: 3, soup: 2 }, rewardGold: 34, rewardRep: 3, requiresPlaced: "bakery" },
+  { requests: { planks: 4 }, rewardGold: 22, rewardScrolls: 1, requiresPlaced: "wood-workshop" },
+  { requests: { bucket: 2, planks: 2 }, rewardGold: 30, rewardScrolls: 2, requiresPlaced: "wood-workshop" },
+  { requests: { rope: 3 }, rewardGold: 26, rewardScrolls: 1, requiresPlaced: "tailor" },
+  { requests: { blanket: 2, rope: 1 }, rewardGold: 36, rewardRep: 3, requiresPlaced: "tailor" },
 ]);
 
 export const BUILDING_UPGRADES = Object.freeze({
@@ -332,6 +378,10 @@ export function createDefaultState() {
       flour: 0,
       bread: 0,
       breadCap: 15,
+      planks: 0,
+      bucket: 0,
+      rope: 0,
+      blanket: 0,
       harvestCount: 0,
     },
     placed,

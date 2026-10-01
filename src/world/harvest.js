@@ -111,8 +111,7 @@ export function createHarvestDirector({
   orderBoard,
   onOpenOrders,
   houseIi,
-  bakery,
-  bakeLoop,
+  workshops,
 }) {
   const raycaster = new THREE.Raycaster();
   const marker = createGroundMarker();
@@ -220,7 +219,13 @@ export function createHarvestDirector({
     if (kind === "cook") return "Kocht";
     if (kind === "harvest") return "Erntet";
     if (kind === "dig") return "Gräbt";
-    if (kind === "work") return "Backt";
+    if (kind === "work") {
+      const task = game?.getSnapshot?.().villagers?.[member.getId()]?.assignedTaskId;
+      if (task === "bake") return "Backt";
+      if (task === "sew") return "Näht";
+      if (task === "craft") return "Werkelt";
+      return "Arbeitet";
+    }
     if (!member.isBusy()) return "Frei";
     const state = member.getState();
     if (state === "job-walk-home" || state === "home-approach" || state === "ascend-porch") {
@@ -241,8 +246,9 @@ export function createHarvestDirector({
     const visitingLab = pointerState.mode === "research";
     const visitingKitchen = pointerState.mode === "kitchen" || pointerState.mode === "pumpkin";
     const visitingClay = pointerState.mode === "clay";
-    const visitingBakery = pointerState.mode === "bakery";
-    const bakeryQueued = (game?.getProduction?.("bakery")?.queue.length ?? 0) > 0;
+    const visitingWorkshop = Boolean(workshops?.[pointerState.mode]);
+    const workshopQueued =
+      visitingWorkshop && (game?.getProduction?.(pointerState.mode)?.queue.length ?? 0) > 0;
     const clayLocked = visitingClay && !game?.canCollectResource?.("clay");
     const storageFull =
       visitingClay
@@ -256,8 +262,8 @@ export function createHarvestDirector({
       ? true
       : visitingClay
         ? !storageFull
-        : visitingBakery
-          ? bakeryQueued
+        : visitingWorkshop
+          ? workshopQueued
           : Boolean(
             selected &&
               !storageFull &&
@@ -319,15 +325,19 @@ export function createHarvestDirector({
     game?.clearBuildingWorker?.("pumpkin-patch", id);
     game?.clearBuildingWorker?.("clayPit", id);
     game?.clearBuildingWorker?.("study", id);
-    game?.clearBuildingWorker?.("bakery", id);
+    Object.keys(workshops ?? {}).forEach((workshopId) => {
+      game?.clearBuildingWorker?.(workshopId, id);
+    });
     game?.setVillagerState?.(id, "IDLE", {
       assignedBuildingId: null,
       assignedTaskId: null,
     });
     studyLoop?.releaseScholar?.(id);
-    bakeLoop?.releaseBaker?.(id);
+    Object.values(workshops ?? {}).forEach((shop) => {
+      shop.loop?.release?.(id);
+      shop.module?.setWorking?.(null);
+    });
     kitchen?.setCooking?.(false);
-    bakery?.setBaking?.(null);
     pumpkinField?.finishPick?.();
     clayPit?.setDigging?.(false);
     if (meter) meter.hidden = true;
@@ -582,19 +592,29 @@ export function createHarvestDirector({
     return pickBuilding(clientX, clientY, houseIi);
   }
 
-  function pickBakery(clientX, clientY) {
-    if (!bakery?.root?.parent) return null;
-    return pickBuilding(clientX, clientY, bakery);
+  function pickWorkshop(clientX, clientY, id) {
+    const module = workshops?.[id]?.module;
+    if (!module?.root?.parent) return null;
+    return pickBuilding(clientX, clientY, module);
   }
 
-  function selectBakery() {
+  function pickAnyWorkshop(clientX, clientY) {
+    for (const id of Object.keys(workshops ?? {})) {
+      if (pickWorkshop(clientX, clientY, id)) return id;
+    }
+    return null;
+  }
+
+  function selectWorkshop(id) {
+    const shop = workshops?.[id];
+    if (!shop) return;
     if (pointerState.selected?.userData.harvestState === "selected") {
       pointerState.selected.userData.harvestState = "idle";
     }
     pointerState.selected = null;
-    pointerState.mode = "bakery";
+    pointerState.mode = id;
     placeMarker(null);
-    if (trayTitle) trayTitle.textContent = "Bäckerei · Brot backen";
+    if (trayTitle) trayTitle.textContent = shop.title;
     refreshWorkerCard();
     setTrayOpen(true);
   }
@@ -632,7 +652,7 @@ export function createHarvestDirector({
       yardBlock(clayYard),
       yardBlock(orderBoard),
       yardBlock(houseIi),
-      yardBlock(bakery),
+      ...Object.values(workshops ?? {}).map((shop) => yardBlock(shop.module)),
     ].filter(Boolean);
   }
 
@@ -658,13 +678,14 @@ export function createHarvestDirector({
         kitchen: ["cook", "harvest"],
         pumpkin: ["cook", "harvest"],
         clay: ["dig"],
-        bakery: ["work"],
         research: ["visit"],
       };
+      const kinds = modeKinds[pointerState.mode] ??
+        (workshops?.[pointerState.mode] ? ["work"] : []);
       const sameTarget = Boolean(
         (pointerState.selected &&
           pointerState.selected.userData?.assignedWorkerId === member.getId()) ||
-          (modeKinds[pointerState.mode]?.includes(jobKind) ?? false),
+          kinds.includes(jobKind),
       );
       cancelWorker(member);
       if (sameTarget) {
@@ -697,12 +718,13 @@ export function createHarvestDirector({
       setFollowTarget?.(member.root, clayPit?.root ?? clayYard?.root, member);
       return;
     }
-    if (pointerState.mode === "bakery") {
-      const accepted = bakeLoop?.assignBaker?.(member);
+    const shop = workshops?.[pointerState.mode];
+    if (shop) {
+      const accepted = shop.loop?.assign?.(member);
       if (!accepted) return;
       refreshWorkerCard();
       selectTree(null);
-      setFollowTarget?.(member.root, bakery?.root, member);
+      setFollowTarget?.(member.root, shop.module?.root, member);
       return;
     }
     const tree = pointerState.selected;
@@ -1007,9 +1029,10 @@ export function createHarvestDirector({
       onOpenBuilding?.("house-ii");
       return;
     }
-    if (pickBakery(event.clientX, event.clientY)) {
+    const workshopHit = pickAnyWorkshop(event.clientX, event.clientY);
+    if (workshopHit) {
       selectTree(null);
-      onOpenBuilding?.("bakery");
+      onOpenBuilding?.(workshopHit);
       return;
     }
     const infoId = pickInfoBuilding(event.clientX, event.clientY);
@@ -1066,7 +1089,7 @@ export function createHarvestDirector({
     selectKitchen,
     selectPatch,
     selectClay,
-    selectBakery,
+    selectWorkshop,
     assignSelectedWorker,
     cancelWorker,
   };
