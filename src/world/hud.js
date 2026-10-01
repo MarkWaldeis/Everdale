@@ -10,6 +10,7 @@ const ITEM_ROWS = [
   ["wool", "Wolle", "woolCap"],
   ["apple", "Äpfel", "appleCap"],
   ["berry", "Beeren", "berryCap"],
+  ["egg", "Eier", "eggCap"],
   ["scrolls", "Schriftrollen", null],
   ["gold", "Gold", null],
   ["gems", "Diamanten", null],
@@ -28,6 +29,7 @@ const COST_ROW_LABELS = {
   wool: "Wolle",
   apple: "Äpfel",
   berry: "Beeren",
+  egg: "Eier",
 };
 
 const FIELD_LABELS = {
@@ -46,6 +48,7 @@ const FIELD_LABELS = {
   wool: "Wolle",
   apple: "Apfel",
   berry: "Beeren",
+  egg: "Eier",
 };
 
 const ORDER_SINGULAR_LABELS = {
@@ -59,6 +62,7 @@ const ORDER_SINGULAR_LABELS = {
   wool: "Wolle",
   apple: "Apfel",
   berry: "Beere",
+  egg: "Ei",
 };
 
 const BUILDING_INFO = {
@@ -503,6 +507,7 @@ export function createHud({
     wool: "Wolle",
     apple: "Äpfel",
     berry: "Beeren",
+    egg: "Eier",
   };
 
   function renderOrders() {

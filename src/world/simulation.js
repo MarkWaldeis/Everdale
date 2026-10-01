@@ -14,6 +14,7 @@ export const RESOURCES = Object.freeze({
   wheat: { capKey: "wheatCap", requiresPlaced: "wheat-field" },
   apple: { capKey: "appleCap", requiresPlaced: "apple-tree" },
   berry: { capKey: "berryCap", requiresPlaced: "berry-bush" },
+  egg: { capKey: "eggCap", requiresPlaced: "chicken-coop" },
   wool: { capKey: "woolCap", requiresPlaced: "sheep-pen" },
   planks: { requiresPlaced: "wood-workshop" },
   bucket: { requiresPlaced: "wood-workshop" },
@@ -43,6 +44,7 @@ export const COST_LABELS = Object.freeze({
   wool: "Wolle",
   apple: "Äpfel",
   berry: "Beeren",
+  egg: "Eier",
 });
 
 export const RECIPES = Object.freeze([
@@ -232,6 +234,14 @@ export const BUILDING_CATALOG = Object.freeze([
     constructionSeconds: 20,
     description: "Wilde Brombeeren — die Sammlerin pflückt sie für Aufträge.",
   },
+  {
+    id: "chicken-coop",
+    label: "Hühnerstall",
+    placeable: true,
+    cost: { wood: 12, clay: 4 },
+    constructionSeconds: 35,
+    description: "Glückliche Hühner — die Hühnerwirtin sammelt frische Eier.",
+  },
 ]);
 
 export const RESEARCH_NODES = Object.freeze([
@@ -386,6 +396,16 @@ export const RESEARCH_NODES = Object.freeze([
     completable: true,
   },
   {
+    id: "chicken-coop",
+    name: "Hühnerstall",
+    detail: "Frische Eier jeden Tag — die Hühnerwirtin sammelt sie für Aufträge.",
+    icon: "🐔",
+    requires: ["sheep-pen"],
+    cost: { wood: 10, clay: 4 },
+    unlocksBuilding: "chicken-coop",
+    completable: true,
+  },
+  {
     id: "potions",
     name: "Tränke",
     detail: "Brau Buffs für deine Bewohner am Alchemielabor.",
@@ -424,6 +444,8 @@ export const ORDER_DECK = Object.freeze([
   { requests: { apple: 5, soup: 1 }, rewardGold: 15, rewardScrolls: 1, requiresPlaced: "apple-tree" },
   { requests: { berry: 4 }, rewardGold: 10, requiresPlaced: "berry-bush" },
   { requests: { berry: 3, apple: 2 }, rewardGold: 14, rewardScrolls: 1, requiresPlaced: "berry-bush" },
+  { requests: { egg: 3 }, rewardGold: 11, requiresPlaced: "chicken-coop" },
+  { requests: { egg: 4, bread: 1 }, rewardGold: 22, rewardScrolls: 1, requiresPlaced: "chicken-coop" },
   { requests: { stone: 5, wood: 10 }, rewardGold: 21, rewardScrolls: 2, requiresPlaced: "stone-storage" },
   { requests: { clay: 8, stone: 6 }, rewardGold: 26, rewardScrolls: 2, requiresPlaced: "stone-storage" },
   { requests: { bread: 2 }, rewardGold: 24, rewardScrolls: 2, requiresPlaced: "bakery" },
@@ -558,6 +580,7 @@ export function createDefaultState() {
     "sheep-pen": false,
     "apple-tree": false,
     "berry-bush": false,
+    "chicken-coop": false,
   };
   const nodes = {};
   RESEARCH_NODES.forEach((node) => {
@@ -592,6 +615,8 @@ export function createDefaultState() {
       appleCap: 15,
       berry: 0,
       berryCap: 15,
+      egg: 0,
+      eggCap: 15,
       bread: 0,
       breadCap: 15,
       planks: 0,
@@ -1146,6 +1171,7 @@ const SKILL_FOR_TASK = Object.freeze({
   "shear-wool": "farming",
   "pick-apples": "farming",
   "pick-berries": "farming",
+  "collect-eggs": "farming",
   mill: "building",
 });
 
@@ -1682,6 +1708,7 @@ const WISH_DEFINITIONS = [
   { item: "blanket", amount: 1, icon: "🧣", label: "eine Decke" },
   { item: "apple", amount: 2, icon: "🍎", label: "2 Äpfel" },
   { item: "berry", amount: 3, icon: "🫐", label: "3 Beeren" },
+  { item: "egg", amount: 2, icon: "🥚", label: "2 Eier" },
 ];
 
 const WISH_RESOURCE_ID = { pumpkins: "pumpkin" };

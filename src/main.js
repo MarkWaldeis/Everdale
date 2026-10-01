@@ -42,6 +42,8 @@ import { createAppleTree } from "./world/apple-tree.js";
 import { createAppleLoop } from "./world/apple-loop.js";
 import { createBerryBush } from "./world/berry-bush.js";
 import { createBerryLoop } from "./world/berry-loop.js";
+import { createChickenCoop } from "./world/chicken-coop.js";
+import { createEggLoop } from "./world/egg-loop.js";
 import { createStream, streamReservedCells } from "./world/stream.js";
 import { createGiftBox } from "./world/gift.js";
 import { createSocialLayer } from "./world/social.js";
@@ -208,6 +210,7 @@ function findGiftSpot() {
     animationState.study,
     animationState.houseIv,
     animationState.berryBush,
+    animationState.chickenCoop,
   ]
     .map((module) => module?.root?.position ?? module?.position)
     .filter(Boolean);
@@ -387,6 +390,7 @@ function animate(now = 0) {
     animationState.sheepPen?.update?.(delta, now * 0.001);
     animationState.appleTree?.update?.(delta, now * 0.001);
     animationState.berryBush?.update?.(delta, now * 0.001);
+    animationState.chickenCoop?.update?.(delta, now * 0.001);
     animationState.giftBox?.update?.(delta, now * 0.001);
     if (animationState.giftBox && !animationState.giftBox.root.visible) {
       if (now * 0.001 >= (animationState.giftNextAt ?? 0)) {
@@ -545,6 +549,7 @@ async function start() {
     animationState.appleTree = createAppleTree(world.walkArea.surfaceY);
     animationState.walkArea = world.walkArea;
     animationState.berryBush = createBerryBush(world.walkArea.surfaceY);
+    animationState.chickenCoop = createChickenCoop(world.walkArea.surfaceY);
     animationState.giftBox = createGiftBox(world.walkArea.surfaceY);
     world.root.add(animationState.giftBox.root);
     animationState.giftNextAt = 140 + Math.random() * 60;
@@ -702,6 +707,22 @@ async function start() {
         animationState.sheepPen,
       ],
     });
+    animationState.eggLoop = createEggLoop({
+      game: animationState.game,
+      chickenCoop: animationState.chickenCoop,
+      storages: [
+        animationState.yard,
+        animationState.stoneYard,
+        animationState.clayYard,
+        animationState.kitchen,
+        animationState.pumpkinField,
+        animationState.well,
+        animationState.clayPit,
+        animationState.wheatField,
+        animationState.mill,
+        animationState.sheepPen,
+      ],
+    });
     animationState.berryLoop = createBerryLoop({
       game: animationState.game,
       berryBush: animationState.berryBush,
@@ -808,6 +829,13 @@ async function start() {
           module: animationState.berryBush,
           loop: animationState.berryLoop,
           title: "Brombeersträucher · Beeren pflücken",
+          usesQueue: false,
+          jobKinds: ["harvest"],
+        },
+        "chicken-coop": {
+          module: animationState.chickenCoop,
+          loop: animationState.eggLoop,
+          title: "Hühnerstall · Eier sammeln",
           usesQueue: false,
           jobKinds: ["harvest"],
         },
@@ -1109,6 +1137,18 @@ async function start() {
         setYaw: (yaw) => animationState.berryBush.setYaw(yaw),
         refresh: () => animationState.berryBush.refreshAnchors(),
       },
+      "chicken-coop": {
+        id: "chicken-coop",
+        label: "Hühnerstall",
+        root: animationState.chickenCoop.root,
+        size: animationState.chickenCoop.size,
+        w: 3,
+        h: 3,
+        padding: 1,
+        setWorldPosition: (x, z) => animationState.chickenCoop.setWorldPosition(x, z),
+        setYaw: (yaw) => animationState.chickenCoop.setYaw(yaw),
+        refresh: () => animationState.chickenCoop.refreshAnchors(),
+      },
     };
 
     animationState.paths = createDirtPaths();
@@ -1174,7 +1214,7 @@ async function start() {
     }
 
     ["cottage", "wood-storage", "kitchen", "pumpkin-patch", "well", "study", "order-board"].forEach(mountPlaced);
-    ["clay-pit", "clay-storage", "stone-storage", "house-ii", "house-iii", "bakery", "tailor", "wood-workshop", "wheat-field", "mill", "sheep-pen", "apple-tree", "berry-bush", "house-iv"].forEach((id) => {
+    ["clay-pit", "clay-storage", "stone-storage", "house-ii", "house-iii", "bakery", "tailor", "wood-workshop", "wheat-field", "mill", "sheep-pen", "apple-tree", "berry-bush", "chicken-coop", "house-iv"].forEach((id) => {
       if (animationState.game.isPlaced(id)) mountPlaced(id);
     });
 

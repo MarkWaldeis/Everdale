@@ -955,3 +955,16 @@ test("all costs stay within reachable caps", () => {
   BUILDING_CATALOG.forEach((item) => checkCost(item.cost ?? {}, `building ${item.id}`));
   RECIPES.forEach((recipe) => checkCost(recipe.inputs ?? {}, `recipe ${recipe.id}`));
 });
+
+test("chicken coop gates egg harvest for orders", () => {
+  const state = createDefaultState();
+  state.unlocked["chicken-coop"] = true;
+  state.village.wood = 40;
+  state.village.clay = 10;
+  assert.equal(harvestResource(state, "egg", 2).ok, false);
+  placeBuilding(state, "chicken-coop");
+  tickConstructions(state, 40);
+  assert.equal(state.placed["chicken-coop"], true);
+  assert.equal(harvestResource(state, "egg", 4).total, 4);
+  assert.equal(state.village.egg, 4);
+});
