@@ -300,6 +300,62 @@ function grantWishAt(villagerId, el) {
   grant.addEventListener("animationend", () => grant.remove());
 }
 
+const workerAlertEls = new Map();
+const workerAlertProjector = new THREE.Vector3();
+
+function updateWorkerAlerts() {
+  if (!needBubblesEl) return;
+  const game = animationState.game;
+  const shops = animationState.workshops ?? {};
+  const activeIds = new Set();
+  if (game && animationState.view !== "valley") {
+    const snapshot = game.getSnapshot?.();
+    const assigned = new Set(
+      Object.values(snapshot?.villagers ?? {})
+        .map((member) => member.assignedBuildingId)
+        .filter(Boolean),
+    );
+    Object.entries(shops).forEach(([id, shop]) => {
+      const needsWorker =
+        game.isPlaced?.(id) && !assigned.has(id) && !(shop.loop?.isFull?.() ?? false);
+      if (!needsWorker || !shop.module?.root?.visible) return;
+      activeIds.add(id);
+      let el = workerAlertEls.get(id);
+      if (!el) {
+        el = document.createElement("button");
+        el.type = "button";
+        el.className = "need-bubble worker-alert";
+        el.innerHTML =
+          '<span class="need-bubble-icon" aria-hidden="true">❗</span>' +
+          '<span class="need-bubble-text"></span>';
+        el.addEventListener("click", () => animationState.hud?.renderBuilding?.(id));
+        needBubblesEl.appendChild(el);
+        workerAlertEls.set(id, el);
+      }
+      const textEl = el.querySelector(".need-bubble-text");
+      const label = `${shop.title?.split("·")?.[0]?.trim() ?? id} braucht eine Arbeitskraft`;
+      if (textEl.textContent !== label) textEl.textContent = label;
+      el.title = "Arbeiter zuweisen";
+      workerAlertProjector.copy(shop.module.root.position);
+      workerAlertProjector.y += (shop.module.size?.y ?? 1.8) + 0.9;
+      workerAlertProjector.project(camera);
+      if (workerAlertProjector.z > 1) {
+        el.hidden = true;
+        return;
+      }
+      el.hidden = false;
+      el.style.left = `${(workerAlertProjector.x * 0.5 + 0.5) * window.innerWidth}px`;
+      el.style.top = `${(-workerAlertProjector.y * 0.5 + 0.5) * window.innerHeight}px`;
+    });
+  }
+  workerAlertEls.forEach((el, id) => {
+    if (!activeIds.has(id)) {
+      el.remove();
+      workerAlertEls.delete(id);
+    }
+  });
+}
+
 function updateWishBubbles() {
   if (!needBubblesEl) return;
   const game = animationState.game;
@@ -440,6 +496,7 @@ function animate(now = 0) {
     camera.lookAt(animationState.frozenCamera.target);
   }
   updateWishBubbles();
+  updateWorkerAlerts();
   socialLayer.update(delta, now * 0.001, animationState.villagers, camera, animationState.view);
   renderer.render(scene, camera);
 }
@@ -776,6 +833,54 @@ async function start() {
       mountedDecos.delete(uid);
     }
 
+    animationState.workshops = {
+      bakery: { module: animationState.bakery, loop: animationState.workshopLoops.bakery, title: "Bäckerei · Brot backen" },
+      tailor: { module: animationState.tailor, loop: animationState.workshopLoops.tailor, title: "Schneiderei · Nähen" },
+      "wood-workshop": { module: animationState.woodWorkshop, loop: animationState.workshopLoops["wood-workshop"], title: "Holzwerkstatt · Werken" },
+      mill: { module: animationState.mill, loop: animationState.workshopLoops.mill, title: "Windmühle · Mehl mahlen" },
+      "wheat-field": {
+        module: animationState.wheatField,
+        loop: animationState.wheatLoop,
+        title: "Weizenfeld · Weizen ernten",
+        usesQueue: false,
+        jobKinds: ["harvest"],
+      },
+      "sheep-pen": {
+        module: animationState.sheepPen,
+        loop: animationState.sheepLoop,
+        title: "Schafweide · Wolle scheren",
+        usesQueue: false,
+        jobKinds: ["harvest"],
+      },
+      "apple-tree": {
+        module: animationState.appleTree,
+        loop: animationState.appleLoop,
+        title: "Apfelbaum · Äpfel pflücken",
+        usesQueue: false,
+        jobKinds: ["harvest"],
+      },
+      "berry-bush": {
+        module: animationState.berryBush,
+        loop: animationState.berryLoop,
+        title: "Brombeersträucher · Beeren pflücken",
+        usesQueue: false,
+        jobKinds: ["harvest"],
+      },
+      "chicken-coop": {
+        module: animationState.chickenCoop,
+        loop: animationState.eggLoop,
+        title: "Hühnerstall · Eier sammeln",
+        usesQueue: false,
+        jobKinds: ["harvest"],
+      },
+      "fishing-dock": {
+        module: animationState.fishingDock,
+        loop: animationState.fishLoop,
+        title: "Angelsteg · Fische angeln",
+        usesQueue: false,
+        jobKinds: ["harvest"],
+      },
+    };
     animationState.harvest = createHarvestDirector({
       trees: harvestables,
       camera,
@@ -808,54 +913,7 @@ async function start() {
       onOpenOrders: () => animationState.hud?.renderOrders?.(),
       giftBox: animationState.giftBox,
       onCollectGift: collectGift,
-      workshops: {
-        bakery: { module: animationState.bakery, loop: animationState.workshopLoops.bakery, title: "Bäckerei · Brot backen" },
-        tailor: { module: animationState.tailor, loop: animationState.workshopLoops.tailor, title: "Schneiderei · Nähen" },
-        "wood-workshop": { module: animationState.woodWorkshop, loop: animationState.workshopLoops["wood-workshop"], title: "Holzwerkstatt · Werken" },
-        mill: { module: animationState.mill, loop: animationState.workshopLoops.mill, title: "Windmühle · Mehl mahlen" },
-        "wheat-field": {
-          module: animationState.wheatField,
-          loop: animationState.wheatLoop,
-          title: "Weizenfeld · Weizen ernten",
-          usesQueue: false,
-          jobKinds: ["harvest"],
-        },
-        "sheep-pen": {
-          module: animationState.sheepPen,
-          loop: animationState.sheepLoop,
-          title: "Schafweide · Wolle scheren",
-          usesQueue: false,
-          jobKinds: ["harvest"],
-        },
-        "apple-tree": {
-          module: animationState.appleTree,
-          loop: animationState.appleLoop,
-          title: "Apfelbaum · Äpfel pflücken",
-          usesQueue: false,
-          jobKinds: ["harvest"],
-        },
-        "berry-bush": {
-          module: animationState.berryBush,
-          loop: animationState.berryLoop,
-          title: "Brombeersträucher · Beeren pflücken",
-          usesQueue: false,
-          jobKinds: ["harvest"],
-        },
-        "chicken-coop": {
-          module: animationState.chickenCoop,
-          loop: animationState.eggLoop,
-          title: "Hühnerstall · Eier sammeln",
-          usesQueue: false,
-          jobKinds: ["harvest"],
-        },
-        "fishing-dock": {
-          module: animationState.fishingDock,
-          loop: animationState.fishLoop,
-          title: "Angelsteg · Fische angeln",
-          usesQueue: false,
-          jobKinds: ["harvest"],
-        },
-      },
+      workshops: animationState.workshops,
       decoRoots,
     });
     animationState.village = createVillageEditor({

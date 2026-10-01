@@ -1902,3 +1902,8 @@ a:focus-visible {
   border-radius: 99px;
   background: linear-gradient(90deg, #8ec45f, #5f9b3f);
 }
+
+.worker-alert {
+  border-color: rgba(216, 144, 34, 0.85);
+  color: #a8621a;
+}
