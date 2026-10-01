@@ -33,6 +33,7 @@ import {
   tickBuffs,
   villagerSpeed,
   canPlaceDecoration,
+  removeDecoration,
   placeDecoration,
 } from "../src/world/simulation.js";
 
@@ -561,4 +562,21 @@ test("decorations can be placed repeatedly and grant reputation", () => {
   assert.equal(state.village.reputation, 2);
   assert.equal(state.decorations.length, 2);
   assert.equal(canPlaceDecoration(state, "deko-fountain"), false);
+});
+
+test("removeDecoration refunds cost and revokes reputation", () => {
+  const state = createDefaultState();
+  state.village.wood = 10;
+  state.village.stone = 10;
+  state.village.clay = 10;
+  placeDecoration(state, "deko-daisy");
+  const placed = placeDecoration(state, "deko-fountain");
+  assert.equal(state.village.reputation, 4);
+  const removed = removeDecoration(state, placed.uid);
+  assert.equal(removed.ok, true);
+  assert.equal(state.decorations.length, 1);
+  assert.equal(state.village.stone, 10);
+  assert.equal(state.village.clay, 10);
+  assert.equal(state.village.reputation, 1);
+  assert.equal(removeDecoration(state, placed.uid).ok, false);
 });

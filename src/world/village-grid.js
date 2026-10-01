@@ -191,6 +191,12 @@ export function createVillageGrid({ radiusX, radiusZ, surfaceY }) {
     applyWorld(building);
   }
 
+  function remove(id) {
+    if (!buildings.delete(id)) return false;
+    writeSave();
+    return true;
+  }
+
   function readSave() {
     try {
       const raw = localStorage.getItem(STORAGE_KEY);
@@ -221,6 +227,7 @@ export function createVillageGrid({ radiusX, radiusZ, surfaceY }) {
     rotate,
     preview,
     restore,
+    remove,
     nearestValid,
     inVillage,
     listVillageCells,

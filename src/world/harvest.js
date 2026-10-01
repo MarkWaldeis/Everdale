@@ -110,6 +110,7 @@ export function createHarvestDirector({
   onOpenBuilding,
   orderBoard,
   onOpenOrders,
+  decoRoots,
   houseIi,
   workshops,
 }) {
@@ -640,6 +641,23 @@ export function createHarvestDirector({
     setTrayOpen(true);
   }
 
+  function pickDecoration(clientX, clientY) {
+    if (!decoRoots?.size) return null;
+    const bounds = canvas.getBoundingClientRect();
+    scratch.pointer.x = ((clientX - bounds.left) / bounds.width) * 2 - 1;
+    scratch.pointer.y = -((clientY - bounds.top) / bounds.height) * 2 + 1;
+    raycaster.setFromCamera(scratch.pointer, camera);
+    const hits = raycaster.intersectObjects([...decoRoots.values()], true);
+    for (const hit of hits) {
+      let node = hit.object;
+      while (node) {
+        if (node.userData?.isVillageBuilding) return node.userData.isVillageBuilding;
+        node = node.parent;
+      }
+    }
+    return null;
+  }
+
   function pickInfoBuilding(clientX, clientY) {
     const candidates = [
       { id: "wood-storage", ref: yard },
@@ -1065,6 +1083,12 @@ export function createHarvestDirector({
     if (workshopHit) {
       selectTree(null);
       onOpenBuilding?.(workshopHit);
+      return;
+    }
+    const decoHit = pickDecoration(event.clientX, event.clientY);
+    if (decoHit) {
+      selectTree(null);
+      onOpenBuilding?.(decoHit);
       return;
     }
     const infoId = pickInfoBuilding(event.clientX, event.clientY);

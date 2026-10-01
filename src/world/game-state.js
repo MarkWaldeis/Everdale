@@ -38,6 +38,7 @@ import {
   villagerSpeed,
   canPlaceDecoration,
   placeDecoration,
+  removeDecoration,
   DECORATIONS,
   getCatalogItem,
   getResearchNode,
@@ -258,6 +259,7 @@ export function createGameState() {
     getDecorations: () => [...(data.decorations ?? [])],
     canPlaceDecoration: (typeId) => canPlaceDecoration(data, typeId),
     placeDecoration: (typeId) => wrap(() => placeDecoration(data, typeId)),
+    removeDecoration: (uid) => wrap(() => removeDecoration(data, uid)),
     tickVillagerWork: (id, delta) => wrap(() => simTickWork(data, id, delta)),
     resetVillagerWork: (id) =>
       wrap(() => {

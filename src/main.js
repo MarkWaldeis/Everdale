@@ -407,6 +407,20 @@ async function start() {
         villagers: animationState.villagers,
       }),
     };
+    const decoModels = {
+      "deko-daisy": assets.decoDaisy,
+      "deko-fountain": assets.decoFountain,
+    };
+    const mountedDecos = new Set();
+    const decoRoots = new Map();
+    function unmountDecoration(uid) {
+      const root = decoRoots.get(uid);
+      if (root?.parent) root.parent.remove(root);
+      decoRoots.delete(uid);
+      animationState.village?.grid?.remove?.(uid);
+      mountedDecos.delete(uid);
+    }
+
     animationState.harvest = createHarvestDirector({
       trees: harvestables,
       camera,
@@ -440,6 +454,7 @@ async function start() {
         tailor: { module: animationState.tailor, loop: animationState.workshopLoops.tailor, title: "Schneiderei · Nähen" },
         "wood-workshop": { module: animationState.woodWorkshop, loop: animationState.workshopLoops["wood-workshop"], title: "Holzwerkstatt · Werken" },
       },
+      decoRoots,
     });
     animationState.village = createVillageEditor({
       scene: world.root,
@@ -450,6 +465,11 @@ async function start() {
       controls,
       onModeChange: (active) => {
         if (active) animationState.harvest?.selectTree(null);
+      },
+      onCancelPlacement: (id) => {
+        if (!id.startsWith("deko-")) return;
+        animationState.game?.removeDecoration?.(id);
+        unmountDecoration(id);
       },
     });
     const woodFoot = footprintFromSize(animationState.yard.size.x, animationState.yard.size.z);
@@ -657,11 +677,6 @@ async function start() {
       );
     };
 
-    const decoModels = {
-      "deko-daisy": assets.decoDaisy,
-      "deko-fountain": assets.decoFountain,
-    };
-    const mountedDecos = new Set();
     function mountDecoration(deco) {
       if (!deco?.id || mountedDecos.has(deco.id)) return null;
       const model = decoModels[deco.type]?.clone?.(true);
@@ -686,6 +701,7 @@ async function start() {
         refresh: () => {},
       });
       mountedDecos.add(deco.id);
+      decoRoots.set(deco.id, root);
       return record;
     }
     animationState.game.getDecorations?.().forEach(mountDecoration);
@@ -914,6 +930,11 @@ async function start() {
       placeDecoration: (typeId) => {
         const result = animationState.game?.placeDecoration?.(typeId);
         if (result?.ok) mountDecoration({ id: result.uid, type: typeId });
+        return result;
+      },
+      removeDecoration: (uid) => {
+        const result = animationState.game?.removeDecoration?.(uid);
+        if (result?.ok) unmountDecoration(uid);
         return result;
       },
       listDecorations: () => animationState.game?.getDecorations?.() ?? [],

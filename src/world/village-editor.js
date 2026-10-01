@@ -129,6 +129,7 @@ export function createVillageEditor({
   character,
   controls,
   onModeChange,
+  onCancelPlacement,
 }) {
   const grid = createVillageGrid({
     radiusX: walkArea.radiusX,
@@ -360,6 +361,7 @@ export function createVillageEditor({
     if (state.holding && state.holding.id !== building.id) {
       grid.restore(state.holding.id);
     }
+    state.placingId = null;
     state.holding = building;
     state.previewCol = building.col;
     state.previewRow = building.row;
@@ -373,10 +375,13 @@ export function createVillageEditor({
 
   function cancelHold() {
     if (!state.holding) return;
+    const placingId = state.placingId;
+    state.placingId = null;
     grid.restore(state.holding.id);
     state.holding = null;
     state.liftTarget = 0;
     refreshHud();
+    if (placingId) onCancelPlacement?.(placingId);
   }
 
   function confirmHold() {
@@ -386,6 +391,7 @@ export function createVillageEditor({
       return;
     }
     grid.commit(state.holding.id, state.previewCol, state.previewRow);
+    state.placingId = null;
     state.holding = null;
     state.liftTarget = 0;
     refreshHud();
@@ -607,6 +613,7 @@ export function createVillageEditor({
       onModeChange?.(true);
     }
     pickUp(record);
+    state.placingId = record.id;
     return true;
   }
 

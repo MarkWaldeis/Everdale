@@ -658,6 +658,22 @@ export function placeDecoration(state, typeId) {
   return { ok: true, uid, village: { ...state.village } };
 }
 
+export function removeDecoration(state, uid) {
+  const index = (state.decorations ?? []).findIndex((deco) => deco.id === uid);
+  if (index < 0) return { ok: false, reason: "missing" };
+  const [deco] = state.decorations.splice(index, 1);
+  const item = DECORATIONS.find((entry) => entry.id === deco.type);
+  if (item) {
+    Object.entries(item.cost).forEach(([key, value]) => {
+      const field = villageField(key);
+      const cap = state.village[`${field}Cap`] ?? Infinity;
+      state.village[field] = Math.min(cap, (state.village[field] ?? 0) + value);
+    });
+    state.village.reputation = Math.max(0, (state.village.reputation ?? 0) - (item.rep ?? 0));
+  }
+  return { ok: true, removed: deco };
+}
+
 export function brewPotion(state, potionId) {
   const potion = POTIONS.find((entry) => entry.id === potionId);
   if (!potion) return { ok: false, reason: "missing" };
