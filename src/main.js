@@ -28,6 +28,7 @@ import { createClouds } from "./world/clouds.js";
 import { LANTERN_GLASS, LANTERN_HALO } from "./world/decos.js";
 import { createMountains } from "./world/mountains.js";
 import { createWeather } from "./world/weather.js";
+import { createFireflies } from "./world/fireflies.js";
 import { createCritters } from "./world/critters.js";
 import { createOrderBoard } from "./world/order-board.js";
 import { createHouseIi } from "./world/house-ii.js";
@@ -615,6 +616,7 @@ function animate(now = 0) {
     animationState.market?.update?.(delta, now * 0.001);
     animationState.weather?.update?.(delta);
     animationState.dayNight = updateDayNight(now);
+    animationState.fireflies?.update?.(delta, now * 0.001, animationState.dayNight.night);
     const nightness = animationState.dayNight.night;
     if (nightness > 0.82) {
       animationState.villagers.forEach((member) => {
@@ -1666,6 +1668,8 @@ async function start() {
     });
     world.root.add(animationState.valley.root);
     scene.add(world.root);
+    animationState.fireflies = createFireflies(world.walkArea);
+    scene.add(animationState.fireflies.root);
     animationState.weather = createWeather();
     scene.add(animationState.weather.root);
     animationState.mountains = createMountains(Math.max(world.walkArea.radiusX, world.walkArea.radiusZ) * 0.72);
