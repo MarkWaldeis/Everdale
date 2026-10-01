@@ -763,12 +763,7 @@ export function tickConstructions(state, deltaSeconds) {
   Object.entries(constructions).forEach(([id, entry]) => {
     entry.remaining -= deltaSeconds;
     if (entry.remaining <= 0) {
-      delete constructions[id];
-      if (state.buildings[id]) state.buildings[id].status = "ACTIVE";
-      if (id === "house-ii" && state.villagers.sophie) {
-        state.villagers.sophie.unlocked = true;
-      }
-      addPlayerXp(state, 20);
+      finishConstruction(state, id);
       completed.push(id);
     }
   });
@@ -1169,17 +1164,27 @@ function spendGem(state) {
   return true;
 }
 
+function finishConstruction(state, buildingId) {
+  delete state.constructions[buildingId];
+  if (state.buildings[buildingId]) state.buildings[buildingId].status = "ACTIVE";
+  if (buildingId === "house-ii" && state.villagers.sophie) {
+    state.villagers.sophie.unlocked = true;
+  }
+  addPlayerXp(state, 20);
+}
+
 export function rushConstruction(state, buildingId) {
   if (!state.constructions?.[buildingId]) return { ok: false, reason: "missing" };
   if (!spendGem(state)) return { ok: false, reason: "gems" };
-  state.constructions[buildingId].remaining = 0;
+  finishConstruction(state, buildingId);
   return { ok: true };
 }
 
 export function rushBrewing(state) {
   if (!(state.brewing?.queue?.length ?? 0)) return { ok: false, reason: "missing" };
   if (!spendGem(state)) return { ok: false, reason: "gems" };
-  state.brewing.progress = 999;
+  const potion = POTIONS.find((entry) => entry.id === state.brewing.queue[0]);
+  state.brewing.progress = potion?.seconds ?? 0;
   return { ok: true };
 }
 
@@ -1187,12 +1192,16 @@ export function rushProduction(state, buildingId) {
   const building = state.buildings[buildingId];
   if (!(building?.productionQueue?.length ?? 0)) return { ok: false, reason: "missing" };
   if (!spendGem(state)) return { ok: false, reason: "gems" };
-  building.productionProgress = 999;
+  const recipe = RECIPES.find((entry) => entry.id === building.productionQueue[0]);
+  building.productionProgress = recipe?.seconds ?? 0;
   return { ok: true };
 }
 
 export function rushResearch(state) {
   if (!state.research?.activeId) return { ok: false, reason: "missing" };
+  if ((state.research.progress ?? 0) >= state.research.required) {
+    return { ok: false, reason: "done" };
+  }
   if (!spendGem(state)) return { ok: false, reason: "gems" };
   state.research.progress = state.research.required;
   return { ok: true };

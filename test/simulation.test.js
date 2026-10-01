@@ -619,7 +619,9 @@ test("gem rush completes construction, brewing and research instantly", () => {
   assert.equal(placed.ok, true);
   assert.ok(state.constructions["house-ii"]);
   assert.equal(rushConstruction(state, "house-ii").ok, true);
-  assert.equal(state.constructions["house-ii"].remaining, 0);
+  assert.equal(state.constructions["house-ii"], undefined);
+  assert.equal(state.buildings["house-ii"].status, "ACTIVE");
+  assert.equal(state.villagers.sophie.unlocked, true);
   assert.equal(state.village.gems, 2);
 
   state.potionsUnlocked = true;

@@ -240,7 +240,8 @@ export function createHud({
     }
     const snapNow = game.getSnapshot?.();
     const rushLine =
-      snapNow?.research?.activeId
+      snapNow?.research?.activeId &&
+      (snapNow.research.progress ?? 0) < snapNow.research.required
         ? `<div class="inv-row"><span>Erforscht</span><strong><button class="sheet-action is-inline" type="button" data-rush="research">Sofort fertig · 1💎</button></strong></div>`
         : "";
     openSheet(
