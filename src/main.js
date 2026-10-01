@@ -39,6 +39,7 @@ import { createWheatLoop } from "./world/wheat-loop.js";
 import { createSheepPen } from "./world/sheep-pen.js";
 import { createSheepLoop } from "./world/sheep-loop.js";
 import { createStream, streamReservedCells } from "./world/stream.js";
+import { createSocialLayer } from "./world/social.js";
 import { createHud } from "./world/hud.js";
 import "./styles.css";
 
@@ -181,6 +182,7 @@ function updateWind(elapsed) {
 }
 
 const needBubblesEl = document.querySelector("#need-bubbles");
+const socialLayer = createSocialLayer(needBubblesEl);
 const wishBubbleEls = new Map();
 const wishProjector = new THREE.Vector3();
 
@@ -329,6 +331,7 @@ function animate(now = 0) {
     camera.lookAt(animationState.frozenCamera.target);
   }
   updateWishBubbles();
+  socialLayer.update(delta, now * 0.001, animationState.villagers, camera, animationState.view);
   renderer.render(scene, camera);
 }
 
