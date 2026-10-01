@@ -499,12 +499,16 @@ export function createHarvestDirector({
     });
   }
 
+  const REGROW_SECONDS = 150;
+  const GROW_SECONDS = 2.6;
+
   function beginFall(tree, awayFrom) {
     uniquifyMaterials(tree);
     tree.userData.harvestState = "falling";
     tree.userData.fallTime = 0;
     tree.userData.breakKind = tree.userData.harvestKind === "stone" ? "stone" : "wood";
     tree.userData.baseScale = tree.scale.x;
+    tree.userData.baseYaw = tree.rotation.y;
     scratch.toward.subVectors(tree.position, awayFrom);
     scratch.toward.y = 0;
     if (scratch.toward.lengthSq() < 0.0001) scratch.toward.set(1, 0, 0);
@@ -894,7 +898,7 @@ export function createHarvestDirector({
     });
   }
 
-  function fadeAndRemove(tree, sink) {
+  function fadeAndRemove(tree, sink, elapsed) {
     tree.traverse((child) => {
       if (!child.isMesh || !child.material) return;
       const materials = Array.isArray(child.material) ? child.material : [child.material];
@@ -909,10 +913,56 @@ export function createHarvestDirector({
     tree.visible = false;
     tree.userData.harvestState = "gone";
     tree.userData.harvestable = false;
+    tree.userData.regrowAt = (elapsed ?? 0) + REGROW_SECONDS * (0.85 + Math.random() * 0.3);
     return false;
   }
 
-  function updateFalls(delta) {
+  function beginRegrow(tree) {
+    const data = tree.userData;
+    data.harvestState = "growing";
+    data.growTime = 0;
+    data.regrowAt = null;
+    data.impactPulse = 0;
+    data.fallTime = 0;
+    data.fallAxis = null;
+    tree.visible = true;
+    tree.quaternion.setFromAxisAngle(new THREE.Vector3(0, 1, 0), data.baseYaw ?? 0);
+    tree.position.y = surfaceY;
+    tree.scale.setScalar((data.baseScale ?? 1) * 0.12);
+    tree.traverse((child) => {
+      if (!child.isMesh || !child.material) return;
+      const materials = Array.isArray(child.material) ? child.material : [child.material];
+      materials.forEach((material) => {
+        material.transparent = false;
+        material.depthWrite = true;
+        material.opacity = 1;
+        material.needsUpdate = true;
+      });
+    });
+  }
+
+  function updateRegrow(delta, elapsed) {
+    trees.forEach((tree) => {
+      const data = tree.userData;
+      if (data.harvestState === "gone" && data.regrowAt != null && elapsed >= data.regrowAt) {
+        beginRegrow(tree);
+      }
+      if (data.harvestState !== "growing") return;
+      data.growTime = (data.growTime ?? 0) + delta;
+      const t = Math.min(data.growTime / GROW_SECONDS, 1);
+      const eased = 1 - Math.pow(1 - t, 3);
+      const settle = t < 0.75 ? 1 : 1 + Math.sin(((t - 0.75) / 0.25) * Math.PI) * 0.06;
+      tree.scale.setScalar((data.baseScale ?? 1) * (0.12 + eased * 0.88) * settle);
+      if (t >= 1) {
+        tree.scale.setScalar(data.baseScale ?? 1);
+        data.harvestState = "idle";
+        data.harvestable = true;
+        data.regrown = true;
+      }
+    });
+  }
+
+  function updateFalls(delta, elapsed) {
     pointerState.falling = pointerState.falling.filter((tree) => {
       tree.userData.fallTime += delta;
       const time = tree.userData.fallTime;
@@ -924,7 +974,7 @@ export function createHarvestDirector({
         tree.position.y = surfaceY - 0.02 - crumble * 0.28;
         tree.rotation.y = (tree.userData.baseYaw ?? 0) + crumble * 0.35;
         if (time > 0.9) {
-          return fadeAndRemove(tree, smootherStep(Math.min((time - 0.9) / 0.45, 1)));
+          return fadeAndRemove(tree, smootherStep(Math.min((time - 0.9) / 0.45, 1)), elapsed);
         }
         return true;
       }
@@ -941,7 +991,7 @@ export function createHarvestDirector({
       if (time > 1.25) {
         const sink = smootherStep(Math.min((time - 1.25) / 0.7, 1));
         tree.position.y = surfaceY - 0.14 - sink * 1.4;
-        return fadeAndRemove(tree, sink);
+        return fadeAndRemove(tree, sink, elapsed);
       }
       return true;
     });
@@ -963,7 +1013,8 @@ export function createHarvestDirector({
   function update(delta, elapsed) {
     updateMarker(elapsed);
     updateChips(delta);
-    updateFalls(delta);
+    updateFalls(delta, elapsed);
+    updateRegrow(delta, elapsed);
     updateImpulses(delta);
 
     const choppingTrees = trees.filter((tree) => tree.userData.harvestState === "chopping");
