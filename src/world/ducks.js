@@ -52,6 +52,10 @@ export function createDucks(surfaceY) {
       duck.position.set(point.x, surfaceY + 0.03 + Math.sin(elapsed * 2 + t * 20) * 0.02, point.z);
       duck.rotation.y = Math.atan2(tangent.x, tangent.z) - Math.PI / 2;
       duck.rotation.z = Math.sin(elapsed * 2.4 + t * 30) * 0.05;
+      // fade out/in at the stream ends so the wrap never pops
+      const edgeFade = THREE.MathUtils.clamp(Math.min(t, 1 - t) * 18, 0, 1);
+      duck.scale.setScalar(edgeFade);
+      duck.visible = edgeFade > 0.02;
     });
   }
   return { root, update };
