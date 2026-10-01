@@ -15,6 +15,9 @@ import {
   consumeSoup,
   fillValleyCrate,
   canCollectResource,
+  getUpgradeInfo,
+  upgradeBuilding,
+  getBuildingLevel,
 } from "../src/world/simulation.js";
 
 test("fresh start keeps later buildings locked", () => {
@@ -163,4 +166,45 @@ test("valley crates stay locked until researched", () => {
   assert.equal(filled.ok, true);
   assert.equal(state.village.wood, 0);
   assert.ok(state.village.gold > 0);
+});
+
+test("storage upgrade raises the cap and spends resources", () => {
+  const state = createDefaultState();
+  assert.equal(state.village.woodCap, 20);
+  const info = getUpgradeInfo(state, "wood-storage");
+  assert.equal(info.level, 1);
+  assert.equal(info.atMax, false);
+  assert.equal(info.nextCap, 45);
+
+  assert.equal(upgradeBuilding(state, "wood-storage").ok, false);
+
+  state.village.wood = 10;
+  state.village.stone = 4;
+  const done = upgradeBuilding(state, "wood-storage");
+  assert.equal(done.ok, true);
+  assert.equal(done.level, 2);
+  assert.equal(state.village.woodCap, 45);
+  assert.equal(state.village.wood, 0);
+  assert.equal(state.village.stone, 0);
+  assert.equal(getBuildingLevel(state, "wood-storage"), 2);
+});
+
+test("kitchen upgrade raises the soup cap and maxes out", () => {
+  const state = createDefaultState();
+  state.village.wood = 40;
+  state.village.clay = 40;
+  assert.equal(upgradeBuilding(state, "kitchen").ok, true);
+  assert.equal(state.village.soupCap, 16);
+  assert.equal(upgradeBuilding(state, "kitchen").ok, true);
+  assert.equal(state.village.soupCap, 24);
+  const last = upgradeBuilding(state, "kitchen");
+  assert.equal(last.ok, false);
+  assert.equal(last.reason, "max");
+  assert.equal(getUpgradeInfo(state, "kitchen").atMax, true);
+});
+
+test("unplaced buildings cannot be upgraded", () => {
+  const state = createDefaultState();
+  assert.equal(getUpgradeInfo(state, "stone-storage"), null);
+  assert.equal(upgradeBuilding(state, "stone-storage").ok, false);
 });

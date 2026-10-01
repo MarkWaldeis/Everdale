@@ -179,6 +179,37 @@ export const STARTER_PLACED = Object.freeze([
   "study",
 ]);
 
+export const BUILDING_UPGRADES = Object.freeze({
+  "wood-storage": {
+    label: "Holzlager",
+    capKey: "woodCap",
+    caps: [20, 45, 80],
+    costs: [null, { wood: 10, stone: 4 }, { wood: 18, stone: 10, clay: 6 }],
+    effect: "Lagert gefälltes Holz.",
+  },
+  "stone-storage": {
+    label: "Steinlager",
+    capKey: "stoneCap",
+    caps: [20, 45, 80],
+    costs: [null, { wood: 14, clay: 6 }, { wood: 22, stone: 12, clay: 12 }],
+    effect: "Lagert abgebauten Stein.",
+  },
+  "clay-storage": {
+    label: "Lehmlager",
+    capKey: "clayCap",
+    caps: [20, 45, 80],
+    costs: [null, { wood: 12, stone: 8 }, { wood: 20, stone: 14 }],
+    effect: "Lagert gegrabenen Lehm.",
+  },
+  kitchen: {
+    label: "Küche",
+    capKey: "soupCap",
+    caps: [10, 16, 24],
+    costs: [null, { wood: 8, clay: 5 }, { wood: 14, clay: 12 }],
+    effect: "Kocht Suppe für hungrige Bewohner.",
+  },
+});
+
 function clone(value) {
   return JSON.parse(JSON.stringify(value));
 }
@@ -379,7 +410,60 @@ export function placeBuilding(state, id) {
   const item = getCatalogItem(id);
   spendCost(state, item.cost);
   state.placed[id] = true;
+  if (!state.buildings[id]) {
+    state.buildings[id] = {
+      id,
+      typeId: id,
+      level: 1,
+      status: "ACTIVE",
+      workerCapacity: 1,
+      assignedVillagerIds: [],
+      productionQueue: [],
+    };
+  }
   return { ok: true, id, village: { ...state.village } };
+}
+
+export function getBuildingLevel(state, id) {
+  return state.buildings[id]?.level ?? 1;
+}
+
+export function getUpgradeInfo(state, id) {
+  const spec = BUILDING_UPGRADES[id];
+  if (!spec || !state.placed[id]) return null;
+  const level = getBuildingLevel(state, id);
+  const cost = spec.costs[level] ?? null;
+  return {
+    id,
+    label: spec.label,
+    level,
+    maxLevel: spec.costs.length,
+    atMax: !cost,
+    cost,
+    cap: spec.caps?.[level - 1] ?? null,
+    nextCap: spec.caps?.[level] ?? null,
+    affordable: cost ? canAfford(state, cost) : false,
+    effect: spec.effect,
+  };
+}
+
+export function upgradeBuilding(state, id) {
+  const info = getUpgradeInfo(state, id);
+  if (!info) return { ok: false, reason: "missing" };
+  if (info.atMax) return { ok: false, reason: "max" };
+  if (!info.affordable) return { ok: false, reason: "cost" };
+  const spec = BUILDING_UPGRADES[id];
+  spendCost(state, info.cost);
+  if (!state.buildings[id]) {
+    state.buildings[id] = { id, typeId: id, level: 1, status: "ACTIVE", assignedVillagerIds: [], productionQueue: [] };
+  }
+  const nextLevel = info.level + 1;
+  state.buildings[id].level = nextLevel;
+  if (spec.capKey) {
+    state.village[spec.capKey] = spec.caps[nextLevel - 1];
+  }
+  addPlayerXp(state, 20);
+  return { ok: true, id, level: nextLevel, cap: spec.caps?.[nextLevel - 1] ?? null };
 }
 
 export function getNodeStatus(state, nodeId) {

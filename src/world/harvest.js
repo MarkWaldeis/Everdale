@@ -107,6 +107,7 @@ export function createHarvestDirector({
   setFollowTarget,
   isPlacementActive,
   onOpenResearch,
+  onOpenBuilding,
 }) {
   const raycaster = new THREE.Raycaster();
   const marker = createGroundMarker();
@@ -558,6 +559,22 @@ export function createHarvestDirector({
     return pickBuilding(clientX, clientY, clayYard);
   }
 
+  function pickInfoBuilding(clientX, clientY) {
+    const candidates = [
+      { id: "wood-storage", ref: yard },
+      { id: "stone-storage", ref: stoneYard },
+      { id: "clay-storage", ref: clayYard },
+      { id: "well", ref: well },
+      { id: "cottage", ref: cottage },
+    ];
+    for (const entry of candidates) {
+      if (!entry.ref?.root?.parent || entry.ref.root.visible === false) continue;
+      if (entry.id.endsWith("-storage") && !game?.isPlaced?.(entry.id)) continue;
+      if (pickBuilding(clientX, clientY, entry.ref)) return entry.id;
+    }
+    return null;
+  }
+
   function yardBlock(storage) {
     if (!storage?.root) return null;
     const span = Math.max(storage.size?.x ?? 0.8, storage.size?.z ?? 0.8);
@@ -840,9 +857,15 @@ export function createHarvestDirector({
     const kitchenHit = !tree && pickKitchen(event.clientX, event.clientY);
     const patchHit = !tree && !kitchenHit && pickPatch(event.clientX, event.clientY);
     const clayHit =
-      !tree && !kitchenHit && !patchHit && (pickClayPit(event.clientX, event.clientY) || pickClayYard(event.clientX, event.clientY));
+      !tree &&
+      !kitchenHit &&
+      !patchHit &&
+      (pickClayPit(event.clientX, event.clientY) ||
+        (game?.isPlaced?.("clay-storage") && pickClayYard(event.clientX, event.clientY)));
     const labHit = !tree && !kitchenHit && !patchHit && !clayHit && pickResearch(event.clientX, event.clientY);
-    pointerState.hovered = tree || kitchenHit || patchHit || clayHit || labHit;
+    const infoHit =
+      !tree && !kitchenHit && !patchHit && !clayHit && !labHit && pickInfoBuilding(event.clientX, event.clientY);
+    pointerState.hovered = tree || kitchenHit || patchHit || clayHit || labHit || infoHit;
     canvas.classList.toggle("is-over-tree", Boolean(pointerState.hovered));
   }
 
@@ -875,7 +898,14 @@ export function createHarvestDirector({
       selectPatch();
       return;
     }
-    const clayHit = pickClayPit(event.clientX, event.clientY) || pickClayYard(event.clientX, event.clientY);
+    const clayYardHit =
+      game?.isPlaced?.("clay-storage") && pickClayYard(event.clientX, event.clientY);
+    if (clayYardHit) {
+      selectTree(null);
+      onOpenBuilding?.("clay-storage");
+      return;
+    }
+    const clayHit = pickClayPit(event.clientX, event.clientY);
     if (clayHit) {
       if (pointerState.mode === "clay") {
         selectTree(null);
@@ -888,6 +918,12 @@ export function createHarvestDirector({
     if (labHit) {
       selectTree(null);
       onOpenResearch?.();
+      return;
+    }
+    const infoId = pickInfoBuilding(event.clientX, event.clientY);
+    if (infoId) {
+      selectTree(null);
+      onOpenBuilding?.(infoId);
       return;
     }
     const tree = pickTree(event.clientX, event.clientY);

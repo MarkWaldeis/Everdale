@@ -2,7 +2,6 @@ import * as THREE from "three";
 
 const YARD_POSITION = new THREE.Vector3(-6.15, 0, -1.05);
 const YARD_YAW = 0.62;
-const STONE_MAX = 20;
 const STONE_PER_ROCK = 5;
 
 export function createStoneYard(models, surfaceY) {
@@ -37,15 +36,22 @@ export function createStoneYard(models, surfaceY) {
   const localLook = root.worldToLocal(look.clone());
 
   let stone = 0;
+  let capacity = 20;
 
   function stageFor(amount) {
-    if (amount >= STONE_MAX) return "full";
+    if (amount >= capacity) return "full";
     if (amount >= STONE_PER_ROCK) return "half";
     return "empty";
   }
 
+  function setMax(next) {
+    capacity = Math.max(STONE_PER_ROCK, Math.round(next));
+    if (stone > capacity) setStone(capacity);
+    return capacity;
+  }
+
   function setStone(amount) {
-    stone = THREE.MathUtils.clamp(amount, 0, STONE_MAX);
+    stone = THREE.MathUtils.clamp(amount, 0, capacity);
     const stage = stageFor(stone);
     Object.entries(stages).forEach(([name, model]) => {
       if (model) model.visible = name === stage;
@@ -95,7 +101,10 @@ export function createStoneYard(models, surfaceY) {
     setWorldPosition,
     setYaw,
     getYaw: () => root.rotation.y,
-    max: STONE_MAX,
+    setMax,
+    get max() {
+      return capacity;
+    },
     perRock: STONE_PER_ROCK,
   };
 }

@@ -353,6 +353,7 @@ async function start() {
       setFollowTarget,
       isPlacementActive: () => Boolean(animationState.village?.isActive()),
       onOpenResearch: () => animationState.hud?.renderResearch?.(),
+      onOpenBuilding: (id) => animationState.hud?.renderBuilding?.(id),
     });
     animationState.village = createVillageEditor({
       scene: world.root,
@@ -576,12 +577,19 @@ async function start() {
       },
     });
     animationState.hud.bind();
+    const syncStorageCaps = (snap) => {
+      animationState.yard.setMax?.(snap.village.woodCap);
+      animationState.stoneYard.setMax?.(snap.village.stoneCap);
+      animationState.clayYard.setMax?.(snap.village.clayCap);
+    };
+    syncStorageCaps(animationState.game.getSnapshot());
     animationState.game.subscribe((snap) => {
       const sophie = animationState.villagers.find((entry) => entry.getId() === "sophie");
       if (sophie) sophie.root.visible = Boolean(snap.villagers.sophie?.unlocked);
       if (snap.valleyUnlocked && animationState.view === "valley") {
         animationState.valley.setVisible(true);
       }
+      syncStorageCaps(snap);
     });
 
     updateLoadingScreen({ ratio: 1, label: "Fertig" });

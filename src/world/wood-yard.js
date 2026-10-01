@@ -2,7 +2,6 @@ import * as THREE from "three";
 
 const YARD_POSITION = new THREE.Vector3(4.35, 0, -0.85);
 const YARD_YAW = -0.55;
-const WOOD_MAX = 20;
 const WOOD_PER_TREE = 5;
 
 export function createWoodYard(models, surfaceY) {
@@ -37,15 +36,22 @@ export function createWoodYard(models, surfaceY) {
   const localLook = root.worldToLocal(look.clone());
 
   let wood = 0;
+  let capacity = 20;
 
   function stageFor(amount) {
-    if (amount >= WOOD_MAX) return "full";
+    if (amount >= capacity) return "full";
     if (amount >= WOOD_PER_TREE) return "half";
     return "empty";
   }
 
+  function setMax(next) {
+    capacity = Math.max(WOOD_PER_TREE, Math.round(next));
+    if (wood > capacity) setWood(capacity);
+    return capacity;
+  }
+
   function setWood(amount) {
-    wood = THREE.MathUtils.clamp(amount, 0, WOOD_MAX);
+    wood = THREE.MathUtils.clamp(amount, 0, capacity);
     const stage = stageFor(wood);
     Object.entries(stages).forEach(([name, model]) => {
       if (model) model.visible = name === stage;
@@ -95,7 +101,10 @@ export function createWoodYard(models, surfaceY) {
     setWorldPosition,
     setYaw,
     getYaw: () => root.rotation.y,
-    max: WOOD_MAX,
+    setMax,
+    get max() {
+      return capacity;
+    },
     perTree: WOOD_PER_TREE,
   };
 }

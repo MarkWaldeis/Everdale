@@ -2,7 +2,6 @@ import * as THREE from "three";
 
 const YARD_POSITION = new THREE.Vector3(-6.55, 0, 2.35);
 const YARD_YAW = 0.42;
-const CLAY_MAX = 20;
 const CLAY_PER_LOAD = 5;
 
 export function createClayYard(models, surfaceY) {
@@ -37,15 +36,22 @@ export function createClayYard(models, surfaceY) {
   const localLook = root.worldToLocal(look.clone());
 
   let clay = 0;
+  let capacity = 20;
 
   function stageFor(amount) {
-    if (amount >= CLAY_MAX) return "full";
+    if (amount >= capacity) return "full";
     if (amount >= CLAY_PER_LOAD) return "half";
     return "empty";
   }
 
+  function setMax(next) {
+    capacity = Math.max(CLAY_PER_LOAD, Math.round(next));
+    if (clay > capacity) setClay(capacity);
+    return capacity;
+  }
+
   function setClay(amount) {
-    clay = THREE.MathUtils.clamp(amount, 0, CLAY_MAX);
+    clay = THREE.MathUtils.clamp(amount, 0, capacity);
     const stage = stageFor(clay);
     Object.entries(stages).forEach(([name, model]) => {
       if (model) model.visible = name === stage;
@@ -90,13 +96,16 @@ export function createClayYard(models, surfaceY) {
     getClay: () => clay,
     setClay,
     deposit,
-    isFull: () => clay >= CLAY_MAX,
+    isFull: () => clay >= capacity,
     containsPoint,
     refreshAnchors,
     setWorldPosition,
     setYaw,
     getYaw: () => root.rotation.y,
-    max: CLAY_MAX,
+    setMax,
+    get max() {
+      return capacity;
+    },
     perLoad: CLAY_PER_LOAD,
   };
 }

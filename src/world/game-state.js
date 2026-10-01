@@ -27,6 +27,9 @@ import {
   canAfford,
   researchCostShortfall,
   formatCost,
+  getBuildingLevel,
+  getUpgradeInfo,
+  upgradeBuilding as simUpgrade,
   BUILDING_CATALOG,
   RESEARCH_NODES,
 } from "./simulation.js";
@@ -131,6 +134,9 @@ export function createGameState() {
     canPlaceBuilding: (id) => simCanPlace(data, id),
     canCollectResource: (resourceId) => simCanCollect(data, resourceId),
     placeBuilding: (id) => wrap(() => simPlace(data, id)),
+    getBuildingLevel: (id) => getBuildingLevel(data, id),
+    getUpgradeInfo: (id) => getUpgradeInfo(data, id),
+    upgradeBuilding: (id) => wrap(() => simUpgrade(data, id)),
     startResearch: (id) => wrap(() => simStart(data, id)),
     completeResearch: (id) => wrap(() => simComplete(data, id)),
     tickResearch: (delta) =>

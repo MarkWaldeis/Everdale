@@ -11,6 +11,23 @@ const ITEM_ROWS = [
   ["flour", "Mehl", null],
 ];
 
+const BUILDING_INFO = {
+  "wood-storage": { label: "Holzlager", icon: "🪵", resource: "wood", resourceLabel: "Holz" },
+  "stone-storage": { label: "Steinlager", icon: "🪨", resource: "stone", resourceLabel: "Stein" },
+  "clay-storage": { label: "Lehmlager", icon: "🧱", resource: "clay", resourceLabel: "Lehm" },
+  kitchen: { label: "Küche", icon: "🍲", resource: "soup", resourceLabel: "Suppe" },
+  well: {
+    label: "Brunnen",
+    icon: "💧",
+    blurb: "Treffpunkt der Bewohner. Wer frei ist, trifft sich hier.",
+  },
+  cottage: {
+    label: "Holzhaus",
+    icon: "🏠",
+    blurb: "Zuhause der Dorfbewohner. Neue Häuser locken neue Bewohner an.",
+  },
+};
+
 export function createHud({
   game,
   onBuild,
@@ -174,6 +191,40 @@ export function createHud({
     );
   }
 
+  function renderBuilding(id) {
+    const info = BUILDING_INFO[id];
+    if (!info) return;
+    const snap = game.getSnapshot();
+    const upgrade = game.getUpgradeInfo?.(id);
+    const level = game.getBuildingLevel?.(id) ?? 1;
+    const rows = [];
+    if (info.resource) {
+      const cap = upgrade?.cap ?? snap.village[`${info.resource}Cap`];
+      rows.push(
+        `<div class="inv-row"><span>${info.resourceLabel}</span><strong>${snap.village[info.resource] ?? 0}${cap ? ` / ${cap}` : ""}</strong></div>`,
+      );
+    }
+    const effect = upgrade?.effect ?? info.blurb ?? "";
+    if (effect) rows.push(`<p class="sheet-hint">${effect}</p>`);
+    let action = "";
+    if (upgrade) {
+      if (upgrade.atMax) {
+        action = `<button class="sheet-action" type="button" disabled>Maximalstufe erreicht</button>`;
+      } else {
+        const cost = game.formatCost?.(upgrade.cost) ?? "";
+        const capNote = upgrade.nextCap ? ` → ${upgrade.nextCap} Platz` : "";
+        action = upgrade.affordable
+          ? `<button class="sheet-action" type="button" data-upgrade="${id}">Ausbauen auf Stufe ${upgrade.level + 1} · ${cost}${capNote}</button>`
+          : `<button class="sheet-action" type="button" disabled>Zu teuer · ${cost}${capNote}</button>`;
+      }
+    }
+    openSheet(
+      "building",
+      `${info.icon} ${info.label} · Stufe ${level}`,
+      `${rows.join("")}${action}`,
+    );
+  }
+
   function renderValley() {
     if (!game.isValleyUnlocked()) {
       openSheet("valley", "Tal", "<p>Erforsche den Tal-Zugang, dann kannst du hinreisen.</p>");
@@ -223,6 +274,15 @@ export function createHud({
         game.fillValleyCrate(Number(button.dataset.crate));
         refresh();
         renderValley();
+      });
+    });
+    els.sheetBody?.querySelectorAll("[data-upgrade]").forEach((button) => {
+      button.addEventListener("click", () => {
+        const result = game.upgradeBuilding?.(button.dataset.upgrade);
+        refresh();
+        if (result?.ok) {
+          renderBuilding(button.dataset.upgrade);
+        }
       });
     });
     els.sheetBody?.querySelector("#btn-mute")?.addEventListener("click", () => {
@@ -313,5 +373,6 @@ export function createHud({
     renderInventory,
     renderSettings,
     renderValley,
+    renderBuilding,
   };
 }
