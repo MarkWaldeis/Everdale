@@ -1349,8 +1349,11 @@ async function start() {
               }),
             );
           }
+          const loopModule =
+            productionEntries.get(id)?.module ??
+            constructionLoops.get(id).module;
           animationState.workshops[id] = {
-            module: constructionLoops.get(id).module ?? (productionEntries.get(id)?.module ?? shim),
+            module: loopModule,
             loop: constructionLoops.get(id),
             title: `Baustelle · ${spec.label}`,
             usesQueue: false,

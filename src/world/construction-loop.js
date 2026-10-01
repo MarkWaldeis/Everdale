@@ -50,5 +50,5 @@ export function createConstructionLoop({ game, module, buildingId, villagers }) 
     return assigned.size > 0 || !game.getConstruction?.(buildingId);
   }
 
-  return { assign, release, isFull, has: (memberId) => assigned.has(memberId) };
+  return { assign, release, isFull, has: (memberId) => assigned.has(memberId), module };
 }
