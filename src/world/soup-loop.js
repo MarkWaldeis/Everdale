@@ -67,7 +67,7 @@ export function createSoupLoop({
       kind: "harvest",
       approach: pumpkinField.stand.clone(),
       lookAt: pumpkinField.look.clone(),
-      duration: game.getHarvestSeconds(),
+      duration: game.getHarvestSeconds(member.getId()),
       storageBlock: villageBlocks(),
       onStartWork: () => {
         pumpkinField.beginPick();
@@ -90,7 +90,7 @@ export function createSoupLoop({
       kind: "cook",
       approach: kitchen.stand.clone(),
       lookAt: kitchen.look.clone(),
-      duration: game.getCookSeconds(),
+      duration: game.getCookSeconds(member.getId()),
       storageBlock: villageBlocks(),
       onStartWork: () => {
         kitchen.setCooking(true);
@@ -162,6 +162,9 @@ export function createSoupLoop({
       const sim = member.getSimState?.() ?? "IDLE";
       const kind = member.getJobKind?.();
       const foodJob = kind === "cook" || kind === "harvest" || kind === "eat";
+      if (member.isWorking?.() && foodJob && kind !== "eat") {
+        game.tickVillagerSkill?.(member.getId(), delta);
+      }
       if (member.isWorking?.() && !foodJob) {
         const starved = game.tickVillagerWork(member.getId(), delta);
         if (starved) {

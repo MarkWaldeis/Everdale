@@ -38,6 +38,7 @@ export function createClayLoop({
   }
 
   function makeDigJob(member) {
+    const hitsNeeded = game.getHitCount?.(member.getId(), "clayDigging") ?? 5;
     return {
       kind: "dig",
       tool: "pickaxe",
@@ -46,7 +47,7 @@ export function createClayLoop({
       storageApproach: clayYard.stand,
       storageLook: clayYard.look,
       storageBlock: villageBlocks(),
-      hitsNeeded: 5,
+      hitsNeeded,
       onStartChop: () => {
         clayPit.setDigging(true);
         game.setVillagerState(member.getId(), "WORKING", {
@@ -56,6 +57,7 @@ export function createClayLoop({
       },
       onImpact: () => {
         clayPit.impact();
+        game.recordSkillHit?.(member.getId(), "clayDigging");
       },
       onChopDone: () => {
         clayPit.setDigging(false);

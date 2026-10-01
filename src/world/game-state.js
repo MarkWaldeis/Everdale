@@ -44,6 +44,9 @@ import {
   getShip,
   villagerSkillKey,
   skillLevelOf,
+  tickVillagerSkill,
+  recordSkillHit,
+  hitsForSkill,
   rushConstruction,
   rushBrewing,
   rushProduction,
@@ -229,8 +232,8 @@ export function createGameState() {
     getReputation: () => data.village.reputation,
     getScrolls: () => data.village.scrolls,
     cookFromPumpkin: () => wrap(() => simCook(data)),
-    getCookSeconds: () => data.timings.cookSeconds,
-    getHarvestSeconds: () => data.timings.harvestSeconds,
+    getCookSeconds: (villagerId) => data.timings.cookSeconds / villagerSpeed(data, villagerId),
+    getHarvestSeconds: (villagerId) => data.timings.harvestSeconds / villagerSpeed(data, villagerId),
     getEatSeconds: () => data.timings.eatSeconds,
     getHungerInterval: () => data.timings.hungerInterval,
     setCookSeconds: (value) => {
@@ -281,6 +284,9 @@ export function createGameState() {
     rushProduction: (id) => wrap(() => rushProduction(data, id)),
     rushResearch: () => wrap(() => rushResearch(data)),
     tickVillagerWork: (id, delta) => wrap(() => simTickWork(data, id, delta)),
+    tickVillagerSkill: (id, delta) => wrap(() => tickVillagerSkill(data, id, delta)),
+    recordSkillHit: (id, key) => wrap(() => recordSkillHit(data, id, key)),
+    getHitCount: (id, key) => hitsForSkill(data, id, key),
     resetVillagerWork: (id) =>
       wrap(() => {
         const villager = data.villagers[id];

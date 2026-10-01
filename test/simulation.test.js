@@ -40,6 +40,9 @@ import {
   rushResearch,
   getShip,
   villagerSkillLevel,
+  tickVillagerSkill,
+  recordSkillHit,
+  hitsForSkill,
   placeDecoration,
 } from "../src/world/simulation.js";
 
@@ -651,12 +654,22 @@ test("villagers gain skill xp while working and get faster", () => {
   state.village.soup = 10;
 
   assert.equal(villagerSpeed(state, "lena"), 1);
+  villager.assignedTaskId = "dig-clay"; // real taskId from clay-loop
   tickVillagerWork(state, "lena", 50); // 25 xp of digging skill
   assert.equal(villager.skills.clayDigging, 25);
   assert.equal(villagerSkillLevel(state, "lena"), 2);
   assert.ok(villagerSpeed(state, "lena") > 1);
 
-  // Farming is a different track — no carry-over.
-  villager.assignedTaskId = "cook";
+  // Skill ticks for food jobs use the skill-only path.
+  villager.assignedTaskId = "cook-soup";
   assert.equal(villagerSkillLevel(state, "lena"), 1);
+  tickVillagerSkill(state, "lena", 50);
+  assert.equal(villagerSkillLevel(state, "lena"), 2);
+
+  // Hit jobs gain xp per impact and need fewer hits at higher level.
+  recordSkillHit(state, "lena", "woodcutting");
+  assert.equal(villager.skills.woodcutting, 1.5);
+  assert.equal(hitsForSkill(state, "lena", "woodcutting"), 5);
+  villager.skills.woodcutting = 50; // level 3
+  assert.equal(hitsForSkill(state, "lena", "woodcutting"), 4);
 });

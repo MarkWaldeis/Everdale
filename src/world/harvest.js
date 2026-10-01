@@ -793,6 +793,8 @@ export function createHarvestDirector({
     if (isStone && !game?.isPlaced?.("stone-storage")) return;
     if (isStone && (stoneYard?.getStone?.() ?? 0) >= (stoneYard?.max ?? 20)) return;
     if (!isStone && (yard?.getWood?.() ?? 0) >= (yard?.max ?? 20)) return;
+    const skillKey = isStone ? "stoneMining" : "woodcutting";
+    const hitsNeeded = game?.getHitCount?.(member.getId(), skillKey) ?? CHOP_HITS;
     const accepted = member.assignJob({
       tree,
       tool: isStone ? "pickaxe" : "axe",
@@ -801,26 +803,27 @@ export function createHarvestDirector({
       storageApproach: isStone ? stoneYard?.stand : yard?.stand,
       storageLook: isStone ? stoneYard?.look : yard?.look,
       storageBlock: villageBlocks(),
-      hitsNeeded: CHOP_HITS,
+      hitsNeeded,
       onStartChop: () => {
         tree.userData.harvestState = "chopping";
         tree.userData.lockSway = true;
         tree.userData.chopHits = 0;
-        projectMeter(tree, 0, CHOP_HITS);
+        projectMeter(tree, 0, hitsNeeded);
       },
       onImpact: () => {
         const origin = tree.position.clone();
         origin.y = surfaceY;
         spawnChips(origin, isStone ? "stone" : "wood");
         tree.userData.impactPulse = 1;
+        game?.recordSkillHit?.(member.getId(), skillKey);
         const hits = member.getJobHits?.().hits ?? tree.userData.chopHits ?? 0;
         tree.userData.chopHits = hits;
-        projectMeter(tree, hits, CHOP_HITS);
+        projectMeter(tree, hits, hitsNeeded);
       },
       onChopProgress: () => {
         const hits = member.getJobHits?.().hits ?? tree.userData.chopHits ?? 0;
         tree.userData.chopHits = hits;
-        projectMeter(tree, hits, CHOP_HITS);
+        projectMeter(tree, hits, hitsNeeded);
       },
       onChopDone: () => {
         beginFall(tree, member.root.position.clone());
