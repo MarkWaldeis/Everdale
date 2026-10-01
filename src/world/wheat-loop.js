@@ -1,6 +1,6 @@
 import { createFieldLoop } from "./field-loop.js";
 
-export function createWheatLoop({ game, wheatField, storages = [] }) {
+export function createWheatLoop({ game, wheatField, storages = [], onYield = null }) {
   return createFieldLoop({
     game,
     module: wheatField,
@@ -11,6 +11,7 @@ export function createWheatLoop({ game, wheatField, storages = [] }) {
     addResource: (amount) => game.addWheat(amount),
     getResource: () => game.getWheat(),
     getCap: () => game.getWheatCap(),
+    onYield,
     yieldAmount: 2,
   });
 }

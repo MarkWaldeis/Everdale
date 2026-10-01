@@ -10,6 +10,7 @@ export function createFieldLoop({
   getCap,
   yieldAmount = 1,
   durationScale = 1,
+  onYield = null,
 }) {
   function blockOf(storage) {
     if (!storage?.root) return null;
@@ -40,6 +41,7 @@ export function createFieldLoop({
       },
       onWorkDone: () => {
         addResource(yieldAmount);
+        onYield?.();
       },
       nextJob: () => {
         if (isFull() || !game.canCollectResource?.(resourceId)) {

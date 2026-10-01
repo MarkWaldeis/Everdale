@@ -73,6 +73,14 @@ export function createWheatField(surfaceY) {
   stalks.castShadow = true;
   root.add(stalks);
 
+  const baseMatrices = [];
+  for (let i = 0; i < index; i += 1) {
+    baseMatrices.push(dummy.matrix.clone().identity());
+    stalks.getMatrixAt(i, dummy.matrix);
+    baseMatrices[i].copy(dummy.matrix);
+  }
+  const growth = { value: 1 };
+
   const hitProxy = new THREE.Mesh(
     new THREE.CylinderGeometry(1.5, 1.5, 1.2, 10),
     new THREE.MeshBasicMaterial({ visible: false }),
@@ -117,9 +125,25 @@ export function createWheatField(surfaceY) {
     refreshAnchors();
   }
 
+  function triggerHarvest() {
+    growth.value = 0.08;
+  }
+
+  const scaleMatrix = new THREE.Matrix4();
   function update(delta, elapsed) {
     stalks.rotation.z = Math.sin(elapsed * 1.4) * 0.028;
     stalks.rotation.x = Math.cos(elapsed * 1.1) * 0.02;
+    if (growth.value < 1) {
+      growth.value = Math.min(1, growth.value + delta / 55);
+      for (let i = 0; i < baseMatrices.length; i += 1) {
+        scaleMatrix.copy(baseMatrices[i]);
+        scaleMatrix.elements[0] *= growth.value;
+        scaleMatrix.elements[5] *= Math.max(growth.value, 0.12);
+        scaleMatrix.elements[10] *= growth.value;
+        stalks.setMatrixAt(i, scaleMatrix);
+      }
+      stalks.instanceMatrix.needsUpdate = true;
+    }
   }
 
   return {
@@ -131,5 +155,6 @@ export function createWheatField(surfaceY) {
     setYaw,
     refreshAnchors,
     update,
+    triggerHarvest,
   };
 }
