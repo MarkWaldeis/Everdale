@@ -868,16 +868,22 @@ export function placeBuilding(state, id) {
       productionQueue: [],
     };
   }
-  if (item.constructionSeconds) {
-    state.buildings[id].status = "CONSTRUCTION";
-    state.constructions ??= {};
-    state.constructions[id] = {
-      remaining: item.constructionSeconds,
-      total: item.constructionSeconds,
-      builderId: null,
-    };
-  }
   return { ok: true, id, village: { ...state.village } };
+}
+
+export function startConstruction(state, id) {
+  if (!state.placed[id]) return { ok: false, reason: "not-placed" };
+  const item = getCatalogItem(id);
+  if (!item?.constructionSeconds) return { ok: false, reason: "no-construction" };
+  state.constructions ??= {};
+  if (state.constructions[id]) return { ok: false, reason: "already-building" };
+  if (state.buildings[id]) state.buildings[id].status = "CONSTRUCTION";
+  state.constructions[id] = {
+    remaining: item.constructionSeconds,
+    total: item.constructionSeconds,
+    builderId: null,
+  };
+  return { ok: true, id };
 }
 
 export function cancelPlacedBuilding(state, id) {

@@ -130,6 +130,7 @@ export function createVillageEditor({
   controls,
   onModeChange,
   onCancelPlacement,
+  onPlaced,
   reservedCells,
 }) {
   const grid = createVillageGrid({
@@ -392,7 +393,9 @@ export function createVillageEditor({
       state.shake = 1;
       return;
     }
-    grid.commit(state.holding.id, state.previewCol, state.previewRow);
+    const placedId = state.holding.id;
+    grid.commit(placedId, state.previewCol, state.previewRow);
+    onPlaced?.(placedId);
     state.placingId = null;
     state.holding = null;
     state.liftTarget = 0;

@@ -6,6 +6,7 @@ import {
   canPlaceBuilding,
   placeBuilding,
   cancelPlacedBuilding,
+  startConstruction,
   assignConstructionWorker,
   clearConstructionWorker,
   completeResearch,
@@ -329,6 +330,7 @@ test("house-ii construction completes into sophie moving in", () => {
   state.village.wood = 20;
   state.village.stone = 10;
   const placed = placeBuilding(state, "house-ii");
+  startConstruction(state, "house-ii");
   assert.equal(placed.ok, true);
   const construction = getConstruction(state, "house-ii");
   assert.ok(construction);
@@ -362,6 +364,7 @@ test("offline progress finishes constructions while away", () => {
   state.village.wood = 20;
   state.village.stone = 10;
   placeBuilding(state, "house-ii");
+  startConstruction(state, "house-ii");
   const summary = applyOfflineProgress(state, 3600);
   assert.ok(summary.constructions.includes("house-ii"));
   assert.equal(getConstruction(state, "house-ii"), null);
@@ -392,6 +395,7 @@ test("bakery research unlocks a placeable bakery", () => {
   assert.equal(done.unlockedBuilding, "bakery");
   assert.equal(canPlaceBuilding(state, "bakery"), true);
   const placed = placeBuilding(state, "bakery");
+  startConstruction(state, "bakery");
   assert.equal(placed.ok, true);
   assert.equal(state.placed.bakery, true);
 });
@@ -404,6 +408,7 @@ test("bake queue spends inputs up front and produces bread", () => {
   state.village.pumpkins = 6;
   state.village.flour = 2;
   placeBuilding(state, "bakery");
+  startConstruction(state, "bakery");
 
   const queued = queueRecipe(state, "bakery", "bread");
   assert.equal(queued.ok, true);
@@ -426,6 +431,7 @@ test("bake queue rejects when broke or full and stalls on full storage", () => {
   state.village.pumpkins = 1;
   state.village.flour = 1;
   placeBuilding(state, "bakery");
+  startConstruction(state, "bakery");
   assert.equal(queueRecipe(state, "bakery", "bread").ok, true);
   assert.equal(queueRecipe(state, "bakery", "bread").ok, false);
   state.village.pumpkins = 20;
@@ -456,6 +462,7 @@ test("bread orders only appear once the bakery stands", () => {
   state.village.soup = 50;
   state.village.stone = 100;
   placeBuilding(state, "bakery");
+  startConstruction(state, "bakery");
   let found = 0;
   for (let i = 0; i < 40 && found === 0; i += 1) {
     const slots = listOrders(state);
@@ -481,6 +488,7 @@ test("tailor sews blankets from wood and wool", () => {
   state.village.clay = 20;
   state.village.wool = 3;
   placeBuilding(state, "tailor");
+  startConstruction(state, "tailor");
 
   const queued = queueRecipe(state, "tailor", "blanket");
   assert.equal(queued.ok, true);
@@ -497,6 +505,7 @@ test("wood-workshop planes logs into two planks each run", () => {
   state.unlocked["wood-workshop"] = true;
   state.village.wood = 30;
   placeBuilding(state, "wood-workshop");
+  startConstruction(state, "wood-workshop");
 
   assert.equal(queueRecipe(state, "wood-workshop", "planks").ok, true);
   assert.equal(state.village.wood, 15);
@@ -518,7 +527,9 @@ test("tailor and workshop goods join the order deck after placement", () => {
   state.village.soup = 50;
   state.village.stone = 100;
   placeBuilding(state, "tailor");
+  startConstruction(state, "tailor");
   placeBuilding(state, "wood-workshop");
+  startConstruction(state, "wood-workshop");
   const seen = new Set();
   for (let i = 0; i < 60 && seen.size < 2; i += 1) {
     const slots = listOrders(state);
@@ -654,6 +665,7 @@ test("gem rush completes construction, brewing and research instantly", () => {
   state.unlocked["house-ii"] = true;
 
   const placed = placeBuilding(state, "house-ii");
+  startConstruction(state, "house-ii");
   assert.equal(placed.ok, true);
   assert.ok(state.constructions["house-ii"]);
   assert.equal(rushConstruction(state, "house-ii").ok, true);
@@ -809,6 +821,7 @@ test("house-iii research, construction and mia move-in", () => {
   assert.equal(isBuildingUnlocked(state, "house-iii"), true);
 
   assert.equal(placeBuilding(state, "house-iii").ok, true);
+  assert.equal(startConstruction(state, "house-iii").ok, true);
   assert.equal(state.constructions["house-iii"].remaining, 60);
   tickConstructions(state, 61);
   assert.equal(state.villagers.mia.unlocked, true);
@@ -858,7 +871,9 @@ test("wheat field and mill chain wheat into flour for bread", () => {
   const before = harvestResource(state, "wheat", 2);
   assert.equal(before.ok, false);
   placeBuilding(state, "wheat-field");
+  startConstruction(state, "wheat-field");
   placeBuilding(state, "mill");
+  startConstruction(state, "mill");
   assert.equal(state.placed["wheat-field"], true);
   assert.equal(state.placed.mill, true);
   tickConstructions(state, 50);
@@ -880,6 +895,7 @@ test("sheep pen gates wool harvest which feeds the tailor", () => {
   state.village.stone = 20;
   assert.equal(harvestResource(state, "wool", 2).ok, false);
   placeBuilding(state, "sheep-pen");
+  startConstruction(state, "sheep-pen");
   tickConstructions(state, 45);
   assert.equal(state.placed["sheep-pen"], true);
 
@@ -890,6 +906,7 @@ test("sheep pen gates wool harvest which feeds the tailor", () => {
   state.village.wood = 40;
   state.village.clay = 10;
   placeBuilding(state, "tailor");
+  startConstruction(state, "tailor");
   assert.equal(queueRecipe(state, "tailor", "blanket").ok, true);
   assert.equal(state.village.wool, 1);
   const produced = tickProduction(state, "tailor", 51);
@@ -902,6 +919,7 @@ test("apple tree gates apple harvest for orders", () => {
   state.village.wood = 40;
   assert.equal(harvestResource(state, "apple", 2).ok, false);
   placeBuilding(state, "apple-tree");
+  startConstruction(state, "apple-tree");
   tickConstructions(state, 30);
   assert.equal(state.placed["apple-tree"], true);
   assert.equal(harvestResource(state, "apple", 4).total, 4);
@@ -914,6 +932,7 @@ test("berry bush gates berry harvest for orders", () => {
   state.village.wood = 40;
   assert.equal(harvestResource(state, "berry", 2).ok, false);
   placeBuilding(state, "berry-bush");
+  startConstruction(state, "berry-bush");
   tickConstructions(state, 25);
   assert.equal(state.placed["berry-bush"], true);
   assert.equal(harvestResource(state, "berry", 6).total, 6);
@@ -935,6 +954,7 @@ test("house-iv construction unlocks Lukas", () => {
   state.village.stone = 40;
   assert.equal(state.villagers.lukas.unlocked, false);
   placeBuilding(state, "house-iv");
+  startConstruction(state, "house-iv");
   tickConstructions(state, 90);
   assert.equal(state.villagers.lukas.unlocked, true);
   assert.equal(isVillagerUnlocked(state, "lukas"), true);
@@ -966,6 +986,7 @@ test("chicken coop gates egg harvest for orders", () => {
   state.village.clay = 10;
   assert.equal(harvestResource(state, "egg", 2).ok, false);
   placeBuilding(state, "chicken-coop");
+  startConstruction(state, "chicken-coop");
   tickConstructions(state, 40);
   assert.equal(state.placed["chicken-coop"], true);
   assert.equal(harvestResource(state, "egg", 4).total, 4);
@@ -978,6 +999,7 @@ test("cancelling a placement refunds costs and removes the building", () => {
   state.village.wood = 18;
   state.village.clay = 8;
   placeBuilding(state, "chicken-coop");
+  startConstruction(state, "chicken-coop");
   assert.equal(state.village.wood, 6);
   assert.equal(state.placed["chicken-coop"], true);
   const result = cancelPlacedBuilding(state, "chicken-coop");
@@ -1007,6 +1029,7 @@ test("construction runs 3x faster with a builder assigned", () => {
   state.village.wood = 30;
   state.village.planks = 5;
   placeBuilding(state, "fishing-dock");
+  startConstruction(state, "fishing-dock");
   const solo = state.constructions["fishing-dock"].remaining;
   tickConstructions(state, 10);
   assert.ok(Math.abs(solo - state.constructions["fishing-dock"].remaining - 10) < 0.01);

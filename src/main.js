@@ -1020,14 +1020,20 @@ async function start() {
         if (active) animationState.harvest?.selectTree(null);
       },
       reservedCells: streamReservedCells(CELL),
+      onPlaced: (gridId) => {
+        const catalogId = gridIdToCatalog.get(gridId) ?? gridId;
+        if (catalogId.startsWith("deko-")) return;
+        animationState.game?.startConstruction?.(catalogId);
+      },
       onCancelPlacement: (id) => {
         if (id.startsWith("deko-")) {
           animationState.game?.removeDecoration?.(id);
           unmountDecoration(id);
           return;
         }
-        animationState.game?.cancelPlacedBuilding?.(id);
-        const spec = placeable[id];
+        const catalogId = gridIdToCatalog.get(id) ?? id;
+        animationState.game?.cancelPlacedBuilding?.(catalogId);
+        const spec = placeable[catalogId];
         if (spec?.root) {
           spec.root.visible = false;
           spec.root.parent?.remove(spec.root);
@@ -1352,6 +1358,10 @@ async function start() {
         refresh: () => animationState.quarry.refreshAnchors(),
       },
     };
+
+    const gridIdToCatalog = new Map(
+      Object.entries(placeable).map(([catalogId, spec]) => [spec.id ?? catalogId, catalogId]),
+    );
 
     animationState.paths = createDirtPaths();
     world.root.add(animationState.paths.group);

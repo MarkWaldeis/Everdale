@@ -27,6 +27,7 @@ import {
   canFillOrder,
   fillOrder,
   getConstruction,
+  startConstruction as simStartConstruction,
   assignConstructionWorker as simAssignConstructionWorker,
   clearConstructionWorker as simClearConstructionWorker,
   tickConstructions as simTickConstructions,
@@ -212,6 +213,7 @@ export function createGameState() {
     canFillOrder: (slot) => canFillOrder(data, slot),
     fillOrder: (slot) => wrap(() => fillOrder(data, slot)),
     getConstruction: (id) => getConstruction(data, id),
+    startConstruction: (id) => wrap(() => simStartConstruction(data, id)),
     assignConstructionWorker: (buildingId, villagerId) =>
       wrap(() => simAssignConstructionWorker(data, buildingId, villagerId)),
     clearConstructionWorker: (buildingId) =>
