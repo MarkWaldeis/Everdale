@@ -1019,3 +1019,14 @@ test("construction runs 3x faster with a builder assigned", () => {
   tickConstructions(state, 5);
   assert.ok(Math.abs(unstaffed - state.constructions["fishing-dock"].remaining - 5) < 0.01);
 });
+
+test("quarry gates stone collection via stone-storage and yields to cap", () => {
+  const state = createDefaultState();
+  state.placed["quarry"] = true;
+  assert.equal(canCollectResource(state, "stone"), false);
+  state.placed["stone-storage"] = true;
+  assert.equal(canCollectResource(state, "stone"), true);
+  state.village.stone = 19;
+  harvestResource(state, "stone", 5);
+  assert.equal(state.village.stone, state.village.stoneCap);
+});

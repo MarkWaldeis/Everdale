@@ -138,6 +138,14 @@ const BUILDING_INFO = {
     worker: "Angler",
     blurb: "Ruhiges Wasser, dicke Fische — der Angler füllt den Eimer.",
   },
+  quarry: {
+    label: "Steinbruch",
+    icon: "⛰️",
+    resource: "stone",
+    resourceLabel: "Stein",
+    worker: "Buddler",
+    blurb: "Rohblock für Lager und Gebäude — der Buddler haut Stein aus dem Fels.",
+  },
   well: {
     label: "Brunnen",
     icon: "💧",

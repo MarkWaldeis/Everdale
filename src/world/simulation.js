@@ -263,6 +263,14 @@ export const BUILDING_CATALOG = Object.freeze([
     constructionSeconds: 30,
     description: "Ein kleiner Steg — der Angler fängt Fische für Aufträge.",
   },
+  {
+    id: "quarry",
+    label: "Steinbruch",
+    placeable: true,
+    cost: { wood: 10, stone: 6 },
+    constructionSeconds: 40,
+    description: "Felsausbeute — ein Buddler fördert laufend Stein.",
+  },
 ]);
 
 export const RESEARCH_NODES = Object.freeze([
@@ -434,6 +442,16 @@ export const RESEARCH_NODES = Object.freeze([
     requires: ["berry-bush"],
     cost: { wood: 8, stone: 4 },
     unlocksBuilding: "fishing-dock",
+    completable: true,
+  },
+  {
+    id: "quarry",
+    name: "Steinbruch",
+    detail: "Ein Buddler bricht dort laufend Stein für Lager und Bauwerke.",
+    icon: "⛰️",
+    requires: ["stone-storage"],
+    cost: { wood: 10, stone: 8 },
+    unlocksBuilding: "quarry",
     completable: true,
   },
   {
@@ -640,6 +658,7 @@ export function createDefaultState() {
     "berry-bush": false,
     "chicken-coop": false,
     "fishing-dock": false,
+    quarry: false,
   };
   const nodes = {};
   RESEARCH_NODES.forEach((node) => {
