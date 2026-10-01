@@ -35,6 +35,9 @@ import {
   canPlaceDecoration,
   removeDecoration,
   tickValley,
+  rushConstruction,
+  rushBrewing,
+  rushResearch,
   getShip,
   placeDecoration,
 } from "../src/world/simulation.js";
@@ -602,4 +605,37 @@ test("valley ship departs when all crates are filled and returns with cargo", ()
   assert.equal(state.valley.ship.voyages, 1);
   assert.equal(state.village.gems, 2);
   assert.equal(state.valley.crates.every((crate) => !crate.filledBy), true);
+});
+
+test("gem rush completes construction, brewing and research instantly", () => {
+  const state = createDefaultState();
+  state.village.gems = 3;
+  state.village.wood = 60;
+  state.village.stone = 20;
+  state.village.clay = 20;
+  state.unlocked["house-ii"] = true;
+
+  const placed = placeBuilding(state, "house-ii");
+  assert.equal(placed.ok, true);
+  assert.ok(state.constructions["house-ii"]);
+  assert.equal(rushConstruction(state, "house-ii").ok, true);
+  assert.equal(state.constructions["house-ii"].remaining, 0);
+  assert.equal(state.village.gems, 2);
+
+  state.potionsUnlocked = true;
+  state.village.pumpkins = 5;
+  state.village.soup = 5;
+  brewPotion(state, "energie");
+  assert.equal(rushBrewing(state).ok, true);
+  const produced = tickBrewing(state, 0.01);
+  assert.equal(produced.produced, "energie");
+  assert.equal(state.village.gems, 1);
+
+  state.nodes["clay-pit"] = "locked";
+  state.research.activeId = "clay-pit";
+  state.research.required = 12;
+  assert.equal(rushResearch(state).ok, true);
+  assert.equal(state.research.progress, 12);
+  assert.equal(state.village.gems, 0);
+  assert.equal(rushConstruction(state, "house-ii").ok, false);
 });

@@ -1770,3 +1770,10 @@ a:focus-visible {
   letter-spacing: 0.4px;
   color: rgba(255, 255, 255, 0.75);
 }
+
+.sheet-action.is-inline {
+  padding: 2px 8px;
+  font-size: 11px;
+  border-radius: 8px;
+  vertical-align: baseline;
+}

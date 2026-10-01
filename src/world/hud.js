@@ -234,15 +234,20 @@ export function createHud({
         .map((id) => POTIONS.find((p) => p.id === id)?.label ?? id)
         .join(" + ");
       const brewingLine = brewing.queue.length
-        ? `<div class="inv-row"><span>Braut</span><strong>${queueLabel}${brewing.queue[0] ? ` (${Math.round((brewing.progress / (POTIONS.find((p) => p.id === brewing.queue[0])?.seconds || 1)) * 100)}%)` : ""}</strong></div>`
+        ? `<div class="inv-row"><span>Braut</span><strong>${queueLabel}${brewing.queue[0] ? ` (${Math.round((brewing.progress / (POTIONS.find((p) => p.id === brewing.queue[0])?.seconds || 1)) * 100)}%)` : ""} · <button class="sheet-action is-inline" type="button" data-rush="brewing">Fertig · 1💎</button></strong></div>`
         : "";
       potionsHtml = `<h3 class="sheet-subtitle">Tränke</h3>${brewingLine}${items}`;
     }
+    const snapNow = game.getSnapshot?.();
+    const rushLine =
+      snapNow?.research?.activeId
+        ? `<div class="inv-row"><span>Erforscht</span><strong><button class="sheet-action is-inline" type="button" data-rush="research">Sofort fertig · 1💎</button></strong></div>`
+        : "";
     openSheet(
       "research",
       "Forschungsbaum",
       `<p class="glass-lead">Von links nach rechts. Jeder Schritt schaltet das Nächste frei.</p>
-       <div class="research-tree">${steps}</div>${potionsHtml}`,
+       ${rushLine}<div class="research-tree">${steps}</div>${potionsHtml}`,
     );
     if (!keepScroll) {
       requestAnimationFrame(() => {
@@ -318,7 +323,7 @@ export function createHud({
         );
         if (production.current) {
           const pct = Math.min(100, Math.round((production.progress / (production.seconds || 1)) * 100));
-          rows.push(`<div class="inv-row"><span>Fortschritt</span><strong>${pct}%</strong></div>`);
+          rows.push(`<div class="inv-row"><span>Fortschritt</span><strong>${pct}% · <button class="sheet-action is-inline" type="button" data-rush="production:${id}">Fertig · 1💎</button></strong></div>`);
         }
         const outputs = [...new Set(recipes.map((recipe) => recipe.output))];
         const stock = outputs
@@ -330,7 +335,7 @@ export function createHud({
     const construction = game.getConstruction?.(id);
     if (construction) {
       rows.push(
-        `<div class="inv-row"><span>Im Bau</span><strong>${Math.max(1, Math.ceil(construction.remaining))}s</strong></div>`,
+        `<div class="inv-row"><span>Im Bau</span><strong>${Math.max(1, Math.ceil(construction.remaining))}s · <button class="sheet-action is-inline" type="button" data-rush="construction:${id}">Fertig · 1💎</button></strong></div>`,
       );
     }
     let action = "";
@@ -519,6 +524,18 @@ export function createHud({
       button.addEventListener("click", () => {
         closeSheet();
         onPotion?.(button.dataset.give);
+      });
+    });
+    els.sheetBody?.querySelectorAll("[data-rush]").forEach((button) => {
+      button.addEventListener("click", () => {
+        const [kind, target] = (button.dataset.rush ?? "").split(":");
+        if (kind === "construction") game.rushConstruction?.(target);
+        else if (kind === "production") game.rushProduction?.(target);
+        else if (kind === "brewing") game.rushBrewing?.();
+        else if (kind === "research") game.rushResearch?.();
+        refresh();
+        if (openId === "building" && openArg) renderBuilding(openArg);
+        else if (openId === "research") renderResearch(true);
       });
     });
     els.sheetBody?.querySelector("#btn-mute")?.addEventListener("click", () => {

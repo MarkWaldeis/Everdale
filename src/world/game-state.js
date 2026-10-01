@@ -42,6 +42,10 @@ import {
   DECORATIONS,
   tickValley,
   getShip,
+  rushConstruction,
+  rushBrewing,
+  rushProduction,
+  rushResearch,
   getCatalogItem,
   getResearchNode,
   canAfford,
@@ -264,6 +268,10 @@ export function createGameState() {
     removeDecoration: (uid) => wrap(() => removeDecoration(data, uid)),
     tickValley: (delta) => wrap(() => tickValley(data, delta)),
     getShip: () => getShip(data),
+    rushConstruction: (id) => wrap(() => rushConstruction(data, id)),
+    rushBrewing: () => wrap(() => rushBrewing(data)),
+    rushProduction: (id) => wrap(() => rushProduction(data, id)),
+    rushResearch: () => wrap(() => rushResearch(data)),
     tickVillagerWork: (id, delta) => wrap(() => simTickWork(data, id, delta)),
     resetVillagerWork: (id) =>
       wrap(() => {

@@ -1163,6 +1163,41 @@ export function tickValley(state, deltaSeconds) {
   return { event: null };
 }
 
+function spendGem(state) {
+  if ((state.village.gems ?? 0) <= 0) return false;
+  state.village.gems -= 1;
+  return true;
+}
+
+export function rushConstruction(state, buildingId) {
+  if (!state.constructions?.[buildingId]) return { ok: false, reason: "missing" };
+  if (!spendGem(state)) return { ok: false, reason: "gems" };
+  state.constructions[buildingId].remaining = 0;
+  return { ok: true };
+}
+
+export function rushBrewing(state) {
+  if (!(state.brewing?.queue?.length ?? 0)) return { ok: false, reason: "missing" };
+  if (!spendGem(state)) return { ok: false, reason: "gems" };
+  state.brewing.progress = 999;
+  return { ok: true };
+}
+
+export function rushProduction(state, buildingId) {
+  const building = state.buildings[buildingId];
+  if (!(building?.productionQueue?.length ?? 0)) return { ok: false, reason: "missing" };
+  if (!spendGem(state)) return { ok: false, reason: "gems" };
+  building.productionProgress = 999;
+  return { ok: true };
+}
+
+export function rushResearch(state) {
+  if (!state.research?.activeId) return { ok: false, reason: "missing" };
+  if (!spendGem(state)) return { ok: false, reason: "gems" };
+  state.research.progress = state.research.required;
+  return { ok: true };
+}
+
 export function getShip(state) {
   return { ...(state.valley.ship ?? { status: "loading", remaining: 0, voyages: 0 }) };
 }

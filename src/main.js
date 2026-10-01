@@ -828,7 +828,7 @@ async function start() {
     if (
       offline &&
       offline.seconds > 60 &&
-      (offline.constructions.length || offline.researchDone)
+      (offline.constructions.length || offline.researchDone || offline.shipReturned)
     ) {
       const minutes = Math.round(offline.seconds / 60);
       const away =
@@ -846,6 +846,9 @@ async function start() {
       if (offline.researchDone) {
         const node = animationState.game.nodes.find((entry) => entry.id === offline.researchDone);
         lines.push(`<div class="inv-row"><span>Erforscht</span><strong>${node?.name ?? offline.researchDone}</strong></div>`);
+      }
+      if (offline.shipReturned) {
+        lines.push(`<div class="inv-row"><span>⛵ Schiff</span><strong>Zurück mit Diamanten</strong></div>`);
       }
       if (offline.constructions.includes("house-ii")) {
         lines.push(`<div class="inv-row"><span>Einzug</span><strong>Sophie wohnt jetzt hier</strong></div>`);
