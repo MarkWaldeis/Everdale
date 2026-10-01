@@ -44,8 +44,8 @@ export function createVillageGrid({ radiusX, radiusZ, surfaceY, reservedCells = 
 
   function inVillage(col, row) {
     const { x, z } = cellCenter(col, row);
-    const limitX = Math.max(radiusX - CELL * 0.72, CELL * 2.2);
-    const limitZ = Math.max(radiusZ - CELL * 0.72, CELL * 2.2);
+    const limitX = Math.max(radiusX - CELL * 1.15, CELL * 2.2);
+    const limitZ = Math.max(radiusZ - CELL * 1.15, CELL * 2.2);
     return (x / limitX) ** 2 + (z / limitZ) ** 2 <= 1;
   }
 
