@@ -108,7 +108,7 @@ export function createValleyHarbor(model, surfaceY) {
 
   const crates = [0, 1, 2, 3].map((index) => {
     const crate = createCrate();
-    crate.position.set(-1.4 + index * 0.45, surfaceY - 0.02, 3.4);
+    crate.position.set(-1.2 + index * 0.42, surfaceY + 0.02, 2.1);
     crate.rotation.y = index * 0.5;
     crate.visible = false;
     root.add(crate);
