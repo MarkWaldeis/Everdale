@@ -113,6 +113,14 @@ const BUILDING_INFO = {
     worker: "Sammlerin",
     blurb: "Wilde Brombeeren — die Sammlerin pflückt sie aus dem Gebüsch.",
   },
+  "chicken-coop": {
+    label: "Hühnerstall",
+    icon: "🐔",
+    resource: "egg",
+    resourceLabel: "Eier",
+    worker: "Hühnerwirtin",
+    blurb: "Glückliche Hühner — die Hühnerwirtin sammelt frische Eier.",
+  },
   well: {
     label: "Brunnen",
     icon: "💧",

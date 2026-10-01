@@ -854,9 +854,20 @@ async function start() {
       },
       reservedCells: streamReservedCells(CELL),
       onCancelPlacement: (id) => {
-        if (!id.startsWith("deko-")) return;
-        animationState.game?.removeDecoration?.(id);
-        unmountDecoration(id);
+        if (id.startsWith("deko-")) {
+          animationState.game?.removeDecoration?.(id);
+          unmountDecoration(id);
+          return;
+        }
+        animationState.game?.cancelPlacedBuilding?.(id);
+        const spec = placeable[id];
+        if (spec?.root) {
+          spec.root.visible = false;
+          spec.root.parent?.remove(spec.root);
+        }
+        animationState.village?.grid?.remove?.(id);
+        mounted.delete(id);
+        rebuildPaths();
       },
     });
     const woodFoot = footprintFromSize(animationState.yard.size.x, animationState.yard.size.z);
@@ -1142,9 +1153,9 @@ async function start() {
         label: "Hühnerstall",
         root: animationState.chickenCoop.root,
         size: animationState.chickenCoop.size,
-        w: 3,
-        h: 3,
-        padding: 1,
+        w: 2,
+        h: 2,
+        padding: 0,
         setWorldPosition: (x, z) => animationState.chickenCoop.setWorldPosition(x, z),
         setYaw: (yaw) => animationState.chickenCoop.setYaw(yaw),
         refresh: () => animationState.chickenCoop.refreshAnchors(),

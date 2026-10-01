@@ -797,6 +797,23 @@ export function placeBuilding(state, id) {
   return { ok: true, id, village: { ...state.village } };
 }
 
+export function cancelPlacedBuilding(state, id) {
+  if (!state.placed[id]) return { ok: false, reason: "not-placed" };
+  const item = getCatalogItem(id);
+  if (!item) return { ok: false, reason: "missing" };
+  for (const [key, amount] of Object.entries(item.cost ?? {})) {
+    if (!amount) continue;
+    const field = villageField(key);
+    const capKey = RESOURCES[key]?.capKey;
+    const cap = capKey ? state.village[capKey] : Infinity;
+    state.village[field] = Math.min((state.village[field] ?? 0) + amount, cap);
+  }
+  state.placed[id] = false;
+  delete state.buildings[id];
+  delete state.constructions?.[id];
+  return { ok: true, id };
+}
+
 export function queueRecipe(state, buildingId, recipeId) {
   const recipe = RECIPES.find((entry) => entry.id === recipeId && entry.building === buildingId);
   if (!recipe) return { ok: false, reason: "missing" };

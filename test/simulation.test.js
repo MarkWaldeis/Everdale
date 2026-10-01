@@ -5,6 +5,7 @@ import {
   harvestResource,
   canPlaceBuilding,
   placeBuilding,
+  cancelPlacedBuilding,
   completeResearch,
   startResearch,
   tickVillagerWork,
@@ -967,4 +968,21 @@ test("chicken coop gates egg harvest for orders", () => {
   assert.equal(state.placed["chicken-coop"], true);
   assert.equal(harvestResource(state, "egg", 4).total, 4);
   assert.equal(state.village.egg, 4);
+});
+
+test("cancelling a placement refunds costs and removes the building", () => {
+  const state = createDefaultState();
+  state.unlocked["chicken-coop"] = true;
+  state.village.wood = 18;
+  state.village.clay = 8;
+  placeBuilding(state, "chicken-coop");
+  assert.equal(state.village.wood, 6);
+  assert.equal(state.placed["chicken-coop"], true);
+  const result = cancelPlacedBuilding(state, "chicken-coop");
+  assert.equal(result.ok, true);
+  assert.equal(state.placed["chicken-coop"], false);
+  assert.equal(state.buildings["chicken-coop"], undefined);
+  assert.equal(state.constructions["chicken-coop"], undefined);
+  assert.equal(state.village.wood, 18);
+  assert.equal(state.village.clay, 8);
 });
