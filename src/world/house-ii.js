@@ -52,12 +52,13 @@ function buildProgressBar() {
   return group;
 }
 
-export function createHouseIi(model, surfaceY) {
+export function createHouseIi(model, surfaceY, options = {}) {
+  const { id = "house-ii", position = HOUSE_POSITION, yaw = HOUSE_YAW } = options;
   const root = new THREE.Group();
-  root.name = "house-ii";
+  root.name = id;
   root.add(model);
-  root.position.set(HOUSE_POSITION.x, surfaceY, HOUSE_POSITION.z);
-  root.rotation.y = HOUSE_YAW;
+  root.position.set(position.x, surfaceY, position.z);
+  root.rotation.y = yaw;
   root.updateWorldMatrix(true, true);
 
   const hitProxy = new THREE.Mesh(

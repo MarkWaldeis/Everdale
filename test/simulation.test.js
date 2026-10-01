@@ -49,6 +49,8 @@ import {
   MINE_SECONDS,
   buildMonumentStage,
   getMonumentStage,
+  finishConstruction,
+  isBuildingUnlocked,
   isVillagerUnlocked,
   tickResearch,
   villagerSkillLevel,
@@ -771,4 +773,23 @@ test("valley monument builds in three escalating stages", () => {
   tickValley(state, 0.1); // depart
   tickValley(state, 90.1); // return
   assert.equal(state.village.gems, 7);
+});
+
+test("house-iii research, construction and mia move-in", () => {
+  const state = createDefaultState();
+  state.nodes["wood-workshop"] = "done";
+  state.unlocked["house-iii"] = true;
+  state.village.wood = 40;
+  state.village.stone = 30;
+  state.village.gems = 6;
+
+  assert.equal(state.villagers.mia.unlocked, false);
+  assert.equal(startResearch(state, "house-iii").ok, true);
+  assert.equal(completeResearch(state, "house-iii").ok, true);
+  assert.equal(isBuildingUnlocked(state, "house-iii"), true);
+
+  assert.equal(placeBuilding(state, "house-iii").ok, true);
+  assert.equal(state.constructions["house-iii"].remaining, 60);
+  finishConstruction(state, "house-iii");
+  assert.equal(state.villagers.mia.unlocked, true);
 });

@@ -122,6 +122,7 @@ export function createGameState() {
           john: { ...base.villagers.john, ...saved.villagers?.john },
           sophie: { ...base.villagers.sophie, ...saved.villagers?.sophie },
           karl: { ...base.villagers.karl, ...saved.villagers?.karl },
+          mia: { ...base.villagers.mia, ...saved.villagers?.mia },
         },
       }
     : base;

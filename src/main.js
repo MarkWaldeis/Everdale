@@ -209,6 +209,7 @@ function animate(now = 0) {
     animationState.critters?.update?.(delta);
     animationState.game?.tickConstructions?.(delta);
     animationState.houseIi?.update?.(camera);
+    animationState.houseIii?.update?.(camera);
     Object.entries(animationState.workshopModules ?? {}).forEach(([id, module]) => {
       const production = animationState.game?.getProduction?.(id);
       module?.setWorking?.(
@@ -255,11 +256,14 @@ async function start() {
     if (loadingLabel) loadingLabel.textContent = "Welt wird aufgebaut …";
     const karlModel = cloneSkinned(assets.characterJohn);
     karlModel.userData.animationClips = assets.characterJohn.userData.animationClips;
+    const miaModel = cloneSkinned(assets.characterSophie);
+    miaModel.userData.animationClips = assets.characterSophie.userData.animationClips;
     const portraitMap = {
       lena: assets.character,
       john: assets.characterJohn,
       sophie: assets.characterSophie,
       karl: karlModel,
+      mia: miaModel,
     };
     Object.entries(portraitMap).forEach(([id, model]) => {
       const images = document.querySelectorAll(`[data-portrait="${id}"]`);
@@ -312,6 +316,11 @@ async function start() {
     animationState.valley = createValleyHarbor(assets.valleyHarbor, world.walkArea.surfaceY);
     animationState.orderBoard = createOrderBoard(assets.orderBoard, world.walkArea.surfaceY);
     animationState.houseIi = createHouseIi(assets.cottage.clone(true), world.walkArea.surfaceY);
+    animationState.houseIii = createHouseIi(assets.cottage.clone(true), world.walkArea.surfaceY, {
+      id: "house-iii",
+      position: { x: 4.4, z: -5.6 },
+      yaw: -0.35,
+    });
     animationState.bakery = createBakery(assets.bakery, world.walkArea.surfaceY);
     animationState.tailor = createWorkshop(assets.tailor, world.walkArea.surfaceY, {
       id: "tailor",
@@ -366,6 +375,7 @@ async function start() {
       makeVillager(assets.characterJohn, "john", "John"),
       makeVillager(assets.characterSophie, "sophie", "Sophie"),
       makeVillager(karlModel, "karl", "Karl"),
+      makeVillager(miaModel, "mia", "Mia"),
     ];
     animationState.character = animationState.villagers[0];
     const villagerFacade = {
@@ -662,6 +672,18 @@ async function start() {
         setYaw: (yaw) => animationState.houseIi.setYaw(yaw),
         refresh: () => animationState.houseIi.refreshAnchors(),
       },
+      "house-iii": {
+        id: "house-iii",
+        label: "Wohnhaus III",
+        root: animationState.houseIii.root,
+        size: animationState.houseIii.size,
+        w: 2,
+        h: 2,
+        padding: 1,
+        setWorldPosition: (x, z) => animationState.houseIii.setWorldPosition(x, z),
+        setYaw: (yaw) => animationState.houseIii.setYaw(yaw),
+        refresh: () => animationState.houseIii.refreshAnchors(),
+      },
       bakery: {
         id: "bakery",
         label: "Bäckerei",
@@ -763,7 +785,7 @@ async function start() {
     }
 
     ["cottage", "wood-storage", "kitchen", "pumpkin-patch", "well", "study", "order-board"].forEach(mountPlaced);
-    ["clay-pit", "clay-storage", "stone-storage", "house-ii", "bakery", "tailor", "wood-workshop"].forEach((id) => {
+    ["clay-pit", "clay-storage", "stone-storage", "house-ii", "house-iii", "bakery", "tailor", "wood-workshop"].forEach((id) => {
       if (animationState.game.isPlaced(id)) mountPlaced(id);
     });
 
@@ -773,6 +795,9 @@ async function start() {
         member.root.visible = false;
       }
       if (member.getId() === "karl" && !animationState.game.isVillagerUnlocked("karl")) {
+        member.root.visible = false;
+      }
+      if (member.getId() === "mia" && !animationState.game.isVillagerUnlocked("mia")) {
         member.root.visible = false;
       }
     });
@@ -856,6 +881,8 @@ async function start() {
     const syncConstruction = (snap) => {
       const entry = snap.constructions?.["house-ii"];
       animationState.houseIi?.setConstruction(entry ? 1 - entry.remaining / entry.total : null);
+      const entryIii = snap.constructions?.["house-iii"];
+      animationState.houseIii?.setConstruction(entryIii ? 1 - entryIii.remaining / entryIii.total : null);
     };
     syncConstruction(animationState.game.getSnapshot());
     const offline = animationState.game.getOfflineSummary?.();
@@ -887,6 +914,9 @@ async function start() {
       if (offline.constructions.includes("house-ii")) {
         lines.push(`<div class="inv-row"><span>Einzug</span><strong>Sophie wohnt jetzt hier</strong></div>`);
       }
+      if (offline.constructions.includes("house-iii")) {
+        lines.push(`<div class="inv-row"><span>Einzug</span><strong>Mia wohnt jetzt hier</strong></div>`);
+      }
       animationState.hud?.showNotice?.("Willkommen zurück!", lines.join(""));
     }
     const audio = createAmbientAudio();
@@ -914,6 +944,8 @@ async function start() {
       if (sophie) sophie.root.visible = Boolean(snap.villagers.sophie?.unlocked);
       const karl = animationState.villagers.find((entry) => entry.getId() === "karl");
       if (karl) karl.root.visible = Boolean(snap.villagers.karl?.unlocked);
+      const mia = animationState.villagers.find((entry) => entry.getId() === "mia");
+      if (mia) mia.root.visible = Boolean(snap.villagers.mia?.unlocked);
       if (snap.valleyUnlocked && animationState.view === "valley") {
         animationState.valley.setVisible(true);
       }

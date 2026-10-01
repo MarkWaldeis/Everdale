@@ -65,6 +65,11 @@ const BUILDING_INFO = {
     icon: "🏠",
     blurb: "Sophies Zuhause. Nach der Bauzeit zieht sie ein.",
   },
+  "house-iii": {
+    label: "Wohnhaus III",
+    icon: "🏡",
+    blurb: "Mias Zuhause. Nach der Bauzeit zieht sie ein.",
+  },
 };
 
 export function createHud({
@@ -102,6 +107,8 @@ export function createHud({
     sophieDock: document.querySelector('#worker-dock [data-villager="sophie"]'),
     karlCard: document.querySelector('[data-hud-villager="karl"]'),
     karlDock: document.querySelector('#worker-dock [data-villager="karl"]'),
+    miaCard: document.querySelector('[data-hud-villager="mia"]'),
+    miaDock: document.querySelector('#worker-dock [data-villager="mia"]'),
   };
 
   let openId = null;
@@ -289,6 +296,7 @@ export function createHud({
     john: { name: "John", icon: "👨‍🔧" },
     sophie: { name: "Sophie", icon: "👩‍🔬" },
     karl: { name: "Karl", icon: "🧔" },
+    mia: { name: "Mia", icon: "👩‍🌾" },
   };
 
   const BUFF_LABELS = { speed: "Energietrank ⚡", meal: "Sattmacher 🍲" };
@@ -679,6 +687,9 @@ export function createHud({
     const karlOn = game.isVillagerUnlocked("karl");
     if (els.karlCard) els.karlCard.hidden = !karlOn;
     if (els.karlDock) els.karlDock.hidden = !karlOn;
+    const miaOn = game.isVillagerUnlocked("mia");
+    if (els.miaCard) els.miaCard.hidden = !miaOn;
+    if (els.miaDock) els.miaDock.hidden = !miaOn;
     rerenderOpenSheet();
   }
 

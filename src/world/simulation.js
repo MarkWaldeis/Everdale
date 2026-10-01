@@ -158,6 +158,14 @@ export const BUILDING_CATALOG = Object.freeze([
     cost: { wood: 12 },
     description: "Hobelt Bretter und zimmert Eimer für Schiffe und Aufträge.",
   },
+  {
+    id: "house-iii",
+    label: "Wohnhaus III",
+    placeable: true,
+    cost: { wood: 20, stone: 12 },
+    constructionSeconds: 60,
+    description: "Mias Zuhause — sie zieht ein, sobald das Haus steht.",
+  },
 ]);
 
 export const RESEARCH_NODES = Object.freeze([
@@ -239,6 +247,16 @@ export const RESEARCH_NODES = Object.freeze([
     requires: ["bakery"],
     cost: { wood: 12 },
     unlocksBuilding: "wood-workshop",
+    completable: true,
+  },
+  {
+    id: "house-iii",
+    name: "Großes Wohnhaus",
+    detail: "Ein drittes Haus — Mia zieht ein, sobald es steht.",
+    icon: "🏡",
+    requires: ["wood-workshop"],
+    cost: { wood: 24, stone: 18, gems: 4 },
+    unlocksBuilding: "house-iii",
     completable: true,
   },
   {
@@ -505,6 +523,7 @@ export function createDefaultState() {
       john: defaultVillager("john", "John", true),
       sophie: defaultVillager("sophie", "Sophie", false),
       karl: defaultVillager("karl", "Karl", false),
+      mia: defaultVillager("mia", "Mia", false),
     },
     timings: {
       cookSeconds: 45,
@@ -1195,6 +1214,9 @@ export function applyOfflineProgress(state, elapsedSeconds) {
       if (id === "house-ii" && state.villagers.sophie) {
         state.villagers.sophie.unlocked = true;
       }
+      if (id === "house-iii" && state.villagers.mia) {
+        state.villagers.mia.unlocked = true;
+      }
       addPlayerXp(state, 20);
       result.constructions.push(id);
     }
@@ -1291,6 +1313,9 @@ function finishConstruction(state, buildingId) {
   if (state.buildings[buildingId]) state.buildings[buildingId].status = "ACTIVE";
   if (buildingId === "house-ii" && state.villagers.sophie) {
     state.villagers.sophie.unlocked = true;
+  }
+  if (buildingId === "house-iii" && state.villagers.mia) {
+    state.villagers.mia.unlocked = true;
   }
   addPlayerXp(state, 20);
 }
