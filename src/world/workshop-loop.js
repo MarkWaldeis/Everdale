@@ -49,7 +49,7 @@ export function createWorkshopLoop({ game, building, buildingId, taskId, village
         member.getJobKind?.() === "work",
     );
     if (!worker || worker.isHungry?.()) return;
-    const speed = game.villagerSpeed?.(worker.getId()) ?? 1;
+    const speed = game.villagerSpeed?.(worker.getId(), taskId ? game.skillForTask?.(taskId) : null) ?? 1;
     game.tickProduction?.(buildingId, delta * speed);
   }
 

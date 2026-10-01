@@ -1068,10 +1068,21 @@ export function tickBuffs(state, deltaSeconds) {
   });
 }
 
-export function villagerSpeed(state, villagerId) {
+export const SPECIALTIES = Object.freeze({
+  lena: "farming",
+  john: "woodcutting",
+  sophie: "building",
+  karl: "research",
+  mia: "stoneMining",
+  lukas: "building",
+});
+
+export function villagerSpeed(state, villagerId, skillKey = null) {
   const buff = state.villagers[villagerId]?.activeBuff?.effect === "speed" ? 1.6 : 1;
   const skill = 1 + 0.04 * (villagerSkillLevel(state, villagerId) - 1);
-  return buff * skill;
+  const key = skillKey ?? SKILL_FOR_TASK[state.villagers[villagerId]?.assignedTaskId] ?? null;
+  const specialty = key && SPECIALTIES[villagerId] === key ? 1.25 : 1;
+  return buff * skill * specialty;
 }
 
 export function getProduction(state, buildingId) {
@@ -1302,7 +1313,7 @@ export function cookFromPumpkin(state) {
   return state.village.soup;
 }
 
-const SKILL_FOR_TASK = Object.freeze({
+export const SKILL_FOR_TASK = Object.freeze({
   "cook-soup": "farming",
   "harvest-pumpkin": "farming",
   "dig-clay": "clayDigging",
@@ -1319,6 +1330,7 @@ const SKILL_FOR_TASK = Object.freeze({
   "collect-eggs": "farming",
   "catch-fish": "farming",
   "collect-honey": "farming",
+  build: "building",
   mill: "building",
 });
 

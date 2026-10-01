@@ -31,7 +31,7 @@ export function createFieldLoop({
       kind: "harvest",
       approach: module.stand.clone(),
       lookAt: module.look.clone(),
-      duration: game.getHarvestSeconds(member.getId()) * durationScale,
+      duration: game.getHarvestSeconds(member.getId(), taskId) * durationScale,
       storageBlock: villageBlocks(),
       onStartWork: () => {
         game.setVillagerState(member.getId(), "WORKING", {

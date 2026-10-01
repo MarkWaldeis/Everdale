@@ -40,6 +40,7 @@ import {
   applyPotion,
   tickBuffs,
   villagerSpeed,
+  SKILL_FOR_TASK,
   canPlaceDecoration,
   placeDecoration,
   removeDecoration,
@@ -296,8 +297,11 @@ export function createGameState() {
     getGiftsCollected: () => data.village.giftsCollected ?? 0,
     addGiftCollected: () => wrap(() => setResource(data, "giftsCollected", (data.village.giftsCollected ?? 0) + 1)),
     cookFromPumpkin: () => wrap(() => simCook(data)),
-    getCookSeconds: (villagerId) => data.timings.cookSeconds / villagerSpeed(data, villagerId),
-    getHarvestSeconds: (villagerId) => data.timings.harvestSeconds / villagerSpeed(data, villagerId),
+    getCookSeconds: (villagerId) =>
+      data.timings.cookSeconds / villagerSpeed(data, villagerId, "farming"),
+    getHarvestSeconds: (villagerId, taskId = null) =>
+      data.timings.harvestSeconds /
+      villagerSpeed(data, villagerId, taskId ? SKILL_FOR_TASK[taskId] : null),
     getEatSeconds: () => data.timings.eatSeconds,
     getHungerInterval: () => data.timings.hungerInterval,
     setCookSeconds: (value) => {
@@ -329,7 +333,8 @@ export function createGameState() {
     tickBrewing: (delta) => wrap(() => tickBrewing(data, delta)),
     applyPotion: (potionId, villagerId) => wrap(() => applyPotion(data, potionId, villagerId)),
     tickBuffs: (delta) => wrap(() => tickBuffs(data, delta)),
-    villagerSpeed: (id) => villagerSpeed(data, id),
+    villagerSpeed: (id, skillKey = null) => villagerSpeed(data, id, skillKey),
+    skillForTask: (taskId) => SKILL_FOR_TASK[taskId] ?? null,
     decorations: DECORATIONS,
     getDecorations: () => [...(data.decorations ?? [])],
     canPlaceDecoration: (typeId) => canPlaceDecoration(data, typeId),
