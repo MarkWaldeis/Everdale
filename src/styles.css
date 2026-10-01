@@ -1914,3 +1914,8 @@ a:focus-visible {
   font-size: 0.9rem;
   opacity: 0.92;
 }
+
+.friend-heart {
+  font-size: 1.5rem;
+  animation: need-bubble-bob 1.6s ease-in-out infinite;
+}
