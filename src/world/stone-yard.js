@@ -28,6 +28,14 @@ export function createStoneYard(models, surfaceY) {
   const size = bounds.getSize(new THREE.Vector3());
   const center = bounds.getCenter(new THREE.Vector3());
 
+  const hitProxy = new THREE.Mesh(
+    new THREE.CylinderGeometry(1.05, 1.05, 1.7, 10),
+    new THREE.MeshBasicMaterial({ visible: false }),
+  );
+  hitProxy.name = "hit-proxy";
+  hitProxy.position.y = 0.85;
+  root.add(hitProxy);
+
   const standReach = Math.max(size.z * 0.62, 0.42);
   const stand = new THREE.Vector3(center.x, surfaceY, center.z + standReach);
   const look = center.clone();

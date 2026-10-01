@@ -566,11 +566,15 @@ async function start() {
       },
       onValley: () => {
         setValleyView(animationState.view !== "valley");
+        return animationState.view === "valley";
       },
       onWind: (enabled) => {
         animationState.windEnabled = enabled;
       },
       onFocusVillager: focusVillager,
+      onKitchen: () => {
+        animationState.harvest?.selectKitchen();
+      },
       onReset: () => {
         animationState.game.resetSave();
         window.location.reload();

@@ -36,6 +36,7 @@ export function createHud({
   onWind,
   onFocusVillager,
   onReset,
+  onKitchen,
 }) {
   const els = {
     level: document.querySelector("#hud-level"),
@@ -61,9 +62,11 @@ export function createHud({
   };
 
   let openId = null;
+  let openArg = null;
 
   function closeSheet() {
     openId = null;
+    openArg = null;
     if (!els.sheet) return;
     els.sheet.hidden = true;
     els.sheet.classList.remove("is-research", "is-build");
@@ -128,7 +131,7 @@ export function createHud({
     );
   }
 
-  function renderResearch() {
+  function renderResearch(keepScroll = false) {
     const steps = game.nodes
       .map((node, index) => {
         const status = game.getNodeStatus(node.id);
@@ -162,10 +165,12 @@ export function createHud({
       `<p class="glass-lead">Von links nach rechts. Jeder Schritt schaltet das Nächste frei.</p>
        <div class="research-tree">${steps}</div>`,
     );
-    requestAnimationFrame(() => {
-      const ready = els.sheetBody?.querySelector(".research-node.is-open, .research-node.is-ready");
-      ready?.closest(".research-step")?.scrollIntoView({ inline: "center", block: "nearest", behavior: "smooth" });
-    });
+    if (!keepScroll) {
+      requestAnimationFrame(() => {
+        const ready = els.sheetBody?.querySelector(".research-node.is-open, .research-node.is-ready");
+        ready?.closest(".research-step")?.scrollIntoView({ inline: "center", block: "nearest", behavior: "smooth" });
+      });
+    }
   }
 
   function renderInventory() {
@@ -194,6 +199,7 @@ export function createHud({
   function renderBuilding(id) {
     const info = BUILDING_INFO[id];
     if (!info) return;
+    openArg = id;
     const snap = game.getSnapshot();
     const upgrade = game.getUpgradeInfo?.(id);
     const level = game.getBuildingLevel?.(id) ?? 1;
@@ -207,6 +213,9 @@ export function createHud({
     const effect = upgrade?.effect ?? info.blurb ?? "";
     if (effect) rows.push(`<p class="sheet-hint">${effect}</p>`);
     let action = "";
+    if (id === "kitchen") {
+      action += `<button class="sheet-action" type="button" data-cook>Koch auswählen · Suppe kochen</button>`;
+    }
     if (upgrade) {
       if (upgrade.atMax) {
         action = `<button class="sheet-action" type="button" disabled>Maximalstufe erreicht</button>`;
@@ -285,6 +294,10 @@ export function createHud({
         }
       });
     });
+    els.sheetBody?.querySelector("[data-cook]")?.addEventListener("click", () => {
+      closeSheet();
+      onKitchen?.();
+    });
     els.sheetBody?.querySelector("#btn-mute")?.addEventListener("click", () => {
       game.setMuted(!game.getMuted());
       renderSettings();
@@ -316,7 +329,6 @@ export function createHud({
     if (els.scrolls) els.scrolls.textContent = String(snap.village.scrolls);
     if (els.quest) els.quest.textContent = game.getQuest().text;
     if (els.valleyBtn) {
-      els.valleyBtn.disabled = !game.isValleyUnlocked();
       els.valleyBtn.classList.toggle("is-locked", !game.isValleyUnlocked());
     }
     if (els.researchBtn) {
@@ -325,8 +337,25 @@ export function createHud({
     const sophieOn = game.isVillagerUnlocked("sophie");
     if (els.sophieCard) els.sophieCard.hidden = !sophieOn;
     if (els.sophieDock) els.sophieDock.hidden = !sophieOn;
+    rerenderOpenSheet();
+  }
+
+  function rerenderOpenSheet() {
+    if (!openId || !els.sheet || els.sheet.hidden) return;
+    const plank = els.sheet.querySelector(".game-sheet-plank");
+    const tree = els.sheet.querySelector(".research-tree");
+    const top = plank?.scrollTop ?? 0;
+    const left = tree?.scrollLeft ?? 0;
     if (openId === "inventory") renderInventory();
-    if (openId === "valley") renderValley();
+    else if (openId === "valley") renderValley();
+    else if (openId === "research") renderResearch(true);
+    else if (openId === "build") renderBuild();
+    else if (openId === "building" && openArg) renderBuilding(openArg);
+    else return;
+    const newPlank = els.sheet.querySelector(".game-sheet-plank");
+    if (newPlank) newPlank.scrollTop = top;
+    const newTree = els.sheet.querySelector(".research-tree");
+    if (newTree) newTree.scrollLeft = left;
   }
 
   function bind() {
@@ -345,8 +374,9 @@ export function createHud({
         renderValley();
         return;
       }
-      onValley?.();
-      renderValley();
+      const inValley = onValley?.();
+      if (inValley === false) closeSheet();
+      else renderValley();
     });
     // Anordnen is bound by the village editor.
     document.querySelector("#sheet-close")?.addEventListener("click", closeSheet);

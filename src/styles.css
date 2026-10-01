@@ -1318,7 +1318,7 @@ a:focus-visible {
 .game-sheet {
   position: fixed;
   inset: 0;
-  z-index: 20;
+  z-index: 35;
   display: grid;
   place-items: end center;
   padding: 18px 18px 118px;
@@ -1553,8 +1553,12 @@ a:focus-visible {
   pointer-events: none;
 }
 
+.has-worker-dock .game-hud-bottom > * {
+  pointer-events: none;
+}
+
 .worker-dock {
-  z-index: 11;
+  z-index: 30;
 }
 
 @media (max-width: 760px) {

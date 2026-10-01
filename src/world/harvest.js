@@ -882,11 +882,8 @@ export function createHarvestDirector({
 
     const kitchenHit = pickKitchen(event.clientX, event.clientY);
     if (kitchenHit) {
-      if (pointerState.mode === "kitchen") {
-        selectTree(null);
-        return;
-      }
-      selectKitchen();
+      selectTree(null);
+      onOpenBuilding?.("kitchen");
       return;
     }
     const patchHit = pickPatch(event.clientX, event.clientY);

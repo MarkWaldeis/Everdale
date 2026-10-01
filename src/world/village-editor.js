@@ -483,7 +483,7 @@ export function createVillageEditor({
 
     const building = pickBuilding(event);
     if (building) {
-      pickUp(building);
+      if (!state.holding) pickUp(building);
       return;
     }
     if (state.holding) {

@@ -15,6 +15,14 @@ export function createClayPit(model, surfaceY) {
   const size = bounds.getSize(new THREE.Vector3());
   const center = bounds.getCenter(new THREE.Vector3());
 
+  const hitProxy = new THREE.Mesh(
+    new THREE.CylinderGeometry(1.35, 1.35, 1.5, 12),
+    new THREE.MeshBasicMaterial({ visible: false }),
+  );
+  hitProxy.name = "hit-proxy";
+  hitProxy.position.y = 0.5;
+  root.add(hitProxy);
+
   const lumps = [];
   root.traverse((child) => {
     if (child.name.startsWith("clay-lump-")) lumps.push(child);
