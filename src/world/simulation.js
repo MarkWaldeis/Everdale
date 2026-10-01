@@ -1731,12 +1731,15 @@ function finishConstruction(state, buildingId) {
   if (state.buildings[buildingId]) state.buildings[buildingId].status = "ACTIVE";
   if (buildingId === "house-ii" && state.villagers.sophie) {
     state.villagers.sophie.unlocked = true;
+    bumpStat(state, "villagersUnlocked");
   }
   if (buildingId === "house-iii" && state.villagers.mia) {
     state.villagers.mia.unlocked = true;
+    bumpStat(state, "villagersUnlocked");
   }
   if (buildingId === "house-iv" && state.villagers.lukas) {
     state.villagers.lukas.unlocked = true;
+    bumpStat(state, "villagersUnlocked");
   }
   addPlayerXp(state, 20);
 }
