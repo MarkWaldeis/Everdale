@@ -114,6 +114,7 @@ export function createHud({
     if (!els.sheet) return;
     els.sheet.hidden = true;
     els.sheet.classList.remove("is-research", "is-build");
+    if (els.sheetBody) els.sheetBody.innerHTML = "";
   }
 
   function openSheet(id, title, html) {
