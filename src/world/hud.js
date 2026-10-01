@@ -31,6 +31,7 @@ const COST_ROW_LABELS = {
   berry: "Beeren",
   egg: "Eier",
   fish: "Fische",
+  pancake: "Pfannkuchen",
 };
 
 const FIELD_LABELS = {
@@ -51,6 +52,7 @@ const FIELD_LABELS = {
   berry: "Beeren",
   egg: "Eier",
   fish: "Fische",
+  pancake: "Pfannkuchen",
 };
 
 const ORDER_SINGULAR_LABELS = {
@@ -66,6 +68,7 @@ const ORDER_SINGULAR_LABELS = {
   berry: "Beere",
   egg: "Ei",
   fish: "Fisch",
+  pancake: "Pfannkuchen",
 };
 
 const BUILDING_INFO = {
@@ -528,6 +531,7 @@ export function createHud({
     berry: "Beeren",
     egg: "Eier",
     fish: "Fische",
+    pancake: "Pfannkuchen",
   };
 
   function renderOrders() {

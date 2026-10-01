@@ -244,6 +244,8 @@ export function createGameState() {
     addStone: (amount) => wrap(() => simHarvest(data, "stone", amount).total),
     getBread: () => data.village.bread,
     getBreadCap: () => data.village.breadCap,
+    getPancake: () => data.village.pancake,
+    getPancakeCap: () => data.village.pancakeCap,
     getClay: () => data.village.clay,
     getClayCap: () => data.village.clayCap,
     setClay: (amount) => wrap(() => setResource(data, "clay", amount)),

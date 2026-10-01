@@ -11,6 +11,7 @@ export const RESOURCES = Object.freeze({
   soup: { capKey: "soupCap" },
   pumpkin: { field: "pumpkins" },
   bread: { capKey: "breadCap", requiresPlaced: "bakery" },
+  pancake: { capKey: "pancakeCap", requiresPlaced: "bakery" },
   wheat: { capKey: "wheatCap", requiresPlaced: "wheat-field" },
   apple: { capKey: "appleCap", requiresPlaced: "apple-tree" },
   berry: { capKey: "berryCap", requiresPlaced: "berry-bush" },
@@ -36,6 +37,7 @@ export const COST_LABELS = Object.freeze({
   pumpkin: "Kürbisse",
   soup: "Suppe",
   bread: "Brot",
+  pancake: "Pfannkuchen",
   planks: "Bretter",
   bucket: "Eimer",
   rope: "Seile",
@@ -58,6 +60,15 @@ export const RECIPES = Object.freeze([
     output: "bread",
     amount: 1,
     seconds: 30,
+  },
+  {
+    id: "pancake",
+    label: "Pfannkuchen",
+    building: "bakery",
+    inputs: { egg: 2, flour: 1 },
+    output: "pancake",
+    amount: 1,
+    seconds: 40,
   },
   {
     id: "flour",
@@ -471,6 +482,7 @@ export const ORDER_DECK = Object.freeze([
   { requests: { stone: 5, wood: 10 }, rewardGold: 21, rewardScrolls: 2, requiresPlaced: "stone-storage" },
   { requests: { clay: 8, stone: 6 }, rewardGold: 26, rewardScrolls: 2, requiresPlaced: "stone-storage" },
   { requests: { bread: 2 }, rewardGold: 24, rewardScrolls: 2, requiresPlaced: "bakery" },
+  { requests: { pancake: 2 }, rewardGold: 26, rewardScrolls: 1, requiresPlaced: "bakery" },
   { requests: { bread: 3, soup: 2 }, rewardGold: 34, rewardRep: 3, requiresPlaced: "bakery" },
   { requests: { planks: 4 }, rewardGold: 22, rewardScrolls: 1, requiresPlaced: "wood-workshop" },
   { requests: { bucket: 2, planks: 2 }, rewardGold: 30, rewardScrolls: 2, requiresPlaced: "wood-workshop" },
@@ -643,6 +655,8 @@ export function createDefaultState() {
       fish: 0,
       fishCap: 15,
       bread: 0,
+      pancake: 0,
+      pancakeCap: 15,
       breadCap: 15,
       planks: 0,
       bucket: 0,
@@ -1753,6 +1767,7 @@ const WISH_DEFINITIONS = [
   { item: "berry", amount: 3, icon: "🫐", label: "3 Beeren" },
   { item: "egg", amount: 2, icon: "🥚", label: "2 Eier" },
   { item: "fish", amount: 2, icon: "🐟", label: "2 Fische" },
+  { item: "pancake", amount: 1, icon: "🥞", label: "1 Pfannkuchen" },
 ];
 
 const WISH_RESOURCE_ID = { pumpkins: "pumpkin" };
