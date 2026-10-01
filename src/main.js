@@ -22,6 +22,7 @@ import { createClayLoop } from "./world/clay-loop.js";
 import { createStudy } from "./world/study.js";
 import { createStudyLoop } from "./world/study-loop.js";
 import { createValleyHarbor } from "./world/valley.js";
+import { createOrderBoard } from "./world/order-board.js";
 import { createHud } from "./world/hud.js";
 import "./styles.css";
 
@@ -245,6 +246,7 @@ async function start() {
       world.walkArea.surfaceY,
     );
     animationState.valley = createValleyHarbor(assets.valleyHarbor, world.walkArea.surfaceY);
+    animationState.orderBoard = createOrderBoard(assets.orderBoard, world.walkArea.surfaceY);
     animationState.game = createGameState();
     animationState.windEnabled = animationState.game.getWind();
     animationState.yard.setWood(animationState.game.getWood());
@@ -354,6 +356,8 @@ async function start() {
       isPlacementActive: () => Boolean(animationState.village?.isActive()),
       onOpenResearch: () => animationState.hud?.renderResearch?.(),
       onOpenBuilding: (id) => animationState.hud?.renderBuilding?.(id),
+      orderBoard: animationState.orderBoard,
+      onOpenOrders: () => animationState.hud?.renderOrders?.(),
     });
     animationState.village = createVillageEditor({
       scene: world.root,
@@ -500,6 +504,18 @@ async function start() {
         setYaw: (yaw) => animationState.stoneYard.setYaw(yaw),
         refresh: () => animationState.stoneYard.refreshAnchors(),
       },
+      "order-board": {
+        id: "order-board",
+        label: "Auftragsbrett",
+        root: animationState.orderBoard.root,
+        size: animationState.orderBoard.size,
+        w: 1,
+        h: 1,
+        padding: 0,
+        setWorldPosition: (x, z) => animationState.orderBoard.setWorldPosition(x, z),
+        setYaw: (yaw) => animationState.orderBoard.setYaw(yaw),
+        refresh: () => animationState.orderBoard.refreshAnchors(),
+      },
     };
 
     const mounted = new Set();
@@ -514,7 +530,7 @@ async function start() {
       return record;
     }
 
-    ["cottage", "wood-storage", "kitchen", "pumpkin-patch", "well", "study"].forEach(mountPlaced);
+    ["cottage", "wood-storage", "kitchen", "pumpkin-patch", "well", "study", "order-board"].forEach(mountPlaced);
     ["clay-pit", "clay-storage", "stone-storage"].forEach((id) => {
       if (animationState.game.isPlaced(id)) mountPlaced(id);
     });
@@ -610,6 +626,7 @@ async function start() {
       well: animationState.well,
       clayPit: animationState.clayPit,
       clayYard: animationState.clayYard,
+      orderBoard: animationState.orderBoard,
       clayLoop: animationState.clayLoop,
       soupLoop: animationState.soupLoop,
       game: animationState.game,

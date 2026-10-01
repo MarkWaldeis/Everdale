@@ -18,6 +18,10 @@ import {
   getUpgradeInfo,
   upgradeBuilding,
   getBuildingLevel,
+  listOrders,
+  canFillOrder,
+  fillOrder,
+  ORDER_SLOTS,
 } from "../src/world/simulation.js";
 
 test("fresh start keeps later buildings locked", () => {
@@ -207,4 +211,53 @@ test("unplaced buildings cannot be upgraded", () => {
   const state = createDefaultState();
   assert.equal(getUpgradeInfo(state, "stone-storage"), null);
   assert.equal(upgradeBuilding(state, "stone-storage").ok, false);
+});
+
+test("order board offers fillable slots and pays rewards", () => {
+  const state = createDefaultState();
+  const orders = listOrders(state);
+  assert.equal(orders.length, ORDER_SLOTS);
+  assert.equal(orders[0].requests.wood, 5);
+  const firstKey = orders[0].key;
+  assert.equal(canFillOrder(state, 0), false);
+
+  state.village.wood = 5;
+  assert.equal(canFillOrder(state, 0), true);
+  const filled = fillOrder(state, 0);
+  assert.equal(filled.ok, true);
+  assert.equal(state.village.wood, 0);
+  assert.equal(state.village.gold, 6);
+
+  const next = listOrders(state)[0];
+  assert.notEqual(next.key, firstKey);
+});
+
+test("gated orders stay out of the deck until unlocked", () => {
+  const state = createDefaultState();
+  const orders = listOrders(state);
+  assert.ok(orders.every((order) => !order.requiresPlaced));
+
+  state.placed["clay-pit"] = true;
+  let found = false;
+  for (let index = 0; index < 12; index += 1) {
+    const slot = listOrders(state)[index % ORDER_SLOTS];
+    if (slot.requiresPlaced === "clay-pit") {
+      found = true;
+      break;
+    }
+    state.village.wood = 99;
+    state.village.pumpkins = 99;
+    state.village.soup = 99;
+    fillOrder(state, index % ORDER_SLOTS);
+  }
+  assert.equal(found, true);
+});
+
+test("fillOrder rejects orders that cannot be afforded", () => {
+  const state = createDefaultState();
+  listOrders(state);
+  const blocked = fillOrder(state, 0);
+  assert.equal(blocked.ok, false);
+  assert.equal(blocked.reason, "items");
+  assert.equal(state.village.gold, 0);
 });

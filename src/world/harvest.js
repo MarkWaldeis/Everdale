@@ -108,6 +108,8 @@ export function createHarvestDirector({
   isPlacementActive,
   onOpenResearch,
   onOpenBuilding,
+  orderBoard,
+  onOpenOrders,
 }) {
   const raycaster = new THREE.Raycaster();
   const marker = createGroundMarker();
@@ -559,6 +561,11 @@ export function createHarvestDirector({
     return pickBuilding(clientX, clientY, clayYard);
   }
 
+  function pickOrderBoard(clientX, clientY) {
+    if (!orderBoard?.root?.parent) return null;
+    return pickBuilding(clientX, clientY, orderBoard);
+  }
+
   function pickInfoBuilding(clientX, clientY) {
     const candidates = [
       { id: "wood-storage", ref: yard },
@@ -590,6 +597,7 @@ export function createHarvestDirector({
       yardBlock(well),
       yardBlock(clayPit),
       yardBlock(clayYard),
+      yardBlock(orderBoard),
     ].filter(Boolean);
   }
 
@@ -863,9 +871,17 @@ export function createHarvestDirector({
       (pickClayPit(event.clientX, event.clientY) ||
         (game?.isPlaced?.("clay-storage") && pickClayYard(event.clientX, event.clientY)));
     const labHit = !tree && !kitchenHit && !patchHit && !clayHit && pickResearch(event.clientX, event.clientY);
+    const boardHit =
+      !tree && !kitchenHit && !patchHit && !clayHit && !labHit && pickOrderBoard(event.clientX, event.clientY);
     const infoHit =
-      !tree && !kitchenHit && !patchHit && !clayHit && !labHit && pickInfoBuilding(event.clientX, event.clientY);
-    pointerState.hovered = tree || kitchenHit || patchHit || clayHit || labHit || infoHit;
+      !tree &&
+      !kitchenHit &&
+      !patchHit &&
+      !clayHit &&
+      !labHit &&
+      !boardHit &&
+      pickInfoBuilding(event.clientX, event.clientY);
+    pointerState.hovered = tree || kitchenHit || patchHit || clayHit || labHit || boardHit || infoHit;
     canvas.classList.toggle("is-over-tree", Boolean(pointerState.hovered));
   }
 
@@ -915,6 +931,12 @@ export function createHarvestDirector({
     if (labHit) {
       selectTree(null);
       onOpenResearch?.();
+      return;
+    }
+    const boardHit = pickOrderBoard(event.clientX, event.clientY);
+    if (boardHit) {
+      selectTree(null);
+      onOpenOrders?.();
       return;
     }
     const infoId = pickInfoBuilding(event.clientX, event.clientY);

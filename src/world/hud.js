@@ -234,6 +234,45 @@ export function createHud({
     );
   }
 
+  const ORDER_RESOURCE_LABELS = {
+    wood: "Holz",
+    stone: "Stein",
+    clay: "Lehm",
+    soup: "Suppe",
+    pumpkin: "Kürbisse",
+    scrolls: "Schriftrollen",
+  };
+
+  function renderOrders() {
+    const orders = game.listOrders?.() ?? [];
+    const cards = orders
+      .map((order, index) => {
+        if (!order) return "";
+        const needs = Object.entries(order.requests)
+          .map(([key, value]) => `${value} ${ORDER_RESOURCE_LABELS[key] ?? key}`)
+          .join(" · ");
+        const rewards = [
+          `${order.rewardGold ?? 0} Gold`,
+          order.rewardScrolls ? `${order.rewardScrolls} Schriftrollen` : null,
+          order.rewardRep ? `${order.rewardRep} Ruf` : null,
+        ]
+          .filter(Boolean)
+          .join(" · ");
+        const can = Boolean(game.canFillOrder?.(index));
+        return `<button class="sheet-card ${can ? "is-ready" : "is-locked"}" type="button" data-order="${index}" ${can ? "" : "disabled"}>
+          <strong>Auftrag ${index + 1}</strong>
+          <small>Braucht: ${needs}</small>
+          <em>${can ? "Liefern" : "Zu wenig"} → ${rewards}</em>
+        </button>`;
+      })
+      .join("");
+    openSheet(
+      "orders",
+      "Auftragsbrett",
+      `<p class="glass-lead">Ottos Händler zahlen für Lieferungen — mit Gold und Schriftrollen.</p>${cards}`,
+    );
+  }
+
   function renderValley() {
     if (!game.isValleyUnlocked()) {
       openSheet("valley", "Tal", "<p>Erforsche den Tal-Zugang, dann kannst du hinreisen.</p>");
@@ -276,6 +315,13 @@ export function createHud({
           return;
         }
         renderResearch();
+      });
+    });
+    els.sheetBody?.querySelectorAll("[data-order]").forEach((button) => {
+      button.addEventListener("click", () => {
+        game.fillOrder?.(Number(button.dataset.order));
+        refresh();
+        renderOrders();
       });
     });
     els.sheetBody?.querySelectorAll("[data-crate]").forEach((button) => {
@@ -348,6 +394,7 @@ export function createHud({
     const left = tree?.scrollLeft ?? 0;
     if (openId === "inventory") renderInventory();
     else if (openId === "valley") renderValley();
+    else if (openId === "orders") renderOrders();
     else if (openId === "research") renderResearch(true);
     else if (openId === "build") renderBuild();
     else if (openId === "building" && openArg) renderBuilding(openArg);
@@ -404,5 +451,6 @@ export function createHud({
     renderSettings,
     renderValley,
     renderBuilding,
+    renderOrders,
   };
 }

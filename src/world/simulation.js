@@ -41,6 +41,14 @@ export const BUILDING_CATALOG = Object.freeze([
     description: "Steht bereits im Dorf. Hier forschst du neue Gebäude frei.",
   },
   {
+    id: "order-board",
+    label: "Auftragsbrett",
+    starterBuild: true,
+    placeable: false,
+    cost: {},
+    description: "Steht bereits im Dorf. Ottos Aufträge zahlen mit Gold und Schriftrollen.",
+  },
+  {
     id: "clay-pit",
     label: "Lehmgrube",
     placeable: true,
@@ -177,6 +185,24 @@ export const STARTER_PLACED = Object.freeze([
   "pumpkin-patch",
   "well",
   "study",
+  "order-board",
+]);
+
+export const ORDER_SLOTS = 3;
+
+export const ORDER_DECK = Object.freeze([
+  { requests: { wood: 5 }, rewardGold: 6 },
+  { requests: { pumpkin: 2 }, rewardGold: 5 },
+  { requests: { wood: 8 }, rewardGold: 10, rewardScrolls: 1 },
+  { requests: { soup: 1 }, rewardGold: 7, rewardRep: 1 },
+  { requests: { wood: 6, pumpkin: 3 }, rewardGold: 12 },
+  { requests: { clay: 4 }, rewardGold: 12, rewardScrolls: 1, requiresPlaced: "clay-pit" },
+  { requests: { soup: 2 }, rewardGold: 11, rewardScrolls: 1 },
+  { requests: { stone: 4 }, rewardGold: 14, requiresPlaced: "stone-storage" },
+  { requests: { wood: 10, clay: 4 }, rewardGold: 18, rewardScrolls: 1, requiresPlaced: "clay-storage" },
+  { requests: { soup: 3, pumpkin: 4 }, rewardGold: 16, rewardRep: 2 },
+  { requests: { stone: 5, wood: 10 }, rewardGold: 21, rewardScrolls: 2, requiresPlaced: "stone-storage" },
+  { requests: { clay: 8, stone: 6 }, rewardGold: 26, rewardScrolls: 2, requiresPlaced: "stone-storage" },
 ]);
 
 export const BUILDING_UPGRADES = Object.freeze({
@@ -252,6 +278,7 @@ export function createDefaultState() {
     bakery: false,
     tailor: false,
     "wood-workshop": false,
+    "order-board": true,
   };
   const nodes = {};
   RESEARCH_NODES.forEach((node) => {
@@ -296,6 +323,10 @@ export function createDefaultState() {
         { id: 3, item: "wood", amount: 10, rewardGold: 20, rewardRep: 8, filledBy: null },
       ],
       memberFills: 0,
+    },
+    orders: {
+      next: 0,
+      slots: [],
     },
     recipes: [
       {
@@ -649,6 +680,81 @@ export function fillValleyCrate(state, crateId, playerId = "player") {
   state.village.reputation += crate.rewardRep;
   addPlayerXp(state, 10);
   return { ok: true, gold: state.village.gold, reputation: state.village.reputation };
+}
+
+function orderEligible(state, order) {
+  return !order.requiresPlaced || Boolean(state.placed[order.requiresPlaced]);
+}
+
+function drawOrder(state) {
+  const orders = state.orders;
+  for (let step = 0; step < ORDER_DECK.length; step += 1) {
+    const index = (orders.next + step) % ORDER_DECK.length;
+    const template = ORDER_DECK[index];
+    if (orderEligible(state, template)) {
+      orders.next = index + 1;
+      return { key: index, ...clone(template) };
+    }
+  }
+  const index = orders.next % ORDER_DECK.length;
+  orders.next += 1;
+  return { key: index, ...clone(ORDER_DECK[index]) };
+}
+
+export function ensureOrders(state) {
+  if (!state.orders || !Array.isArray(state.orders.slots)) {
+    state.orders = { next: 0, slots: [] };
+  }
+  while (state.orders.slots.length < ORDER_SLOTS) {
+    state.orders.slots.push(drawOrder(state));
+  }
+  return state.orders.slots;
+}
+
+export function listOrders(state) {
+  return ensureOrders(state);
+}
+
+function orderCanAfford(state, requests = {}) {
+  return Object.entries(requests).every(
+    ([key, value]) => (state.village[villageField(key)] ?? 0) >= value,
+  );
+}
+
+function orderSpend(state, requests = {}) {
+  Object.entries(requests).forEach(([key, value]) => {
+    const field = villageField(key);
+    state.village[field] = Math.max(0, (state.village[field] ?? 0) - value);
+  });
+}
+
+export function canFillOrder(state, slotIndex) {
+  const order = ensureOrders(state)[slotIndex];
+  return Boolean(order && orderCanAfford(state, order.requests));
+}
+
+export function fillOrder(state, slotIndex) {
+  const order = ensureOrders(state)[slotIndex];
+  if (!order) return { ok: false, reason: "missing" };
+  if (!orderCanAfford(state, order.requests)) return { ok: false, reason: "items" };
+  orderSpend(state, order.requests);
+  state.village.gold += order.rewardGold ?? 0;
+  state.village.scrolls += order.rewardScrolls ?? 0;
+  state.village.reputation += order.rewardRep ?? 0;
+  if (state.buildings.kitchen?.storedResources) {
+    state.buildings.kitchen.storedResources.soup = state.village.soup;
+  }
+  if (state.buildings.pumpkinPatch?.storedResources) {
+    state.buildings.pumpkinPatch.storedResources.pumpkin = state.village.pumpkins;
+  }
+  addPlayerXp(state, 8);
+  state.orders.slots[slotIndex] = drawOrder(state);
+  return {
+    ok: true,
+    gold: state.village.gold,
+    scrolls: state.village.scrolls,
+    reputation: state.village.reputation,
+  };
 }
 
 export function simulateValleyMembers(state, fills = 1) {

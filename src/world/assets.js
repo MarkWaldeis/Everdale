@@ -134,6 +134,11 @@ export const ASSETS = Object.freeze({
     url: new URL("../../3d Assets/study-hall.glb", import.meta.url).href,
     height: 3.2,
   },
+  orderBoard: {
+    label: "Auftragsbrett",
+    url: new URL("../../3d Assets/order-board.glb", import.meta.url).href,
+    height: 1.9,
+  },
   valleyHarbor: {
     label: "Talhafen",
     url: new URL("../../3d Assets/valley-harbor.glb", import.meta.url).href,
