@@ -4,7 +4,7 @@ const CHAT_MIN_GAP = 14;
 const CHAT_DURATION = 4.2;
 const CHAT_RANGE = 2.1;
 const LINES = ["💬", "🎶", "😄", "🌻", "🍲"];
-const FRIEND_AT = 2;
+const FRIEND_AT = 2; // Herz ab dem 3. Treffen (0,1,2 gezaehlt)
 
 export function createSocialLayer(container) {
   const projector = new THREE.Vector3();
@@ -35,7 +35,7 @@ export function createSocialLayer(container) {
         const pairKey = [a.getId(), b.getId()].sort().join("+");
         const metBefore = (friendCounts.get(pairKey) ?? 0);
         friendCounts.set(pairKey, metBefore + 1);
-        const becameFriends = metBefore === FRIEND_AT - 1;
+        const becameFriends = metBefore === FRIEND_AT;
         chats.push({
           a,
           b,
