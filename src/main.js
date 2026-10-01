@@ -29,6 +29,7 @@ import { LANTERN_GLASS, LANTERN_HALO } from "./world/decos.js";
 import { createMountains } from "./world/mountains.js";
 import { createWeather } from "./world/weather.js";
 import { createFireflies } from "./world/fireflies.js";
+import { createChimneySmoke } from "./world/chimney-smoke.js";
 import { createCritters } from "./world/critters.js";
 import { createOrderBoard } from "./world/order-board.js";
 import { createHouseIi } from "./world/house-ii.js";
@@ -622,6 +623,7 @@ function animate(now = 0) {
     animationState.weather?.update?.(delta);
     animationState.dayNight = updateDayNight(now);
     animationState.fireflies?.update?.(delta, now * 0.001, animationState.dayNight.night);
+    animationState.chimneySmoke?.update?.(delta, now * 0.001, animationState.windEnabled ? 1 : 0.2);
     const nightness = animationState.dayNight.night;
     if (nightness > 0.82) {
       animationState.villagers.forEach((member) => {
@@ -808,6 +810,25 @@ async function start() {
     animationState.apiary = createApiary(world.walkArea.surfaceY);
     animationState.market = createMarketStall(world.walkArea.surfaceY);
     animationState.townHall = createTownHall(world.walkArea.surfaceY);
+    animationState.chimneySmoke = createChimneySmoke([
+      {
+        position: new THREE.Vector3(
+          animationState.kitchen.root.position.x + 0.4,
+          animationState.kitchen.size.y - 0.1,
+          animationState.kitchen.root.position.z - 0.2,
+        ),
+      },
+      {
+        position: new THREE.Vector3(
+          animationState.bakery.root.position.x - 0.35,
+          animationState.bakery.size.y - 0.15,
+          animationState.bakery.root.position.z,
+        ),
+        isOn: () => (animationState.game?.getProduction?.("bakery")?.queue?.length ?? 0) > 0,
+        fadeIn: true,
+      },
+    ]);
+    scene.add(animationState.chimneySmoke.root);
     animationState.giftBox = createGiftBox(world.walkArea.surfaceY);
     world.root.add(animationState.giftBox.root);
     animationState.giftNextAt = 140 + Math.random() * 60;
