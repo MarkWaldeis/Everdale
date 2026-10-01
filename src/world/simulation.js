@@ -331,7 +331,7 @@ export const RESEARCH_NODES = Object.freeze([
     detail: "Ein viertes Haus — Lukas zieht ein, sobald es steht.",
     icon: "🏘️",
     requires: ["house-iii"],
-    cost: { wood: 28, stone: 22, gems: 6 },
+    cost: { wood: 20, stone: 18, gems: 6 },
     unlocksBuilding: "house-iv",
     completable: true,
   },

@@ -42,6 +42,11 @@ import {
   buildLibrary,
   ORDER_DECK,
   COST_LABELS,
+  RESOURCES,
+  BUILDING_UPGRADES,
+  RESEARCH_NODES,
+  BUILDING_CATALOG,
+  RECIPES,
   isLibraryBuilt,
   buildGuildhall,
   isGuildhallBuilt,
@@ -930,4 +935,23 @@ test("house-iv construction unlocks Lukas", () => {
   tickConstructions(state, 90);
   assert.equal(state.villagers.lukas.unlocked, true);
   assert.equal(isVillagerUnlocked(state, "lukas"), true);
+});
+
+test("all costs stay within reachable caps", () => {
+  const maxCapFor = (key) => {
+    const spec = RESOURCES[key];
+    if (!spec?.capKey) return Infinity;
+    const upgradeCaps = Object.values(BUILDING_UPGRADES)
+      .filter((u) => u.capKey === spec.capKey)
+      .flatMap((u) => u.caps);
+    return Math.max(...upgradeCaps, createDefaultState().village[spec.capKey] ?? 0);
+  };
+  const checkCost = (cost, what) => {
+    for (const [key, amount] of Object.entries(cost)) {
+      assert.ok(amount <= maxCapFor(key), `${what}: ${amount} ${key} exceeds max cap ${maxCapFor(key)}`);
+    }
+  };
+  RESEARCH_NODES.forEach((node) => checkCost(node.cost ?? {}, `research ${node.id}`));
+  BUILDING_CATALOG.forEach((item) => checkCost(item.cost ?? {}, `building ${item.id}`));
+  RECIPES.forEach((recipe) => checkCost(recipe.inputs ?? {}, `recipe ${recipe.id}`));
 });
