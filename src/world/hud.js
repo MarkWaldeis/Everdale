@@ -218,11 +218,11 @@ export function createHud({
     }
     if (upgrade) {
       if (upgrade.atMax) {
-        action = `<button class="sheet-action" type="button" disabled>Maximalstufe erreicht</button>`;
+        action += `<button class="sheet-action" type="button" disabled>Maximalstufe erreicht</button>`;
       } else {
         const cost = game.formatCost?.(upgrade.cost) ?? "";
         const capNote = upgrade.nextCap ? ` → ${upgrade.nextCap} Platz` : "";
-        action = upgrade.affordable
+        action += upgrade.affordable
           ? `<button class="sheet-action" type="button" data-upgrade="${id}">Ausbauen auf Stufe ${upgrade.level + 1} · ${cost}${capNote}</button>`
           : `<button class="sheet-action" type="button" disabled>Zu teuer · ${cost}${capNote}</button>`;
       }

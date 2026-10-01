@@ -1,7 +1,7 @@
 import * as THREE from "three";
 
-const BOARD_POSITION = new THREE.Vector3(-1.9, 0, 4.6);
-const BOARD_YAW = 0.3;
+const BOARD_POSITION = new THREE.Vector3(4.4, 0, 4.4);
+const BOARD_YAW = -0.6;
 
 export function createOrderBoard(model, surfaceY) {
   const root = new THREE.Group();
