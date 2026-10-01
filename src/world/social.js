@@ -28,6 +28,8 @@ export function createSocialLayer(container) {
         const b = idle[j];
         if (a.root.position.distanceTo(b.root.position) > CHAT_RANGE) continue;
         const until = elapsed + CHAT_DURATION;
+        a.pauseRoam?.(CHAT_DURATION + 0.6, b.root.position);
+        b.pauseRoam?.(CHAT_DURATION + 0.6, a.root.position);
         chats.push({
           a,
           b,

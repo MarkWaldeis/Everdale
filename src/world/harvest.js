@@ -241,6 +241,7 @@ export function createHarvestDirector({
       if (task === "craft") return `Werkelt${levelTag}`;
       return `Arbeitet${levelTag}`;
     }
+    if (member.isChatPaused?.()) return "Plaudert";
     if (!member.isBusy()) return "Frei";
     const state = member.getState();
     if (state === "job-walk-home" || state === "home-approach" || state === "ascend-porch") {

@@ -473,6 +473,7 @@ export function createCharacterController(
   let lastElapsed = 0;
   let job = null;
   let lastImpactCycle = -1;
+  let chatFace = null;
   let hungry = false;
   let eating = null;
   const stateOrigin = root.position.clone();
@@ -695,11 +696,14 @@ export function createCharacterController(
     if (waitTime > 0) {
       waitTime -= delta;
       stopMoving(delta);
-      if (well?.points?.idle && roamTarget.distanceTo(well.points.idle) < 0.35) {
+      if (chatFace) {
+        faceToward(chatFace, delta);
+      } else if (well?.points?.idle && roamTarget.distanceTo(well.points.idle) < 0.35) {
         faceToward(well.points.look ?? well.points.idle, delta);
       }
       return;
     }
+    chatFace = null;
 
     if (moveToward(roamTarget, WALK_SPEED, delta, true)) {
       const atWell = Boolean(well?.points?.idle && roamTarget.distanceTo(well.points.idle) < 0.4);
@@ -1489,6 +1493,17 @@ export function createCharacterController(
     return Boolean(job);
   }
 
+  function pauseRoam(seconds, facePoint) {
+    if (state !== STATES.ROAM || job) return false;
+    waitTime = Math.max(waitTime, seconds);
+    chatFace = facePoint ?? null;
+    return true;
+  }
+
+  function isChatPaused() {
+    return Boolean(chatFace) && waitTime > 0;
+  }
+
   function cancelJob() {
     const cancelled = job;
     if (!cancelled && state !== STATES.VISIT_INSIDE && state !== STATES.VISIT_ENTER) {
@@ -1592,6 +1607,8 @@ export function createCharacterController(
     assignJob,
     cancelJob,
     hasJob,
+    pauseRoam,
+    isChatPaused,
     chainJob,
     isBusy,
     isIndoors,
