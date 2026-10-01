@@ -47,6 +47,7 @@ import {
   tickVillagerSkill,
   recordSkillHit,
   hitsForSkill,
+  getVillagerInfo,
   rushConstruction,
   rushBrewing,
   rushProduction,
@@ -273,6 +274,7 @@ export function createGameState() {
     removeDecoration: (uid) => wrap(() => removeDecoration(data, uid)),
     tickValley: (delta) => wrap(() => tickValley(data, delta)),
     getShip: () => getShip(data),
+    getVillagerInfo: (id) => getVillagerInfo(data, id),
     getVillagerSkill: (id) => {
       const villager = data.villagers[id];
       const key = villagerSkillKey(villager);

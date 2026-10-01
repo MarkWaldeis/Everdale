@@ -109,6 +109,7 @@ export function createHarvestDirector({
   onOpenResearch,
   valleyHarbor,
   onOpenBuilding,
+  onOpenVillager,
   orderBoard,
   onOpenOrders,
   decoRoots,
@@ -1130,6 +1131,10 @@ export function createHarvestDirector({
     button.addEventListener("click", (event) => {
       event.preventDefault();
       const member = roster.find((entry) => entry.getId() === button.dataset.villager);
+      if (pointerState.mode === "harvest" && !pointerState.selected && onOpenVillager) {
+        onOpenVillager(button.dataset.villager);
+        return;
+      }
       assignWorker(member);
     });
   });

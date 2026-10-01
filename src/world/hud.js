@@ -1,4 +1,4 @@
-import { RECIPES, POTIONS, DECORATIONS, formatCost } from "./simulation.js";
+import { RECIPES, POTIONS, DECORATIONS, SKILL_LABELS, formatCost } from "./simulation.js";
 
 const ITEM_ROWS = [
   ["wood", "Holz", "woodCap"],
@@ -278,6 +278,45 @@ export function createHud({
        <button class="sheet-action" type="button" id="btn-wind">${wind ? "Wind aus" : "Wind an"}</button>
        <button class="sheet-action is-danger" type="button" id="btn-reset-save">Spielstand löschen</button>
        <p class="sheet-hint">Wind und Ton greifen sofort. Löschen startet das Dorf neu.</p>`,
+    );
+  }
+
+  const VILLAGER_META = {
+    lena: { name: "Lena", icon: "👩‍🌾" },
+    john: { name: "John", icon: "👨‍🔧" },
+    sophie: { name: "Sophie", icon: "👩‍🔬" },
+  };
+
+  const BUFF_LABELS = { speed: "Energietrank ⚡", meal: "Sattmacher 🍲" };
+
+  function renderVillager(id) {
+    const info = game.getVillagerInfo?.(id);
+    if (!info) return;
+    openArg = id;
+    const meta = VILLAGER_META[id] ?? { name: id, icon: "👤" };
+    const hunger = info.hungry
+      ? "hungrig — erst Suppe essen"
+      : `noch ${Math.max(0, Math.ceil(info.hungerInterval - info.workSeconds))} s arbeitsfähig`;
+    const buff = info.buff
+      ? `<div class="inv-row"><span>Trank</span><strong>${BUFF_LABELS[info.buff.effect] ?? info.buff.effect} · ${Math.ceil(info.buff.remaining)} s</strong></div>`
+      : "";
+    const skillRows = Object.entries(SKILL_LABELS)
+      .map(([key, label]) => {
+        const skill = info.skills[key];
+        const active = info.activeKey === key ? " is-active" : "";
+        const width = Math.round(skill.next * 100);
+        return `<div class="skill-row${active}"><span class="skill-label">${label}</span>
+          <span class="skill-bar"><i style="width:${width}%"></i></span>
+          <strong>Lv ${skill.level}</strong></div>`;
+      })
+      .join("");
+    openSheet(
+      "villager",
+      `${meta.icon} ${meta.name}`,
+      `<div class="inv-row"><span>Status</span><strong>${info.hungry ? "Hungrig" : info.state === "WORKING" ? "Arbeitet" : "Frei"}</strong></div>
+       <div class="inv-row"><span>Ausdauer</span><strong>${hunger}</strong></div>${buff}
+       <h3 class="sheet-subtitle">Fähigkeiten</h3>${skillRows}
+       <p class="sheet-hint">Fähigkeiten wachsen beim Arbeiten — jede Stufe macht schneller.</p>`,
     );
   }
 
@@ -594,6 +633,7 @@ export function createHud({
     else if (openId === "research") renderResearch(true);
     else if (openId === "build") renderBuild();
     else if (openId === "building" && openArg) renderBuilding(openArg);
+    else if (openId === "villager" && openArg) renderVillager(openArg);
     else return;
     const newPlank = els.sheet.querySelector(".game-sheet-plank");
     if (newPlank) newPlank.scrollTop = top;
@@ -646,6 +686,7 @@ export function createHud({
     renderInventory,
     renderSettings,
     renderValley,
+    renderVillager,
     renderBuilding,
     renderOrders,
     showNotice,

@@ -998,6 +998,41 @@ export function hitsForSkill(state, villagerId, key) {
   return Math.max(2, 5 - Math.floor((level - 1) / 2));
 }
 
+export const SKILL_LABELS = Object.freeze({
+  farming: "Farmen",
+  woodcutting: "Holz fällen",
+  clayDigging: "Lehm graben",
+  stoneMining: "Stein klopfen",
+  building: "Handwerk",
+  research: "Forschung",
+});
+
+export function getVillagerInfo(state, villagerId) {
+  const villager = state.villagers[villagerId];
+  if (!villager) return null;
+  const skills = {};
+  Object.keys(SKILL_LABELS).forEach((key) => {
+    const xp = villager.skills?.[key] ?? 0;
+    skills[key] = {
+      xp,
+      level: skillLevelOf(villager, key),
+      next: Math.min(1, (xp % 25) / 25),
+    };
+  });
+  return {
+    id: villagerId,
+    unlocked: Boolean(villager.unlocked),
+    hungry: Boolean(villager.hungry),
+    state: villager.state,
+    task: villager.assignedTaskId ?? null,
+    buff: villager.activeBuff ? { ...villager.activeBuff } : null,
+    workSeconds: villager.workSeconds ?? 0,
+    hungerInterval: state.timings.hungerInterval,
+    skills,
+    activeKey: villagerSkillKey(villager),
+  };
+}
+
 export function skillLevelOf(villager, key) {
   const xp = villager?.skills?.[key] ?? 0;
   return Math.min(10, 1 + Math.floor(xp / 25));

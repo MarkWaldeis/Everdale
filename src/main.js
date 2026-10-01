@@ -460,6 +460,7 @@ async function start() {
       onOpenResearch: () => animationState.hud?.renderResearch?.(),
       valleyHarbor: animationState.valley,
       onOpenBuilding: (id) => animationState.hud?.renderBuilding?.(id),
+      onOpenVillager: (id) => animationState.hud?.renderVillager?.(id),
       orderBoard: animationState.orderBoard,
       onOpenOrders: () => animationState.hud?.renderOrders?.(),
       workshops: {

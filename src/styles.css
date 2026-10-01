@@ -1777,3 +1777,36 @@ a:focus-visible {
   border-radius: 8px;
   vertical-align: baseline;
 }
+
+.skill-row {
+  display: grid;
+  grid-template-columns: 7.2rem 1fr 3rem;
+  align-items: center;
+  gap: 0.5rem;
+  padding: 0.28rem 0;
+}
+
+.skill-row .skill-label {
+  font-size: 0.82rem;
+  opacity: 0.85;
+}
+
+.skill-row.is-active .skill-label {
+  color: #3d7a2c;
+  font-weight: 700;
+}
+
+.skill-bar {
+  display: block;
+  height: 0.45rem;
+  border-radius: 99px;
+  background: rgba(61, 48, 32, 0.16);
+  overflow: hidden;
+}
+
+.skill-bar i {
+  display: block;
+  height: 100%;
+  border-radius: 99px;
+  background: linear-gradient(90deg, #8ec45f, #5f9b3f);
+}
