@@ -39,12 +39,14 @@ export function createChimneySmoke(sources) {
       if (puff.userData.offset >= 1) puff.userData.offset -= 1;
       const t = puff.userData.offset;
       const active = !src.isOn || src.isOn();
+      const baseX = src.root ? src.root.position.x : src.position.x;
+      const baseZ = src.root ? src.root.position.z : src.position.z;
       const rise = t * 2.1;
       const sway = Math.sin(elapsed * 1.6 + puff.userData.drift + t * 3) * 0.08;
       puff.position.set(
-        src.position.x + sway + wind * t * 0.5,
+        baseX + src.offset.x + sway + wind * t * 0.5,
         src.position.y + rise,
-        src.position.z + Math.cos(elapsed * 1.1 + puff.userData.drift) * 0.06,
+        baseZ + src.offset.z + Math.cos(elapsed * 1.1 + puff.userData.drift) * 0.06,
       );
       const scale = 0.5 + t * 1.4;
       puff.scale.setScalar(scale);

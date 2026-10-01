@@ -812,18 +812,14 @@ async function start() {
     animationState.townHall = createTownHall(world.walkArea.surfaceY);
     animationState.chimneySmoke = createChimneySmoke([
       {
-        position: new THREE.Vector3(
-          animationState.kitchen.root.position.x + 0.4,
-          animationState.kitchen.size.y - 0.1,
-          animationState.kitchen.root.position.z - 0.2,
-        ),
+        root: animationState.kitchen.root,
+        offset: new THREE.Vector3(0.4, 0, -0.2),
+        position: new THREE.Vector3(0, animationState.kitchen.size.y - 0.1, 0),
       },
       {
-        position: new THREE.Vector3(
-          animationState.bakery.root.position.x - 0.35,
-          animationState.bakery.size.y - 0.15,
-          animationState.bakery.root.position.z,
-        ),
+        root: animationState.bakery.root,
+        offset: new THREE.Vector3(-0.35, 0, 0),
+        position: new THREE.Vector3(0, animationState.bakery.size.y - 0.15, 0),
         isOn: () => (animationState.game?.getProduction?.("bakery")?.queue?.length ?? 0) > 0,
         fadeIn: true,
       },
