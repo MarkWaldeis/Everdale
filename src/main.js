@@ -79,19 +79,28 @@ controls.enableDamping = true;
 controls.dampingFactor = 0.08;
 controls.enablePan = true;
 controls.screenSpacePanning = false;
-controls.enableRotate = false;
+controls.enableRotate = true;
+controls.mouseButtons.LEFT = THREE.MOUSE.PAN;
+controls.mouseButtons.MIDDLE = THREE.MOUSE.ROTATE;
 controls.mouseButtons.RIGHT = THREE.MOUSE.PAN;
-controls.touches.TWO = THREE.TOUCH.DOLLY_PAN;
+controls.touches.ONE = THREE.TOUCH.PAN;
+controls.touches.TWO = THREE.TOUCH.DOLLY_ROTATE;
 controls.zoomToCursor = true;
 controls.panSpeed = 1.55;
 controls.keyPanSpeed = 18;
-controls.minPolarAngle = THREE.MathUtils.degToRad(61);
-controls.maxPolarAngle = THREE.MathUtils.degToRad(61);
+// Vertical tilt stays free (45° top-down to 80° near-horizon) so the
+// sky and clouds are reachable; the azimuth stays locked to preserve
+// the fixed Everdale camera direction.
+controls.minPolarAngle = THREE.MathUtils.degToRad(45);
+controls.maxPolarAngle = THREE.MathUtils.degToRad(80);
 controls.minDistance = 2.2;
 controls.maxDistance = 110;
 controls.target.set(0.4, 0.45, 0.2);
 camera.position.set(16, 14, 18);
 camera.lookAt(controls.target);
+const lockedAzimuth = controls.getAzimuthalAngle();
+controls.minAzimuthAngle = lockedAzimuth;
+controls.maxAzimuthAngle = lockedAzimuth;
 controls.listenToKeyEvents(window);
 controls.update();
 
