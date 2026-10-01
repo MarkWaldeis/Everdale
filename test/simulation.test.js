@@ -654,9 +654,9 @@ test("villagers gain skill xp while working and get faster", () => {
   state.village.soup = 10;
 
   assert.equal(villagerSpeed(state, "lena"), 1);
-  villager.assignedTaskId = "dig-clay"; // real taskId from clay-loop
-  tickVillagerWork(state, "lena", 50); // 25 xp of digging skill
-  assert.equal(villager.skills.clayDigging, 25);
+  villager.assignedTaskId = "bake"; // real taskId from workshops
+  tickVillagerWork(state, "lena", 50); // 25 xp of crafting skill
+  assert.equal(villager.skills.building, 25);
   assert.equal(villagerSkillLevel(state, "lena"), 2);
   assert.ok(villagerSpeed(state, "lena") > 1);
 
@@ -666,7 +666,10 @@ test("villagers gain skill xp while working and get faster", () => {
   tickVillagerSkill(state, "lena", 50);
   assert.equal(villagerSkillLevel(state, "lena"), 2);
 
-  // Hit jobs gain xp per impact and need fewer hits at higher level.
+  // Hit tasks gain xp per impact only — timed ticks must not double-dip.
+  villager.assignedTaskId = "dig-clay";
+  tickVillagerWork(state, "lena", 50);
+  assert.equal(villager.skills.clayDigging ?? 0, 0);
   recordSkillHit(state, "lena", "woodcutting");
   assert.equal(villager.skills.woodcutting, 1.5);
   assert.equal(hitsForSkill(state, "lena", "woodcutting"), 5);

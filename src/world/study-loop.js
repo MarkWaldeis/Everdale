@@ -45,8 +45,7 @@ export function createStudyLoop({ game, study, villagers }) {
     const researcher = villagers.find(
       (member) => assigned.has(member.getId()) && (member.isAtLab?.() || member.getState?.() === "visit-inside"),
     );
-    if (!researcher) return;
-    if (game.tickVillagerWork(researcher.getId(), delta)) return;
+    if (!researcher || researcher.isHungry?.()) return;
     const speed = game.villagerSpeed?.(researcher.getId()) ?? 1;
     game.tickResearch(delta * speed);
   }

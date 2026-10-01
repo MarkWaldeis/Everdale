@@ -958,11 +958,22 @@ const SKILL_FOR_TASK = Object.freeze({
   "cook-soup": "farming",
   "harvest-pumpkin": "farming",
   "dig-clay": "clayDigging",
+  "dig-stone": "stoneMining",
+  "chop-wood": "woodcutting",
   bake: "building",
   sew: "building",
   craft: "building",
   research: "research",
 });
+
+// Hit-based jobs gain XP per impact, not per second — skip them in timed ticks.
+const HIT_TASKS = new Set(["dig-clay", "dig-stone", "chop-wood"]);
+
+function tickSkillKey(villager) {
+  const taskId = villager?.assignedTaskId;
+  if (!taskId || HIT_TASKS.has(taskId)) return null;
+  return SKILL_FOR_TASK[taskId] ?? null;
+}
 
 export function addSkillXp(state, villagerId, key, xp) {
   const villager = state.villagers[villagerId];
@@ -973,7 +984,7 @@ export function addSkillXp(state, villagerId, key, xp) {
 
 export function tickVillagerSkill(state, villagerId, delta) {
   const villager = state.villagers[villagerId];
-  const key = villagerSkillKey(villager);
+  const key = tickSkillKey(villager);
   if (key) addSkillXp(state, villagerId, key, delta * 0.5);
 }
 
@@ -1010,7 +1021,7 @@ export function tickVillagerWork(state, villagerId, delta) {
     villager.state = "HUNGRY";
     return true;
   }
-  const skillKey = villagerSkillKey(villager);
+  const skillKey = tickSkillKey(villager);
   if (skillKey) addSkillXp(state, villagerId, skillKey, delta * 0.5);
   if (villager.activeBuff?.effect !== "meal") {
     villager.workSeconds += delta;

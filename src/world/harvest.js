@@ -226,6 +226,10 @@ export function createHarvestDirector({
     if (kind === "cook") return `Kocht${levelTag}`;
     if (kind === "harvest") return `Erntet${levelTag}`;
     if (kind === "dig") return `Gräbt${levelTag}`;
+    if (kind === "chop") {
+      const task = game?.getSnapshot?.().villagers?.[member.getId()]?.assignedTaskId;
+      return task === "chop-wood" ? `Hackt${levelTag}` : `Schürft${levelTag}`;
+    }
     if (kind === "work" && member.getState?.() === "job-work") {
       const task = game?.getSnapshot?.().villagers?.[member.getId()]?.assignedTaskId;
       if (task === "bake") return `Backt${levelTag}`;
@@ -808,6 +812,9 @@ export function createHarvestDirector({
         tree.userData.harvestState = "chopping";
         tree.userData.lockSway = true;
         tree.userData.chopHits = 0;
+        game?.setVillagerState?.(member.getId(), "WORKING", {
+          assignedTaskId: isStone ? "dig-stone" : "chop-wood",
+        });
         projectMeter(tree, 0, hitsNeeded);
       },
       onImpact: () => {
