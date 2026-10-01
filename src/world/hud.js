@@ -11,11 +11,14 @@ const ITEM_ROWS = [
   ["apple", "Äpfel", "appleCap"],
   ["berry", "Beeren", "berryCap"],
   ["egg", "Eier", "eggCap"],
+  ["fish", "Fische", "fishCap"],
+  ["bread", "Brot", "breadCap"],
+  ["pancake", "Pfannkuchen", "pancakeCap"],
+  ["flour", "Mehl", "flourCap"],
   ["scrolls", "Schriftrollen", null],
   ["gold", "Gold", null],
   ["gems", "Diamanten", null],
   ["reputation", "Ruf", null],
-  ["flour", "Mehl", null],
 ];
 
 const COST_ROW_LABELS = {
