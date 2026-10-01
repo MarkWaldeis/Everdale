@@ -26,6 +26,7 @@ import { createStudyLoop } from "./world/study-loop.js";
 import { createValleyHarbor } from "./world/valley.js";
 import { createClouds } from "./world/clouds.js";
 import { LANTERN_GLASS, LANTERN_HALO } from "./world/decos.js";
+import { createMountains } from "./world/mountains.js";
 import { createCritters } from "./world/critters.js";
 import { createOrderBoard } from "./world/order-board.js";
 import { createHouseIi } from "./world/house-ii.js";
@@ -1616,6 +1617,8 @@ async function start() {
     });
     world.root.add(animationState.valley.root);
     scene.add(world.root);
+    animationState.mountains = createMountains(Math.max(world.walkArea.radiusX, world.walkArea.radiusZ) * 0.72);
+    scene.add(animationState.mountains.root);
     animationState.clouds = createClouds();
     scene.add(animationState.clouds.root);
     animationState.critters = createCritters(world.walkArea.surfaceY);
