@@ -6,6 +6,8 @@ import {
   canPlaceBuilding,
   placeBuilding,
   cancelPlacedBuilding,
+  assignConstructionWorker,
+  clearConstructionWorker,
   completeResearch,
   startResearch,
   tickVillagerWork,
@@ -997,4 +999,23 @@ test("fish harvest stops at cap and fishing-dock gate works", () => {
   assert.equal(state.village.fish, state.village.fishCap);
   assert.ok(state.village.fish <= 15);
   assert.equal(before, 14);
+});
+
+test("construction runs 3x faster with a builder assigned", () => {
+  const state = createDefaultState();
+  state.unlocked["fishing-dock"] = true;
+  state.village.wood = 30;
+  state.village.planks = 5;
+  placeBuilding(state, "fishing-dock");
+  const solo = state.constructions["fishing-dock"].remaining;
+  tickConstructions(state, 10);
+  assert.ok(Math.abs(solo - state.constructions["fishing-dock"].remaining - 10) < 0.01);
+  assignConstructionWorker(state, "fishing-dock", "lena");
+  const staffed = state.constructions["fishing-dock"].remaining;
+  tickConstructions(state, 2);
+  assert.ok(Math.abs(staffed - state.constructions["fishing-dock"].remaining - 6) < 0.01);
+  clearConstructionWorker(state, "fishing-dock");
+  const unstaffed = state.constructions["fishing-dock"].remaining;
+  tickConstructions(state, 5);
+  assert.ok(Math.abs(unstaffed - state.constructions["fishing-dock"].remaining - 5) < 0.01);
 });
