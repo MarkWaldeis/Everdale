@@ -25,8 +25,8 @@ export function createFireflies(walkArea) {
   const geo = new THREE.BufferGeometry();
   geo.setAttribute("position", new THREE.BufferAttribute(positions, 3));
   const material = new THREE.PointsMaterial({
-    color: 0xd8f7a2,
-    size: 0.16,
+    color: 0xe8f2a0,
+    size: 0.2,
     transparent: true,
     opacity: 0,
     blending: THREE.AdditiveBlending,
@@ -46,7 +46,10 @@ export function createFireflies(walkArea) {
       const t = elapsed * speed;
       attr.array[i * 3] += Math.sin(t + s0) * delta * 0.55;
       attr.array[i * 3 + 2] += Math.cos(t * 0.8 + s1) * delta * 0.55;
-      attr.array[i * 3 + 1] = 0.6 + Math.sin(t * 1.7 + s0) * 0.45 + Math.sin(t * 0.6 + s1) * 0.5;
+      attr.array[i * 3 + 1] = Math.max(
+        0.42,
+        0.6 + Math.sin(t * 1.7 + s0) * 0.45 + Math.sin(t * 0.6 + s1) * 0.5,
+      );
       // gentle drift back inside the meadow bounds
       const x = attr.array[i * 3];
       const z = attr.array[i * 3 + 2];
