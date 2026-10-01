@@ -91,12 +91,12 @@ export function createGameState() {
     : base;
   data.placed.study = true;
   data.player.level = getPlayerLevel(data);
+  const listeners = new Set();
   let offlineSummary = null;
   if (saved) {
     offlineSummary = applyOfflineProgress(data, (Date.now() - (data.lastTick ?? Date.now())) / 1000);
     persist();
   }
-  const listeners = new Set();
 
   function persist() {
     data.lastTick = Date.now();

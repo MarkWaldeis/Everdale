@@ -270,6 +270,7 @@ export function createHud({
     clay: "Lehm",
     soup: "Suppe",
     pumpkin: "Kürbisse",
+    bread: "Brot",
     scrolls: "Schriftrollen",
   };
 

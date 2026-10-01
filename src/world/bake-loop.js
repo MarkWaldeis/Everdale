@@ -40,7 +40,10 @@ export function createBakeLoop({ game, bakery, villagers }) {
   function update(delta) {
     if (!game.isPlaced("bakery")) return;
     const baker = villagers.find(
-      (member) => assigned.has(member.getId()) && member.getState?.() === "job-work",
+      (member) =>
+        assigned.has(member.getId()) &&
+        member.getState?.() === "job-work" &&
+        member.getJobKind?.() === "work",
     );
     if (!baker) return;
     if (game.tickVillagerWork(baker.getId(), delta)) return;

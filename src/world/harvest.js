@@ -241,6 +241,8 @@ export function createHarvestDirector({
     const visitingLab = pointerState.mode === "research";
     const visitingKitchen = pointerState.mode === "kitchen" || pointerState.mode === "pumpkin";
     const visitingClay = pointerState.mode === "clay";
+    const visitingBakery = pointerState.mode === "bakery";
+    const bakeryQueued = (game?.getProduction?.("bakery")?.queue.length ?? 0) > 0;
     const clayLocked = visitingClay && !game?.canCollectResource?.("clay");
     const storageFull =
       visitingClay
@@ -254,7 +256,9 @@ export function createHarvestDirector({
       ? true
       : visitingClay
         ? !storageFull
-        : Boolean(
+        : visitingBakery
+          ? bakeryQueued
+          : Boolean(
             selected &&
               !storageFull &&
               selected.userData.harvestState !== "gone" &&
@@ -315,12 +319,15 @@ export function createHarvestDirector({
     game?.clearBuildingWorker?.("pumpkin-patch", id);
     game?.clearBuildingWorker?.("clayPit", id);
     game?.clearBuildingWorker?.("study", id);
+    game?.clearBuildingWorker?.("bakery", id);
     game?.setVillagerState?.(id, "IDLE", {
       assignedBuildingId: null,
       assignedTaskId: null,
     });
     studyLoop?.releaseScholar?.(id);
+    bakeLoop?.releaseBaker?.(id);
     kitchen?.setCooking?.(false);
+    bakery?.setBaking?.(null);
     pumpkinField?.finishPick?.();
     clayPit?.setDigging?.(false);
     if (meter) meter.hidden = true;
@@ -646,8 +653,18 @@ export function createHarvestDirector({
   function assignWorker(member) {
     if (!member) return;
     if (member.hasJob?.() || member.isBusy() || member.isAtLab?.()) {
+      const jobKind = member.getJobKind?.();
+      const modeKinds = {
+        kitchen: ["cook", "harvest"],
+        pumpkin: ["cook", "harvest"],
+        clay: ["dig"],
+        bakery: ["work"],
+        research: ["visit"],
+      };
       const sameTarget = Boolean(
-        pointerState.selected && member.getJobKind && pointerState.selected.userData?.assignedWorkerId === member.getId(),
+        (pointerState.selected &&
+          pointerState.selected.userData?.assignedWorkerId === member.getId()) ||
+          (modeKinds[pointerState.mode]?.includes(jobKind) ?? false),
       );
       cancelWorker(member);
       if (sameTarget) {
