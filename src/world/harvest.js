@@ -219,7 +219,7 @@ export function createHarvestDirector({
     if (kind === "cook") return "Kocht";
     if (kind === "harvest") return "Erntet";
     if (kind === "dig") return "Gräbt";
-    if (kind === "work") {
+    if (kind === "work" && member.getState?.() === "job-work") {
       const task = game?.getSnapshot?.().villagers?.[member.getId()]?.assignedTaskId;
       if (task === "bake") return "Backt";
       if (task === "sew") return "Näht";
@@ -682,10 +682,12 @@ export function createHarvestDirector({
       };
       const kinds = modeKinds[pointerState.mode] ??
         (workshops?.[pointerState.mode] ? ["work"] : []);
+      const assignedBuilding = game?.getSnapshot?.().villagers?.[member.getId()]?.assignedBuildingId;
       const sameTarget = Boolean(
         (pointerState.selected &&
           pointerState.selected.userData?.assignedWorkerId === member.getId()) ||
-          kinds.includes(jobKind),
+          (kinds.includes(jobKind) &&
+            (workshops?.[pointerState.mode] ? assignedBuilding === pointerState.mode : true)),
       );
       cancelWorker(member);
       if (sameTarget) {

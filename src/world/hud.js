@@ -13,6 +13,14 @@ const ITEM_ROWS = [
   ["flour", "Mehl", null],
 ];
 
+const COST_ROW_LABELS = {
+  bread: "Brot",
+  planks: "Bretter",
+  bucket: "Eimer",
+  rope: "Seile",
+  blanket: "Decken",
+};
+
 const BUILDING_INFO = {
   "wood-storage": { label: "Holzlager", icon: "🪵", resource: "wood", resourceLabel: "Holz" },
   "stone-storage": { label: "Steinlager", icon: "🪨", resource: "stone", resourceLabel: "Stein" },
@@ -227,14 +235,25 @@ export function createHud({
     if (recipes.length) {
       const production = game.getProduction?.(id);
       if (production) {
-        const label = production.current?.label;
+        const counts = new Map();
+        production.queue.forEach((recipeId) => {
+          counts.set(recipeId, (counts.get(recipeId) ?? 0) + 1);
+        });
+        const queueLabel = [...counts.entries()]
+          .map(([recipeId, count]) => `${count}× ${RECIPES.find((r) => r.id === recipeId)?.label ?? recipeId}`)
+          .join(" + ");
         rows.push(
-          `<div class="inv-row"><span>Warteschlange</span><strong>${production.queue.length}${production.queue.length ? `× ${label}` : " — leer"}</strong></div>`,
+          `<div class="inv-row"><span>Warteschlange</span><strong>${queueLabel || "leer"}</strong></div>`,
         );
         if (production.current) {
           const pct = Math.min(100, Math.round((production.progress / (production.seconds || 1)) * 100));
           rows.push(`<div class="inv-row"><span>Fortschritt</span><strong>${pct}%</strong></div>`);
         }
+        const outputs = [...new Set(recipes.map((recipe) => recipe.output))];
+        const stock = outputs
+          .map((output) => `${COST_ROW_LABELS[output] ?? output} ${snap.village[output] ?? 0}`)
+          .join(" · ");
+        rows.push(`<div class="inv-row"><span>Lager</span><strong>${stock}</strong></div>`);
       }
     }
     const construction = game.getConstruction?.(id);
@@ -278,6 +297,10 @@ export function createHud({
     soup: "Suppe",
     pumpkin: "Kürbisse",
     bread: "Brot",
+    planks: "Bretter",
+    bucket: "Eimer",
+    rope: "Seile",
+    blanket: "Decken",
     scrolls: "Schriftrollen",
   };
 
