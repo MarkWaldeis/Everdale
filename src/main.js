@@ -761,9 +761,6 @@ async function start() {
     const focusVillager = (id) => {
       const member = animationState.villagers.find((entry) => entry.getId() === id);
       if (!member) return;
-      if (member.hasJob?.() || member.isBusy?.() || member.isAtLab?.()) {
-        animationState.harvest?.cancelWorker?.(member);
-      }
       controls.target.copy(member.root.position);
       controls.target.y += 0.6;
     };

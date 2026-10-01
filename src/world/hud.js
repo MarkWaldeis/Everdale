@@ -671,7 +671,10 @@ export function createHud({
     });
     document.querySelector("#hud-level-wrap")?.addEventListener("click", renderInventory);
     document.querySelectorAll("[data-hud-villager]").forEach((button) => {
-      button.addEventListener("click", () => onFocusVillager?.(button.dataset.hudVillager));
+      button.addEventListener("click", () => {
+        renderVillager(button.dataset.hudVillager);
+        onFocusVillager?.(button.dataset.hudVillager);
+      });
     });
     game.subscribe(() => refresh());
     refresh();
