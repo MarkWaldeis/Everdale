@@ -1400,16 +1400,17 @@ export function sellSurplus(state, { amount = 2, keepFloor = 4, price = 2 } = {}
   let best = null;
   let bestSurplus = 0;
   for (const key of SELLABLE) {
-    const surplus = (state.village[key] ?? 0) - keepFloor;
+    const surplus = (state.village[villageField(key)] ?? 0) - keepFloor;
     if (surplus > bestSurplus) {
       bestSurplus = surplus;
       best = key;
     }
   }
   if (!best) return { ok: false };
-  const sold = Math.min(amount, state.village[best]);
+  const field = villageField(best);
+  const sold = Math.min(amount, bestSurplus, state.village[field] ?? 0);
   if (sold <= 0) return { ok: false };
-  state.village[best] -= sold;
+  state.village[field] -= sold;
   const gain = sold * price;
   state.village.gold += gain;
   return { ok: true, item: best, sold, gold: state.village.gold };
