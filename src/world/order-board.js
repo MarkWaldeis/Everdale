@@ -11,6 +11,14 @@ export function createOrderBoard(model, surfaceY) {
   root.rotation.y = BOARD_YAW;
   root.updateWorldMatrix(true, true);
 
+  const hitProxy = new THREE.Mesh(
+    new THREE.CylinderGeometry(0.95, 0.95, 2.0, 10),
+    new THREE.MeshBasicMaterial({ visible: false }),
+  );
+  hitProxy.name = "hit-proxy";
+  hitProxy.position.y = 1.0;
+  root.add(hitProxy);
+
   const bounds = new THREE.Box3().setFromObject(root);
   const size = bounds.getSize(new THREE.Vector3());
   const center = bounds.getCenter(new THREE.Vector3());

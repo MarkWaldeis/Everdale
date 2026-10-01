@@ -444,7 +444,7 @@ export function createVillageEditor({
     if (!state.active || event.button !== 0) return;
     if (isHudEvent(event)) return;
     state.pointerDown = { x: event.clientX, y: event.clientY, building: pickBuilding(event) };
-    if (state.holding && !state.pointerDown.building) {
+    if (state.holding) {
       state.dragging = true;
       controls.enabled = false;
     }
@@ -457,6 +457,15 @@ export function createVillageEditor({
     const over = pickBuilding(event);
     state.hoverId = over?.id ?? null;
     canvas.classList.toggle("is-over-building", Boolean(over) || Boolean(state.holding));
+
+    if (state.pointerDown?.building && !state.holding && !state.dragging) {
+      const travel = Math.hypot(event.clientX - state.pointerDown.x, event.clientY - state.pointerDown.y);
+      if (travel > CLICK_SLOP) {
+        pickUp(state.pointerDown.building);
+        state.dragging = true;
+        controls.enabled = false;
+      }
+    }
 
     if (state.dragging && state.holding && cell) {
       const corner = worldToMinCorner(cell.x, cell.z, state.holding.w, state.holding.h);
