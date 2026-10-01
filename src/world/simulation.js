@@ -610,6 +610,33 @@ export const DECORATIONS = Object.freeze([
     rep: 2,
     effect: "Passt auf Felder und Gärten auf.",
   },
+  {
+    id: "deko-banner",
+    label: "Festbanner",
+    icon: "🚩",
+    cost: { wool: 2, wood: 3 },
+    rep: 4,
+    requiresRep: 5,
+    effect: "Ein buntes Wimpelpaar für Feste.",
+  },
+  {
+    id: "deko-founder",
+    label: "Gründerstatue",
+    icon: "🗿",
+    cost: { stone: 10, clay: 4 },
+    rep: 6,
+    requiresRep: 15,
+    effect: "Ehrt die Gründer des Dorfes.",
+  },
+  {
+    id: "deko-firepit",
+    label: "Feuerstelle",
+    icon: "🔥",
+    cost: { stone: 6, wood: 4 },
+    rep: 5,
+    requiresRep: 25,
+    effect: "Knistert abends warm und einladend.",
+  },
 ]);
 
 export const POTIONS = Object.freeze([
@@ -1015,7 +1042,9 @@ export function tickProduction(state, buildingId, deltaSeconds) {
 
 export function canPlaceDecoration(state, typeId) {
   const item = DECORATIONS.find((entry) => entry.id === typeId);
-  return Boolean(item && canAfford(state, item.cost));
+  if (!item) return false;
+  if ((state.village.reputation ?? 0) < (item.requiresRep ?? 0)) return false;
+  return canAfford(state, item.cost);
 }
 
 export function placeDecoration(state, typeId) {

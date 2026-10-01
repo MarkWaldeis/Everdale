@@ -77,7 +77,114 @@ const BUILDERS = {
   "deko-lantern": lantern,
   "deko-bench": bench,
   "deko-scarecrow": scarecrow,
+  "deko-banner": banner,
+  "deko-founder": founderStatue,
+  "deko-firepit": firepit,
 };
+
+const activeFlames = [];
+
+function banner() {
+  const g = new THREE.Group();
+  const poles = [-0.5, 0.5];
+  poles.forEach((x) => {
+    const pole = new THREE.Mesh(new THREE.CylinderGeometry(0.03, 0.045, 1.15, 6), WOOD_DARK);
+    pole.position.set(x, 0.575, 0);
+    g.add(pole);
+  });
+  const rope = new THREE.Mesh(new THREE.CylinderGeometry(0.008, 0.008, 1, 4), new THREE.MeshStandardMaterial({ color: 0xcbb894, roughness: 1 }));
+  rope.rotation.z = Math.PI / 2;
+  rope.position.y = 1.08;
+  g.add(rope);
+  const pennants = [
+    { c: 0xc94f3d, x: -0.32 },
+    { c: 0xe8b93f, x: -0.11 },
+    { c: 0x5d8f4f, x: 0.1 },
+    { c: 0x4f74a5, x: 0.31 },
+  ];
+  pennants.forEach(({ c, x }) => {
+    const flag = new THREE.Mesh(
+      new THREE.ConeGeometry(0.07, 0.22, 4),
+      new THREE.MeshStandardMaterial({ color: c, roughness: 0.8, flatShading: true }),
+    );
+    flag.rotation.x = Math.PI;
+    flag.position.set(x, 0.97, 0);
+    g.add(flag);
+  });
+  return g;
+}
+
+function founderStatue() {
+  const g = new THREE.Group();
+  const stone = new THREE.MeshStandardMaterial({ color: 0x8e908a, roughness: 0.9, flatShading: true });
+  const gold = new THREE.MeshStandardMaterial({ color: 0xd4a93f, roughness: 0.45, metalness: 0.6, flatShading: true });
+  const base = new THREE.Mesh(new THREE.BoxGeometry(0.5, 0.16, 0.5), stone);
+  base.position.y = 0.08;
+  g.add(base);
+  const column = new THREE.Mesh(new THREE.BoxGeometry(0.3, 0.42, 0.3), stone);
+  column.position.y = 0.37;
+  g.add(column);
+  const figure = new THREE.Group();
+  const torso = new THREE.Mesh(new THREE.CylinderGeometry(0.09, 0.12, 0.3, 7), gold);
+  torso.position.y = 0.15;
+  figure.add(torso);
+  const head = new THREE.Mesh(new THREE.SphereGeometry(0.085, 8, 6), gold);
+  head.position.y = 0.37;
+  figure.add(head);
+  const arm = new THREE.Mesh(new THREE.BoxGeometry(0.07, 0.26, 0.07), gold);
+  arm.position.set(0.13, 0.24, 0);
+  arm.rotation.z = -0.9;
+  figure.add(arm);
+  figure.position.y = 0.58;
+  g.add(figure);
+  return g;
+}
+
+function firepit() {
+  const g = new THREE.Group();
+  const stone = new THREE.MeshStandardMaterial({ color: 0x777a74, roughness: 0.95, flatShading: true });
+  for (let i = 0; i < 7; i += 1) {
+    const a = (i / 7) * Math.PI * 2;
+    const rock = new THREE.Mesh(new THREE.SphereGeometry(0.09, 6, 5), stone);
+    rock.scale.y = 0.7;
+    rock.position.set(Math.cos(a) * 0.28, 0.05, Math.sin(a) * 0.28);
+    g.add(rock);
+  }
+  const logs = new THREE.Mesh(new THREE.CylinderGeometry(0.035, 0.045, 0.4, 5), WOOD_DARK);
+  logs.rotation.z = Math.PI / 2.2;
+  logs.position.y = 0.1;
+  g.add(logs);
+  const flameMat = new THREE.MeshStandardMaterial({
+    color: 0xff8a2a,
+    emissive: 0xff6a10,
+    emissiveIntensity: 1.6,
+    roughness: 0.5,
+    transparent: true,
+    opacity: 0.92,
+    flatShading: true,
+  });
+  const flame = new THREE.Mesh(new THREE.ConeGeometry(0.12, 0.32, 6), flameMat);
+  flame.position.y = 0.24;
+  g.add(flame);
+  const core = new THREE.Mesh(
+    new THREE.ConeGeometry(0.06, 0.18, 5),
+    new THREE.MeshStandardMaterial({ color: 0xffd35e, emissive: 0xffbe3d, emissiveIntensity: 2.2, flatShading: true }),
+  );
+  core.position.y = 0.2;
+  g.add(core);
+  activeFlames.push({ flame, core, seed: Math.random() * 10 });
+  return g;
+}
+
+export function flickerDecos(elapsed) {
+  activeFlames.forEach(({ flame, core, seed }) => {
+    const w = Math.sin(elapsed * 9 + seed) * 0.5 + Math.sin(elapsed * 23 + seed * 2) * 0.5;
+    flame.scale.set(1 + w * 0.16, 1 + w * 0.28, 1 + w * 0.16);
+    flame.rotation.y += w * 0.02;
+    core.scale.set(1 + w * 0.1, 1 + w * 0.35, 1 + w * 0.1);
+    flame.material.emissiveIntensity = 1.5 + w * 0.5;
+  });
+}
 
 export function createDecoMesh(type) {
   return BUILDERS[type]?.() ?? null;

@@ -55,7 +55,7 @@ import { createFishingDock } from "./world/fishing-dock.js";
 import { createFishLoop } from "./world/fish-loop.js";
 import { createStream, streamReservedCells } from "./world/stream.js";
 import { createGiftBox } from "./world/gift.js";
-import { createDecoMesh } from "./world/decos.js";
+import { createDecoMesh, flickerDecos } from "./world/decos.js";
 import { createConstructionLoop } from "./world/construction-loop.js";
 import { createQuarry } from "./world/quarry.js";
 import { createStoneLoop } from "./world/stone-loop.js";
@@ -627,6 +627,7 @@ function animate(now = 0) {
     animationState.fireflies?.update?.(delta, now * 0.001, animationState.dayNight.night);
     animationState.butterflies?.update?.(delta, now * 0.001, 1 - animationState.dayNight.night);
     animationState.ducks?.update?.(delta, now * 0.001);
+    flickerDecos(now * 0.001);
     animationState.chimneySmoke?.update?.(delta, now * 0.001, animationState.windEnabled ? 1 : 0.2);
     const nightness = animationState.dayNight.night;
     if (nightness > 0.82) {
@@ -1069,6 +1070,9 @@ async function start() {
       "deko-lantern": createDecoMesh("deko-lantern"),
       "deko-bench": createDecoMesh("deko-bench"),
       "deko-scarecrow": createDecoMesh("deko-scarecrow"),
+      "deko-banner": createDecoMesh("deko-banner"),
+      "deko-founder": createDecoMesh("deko-founder"),
+      "deko-firepit": createDecoMesh("deko-firepit"),
     };
     const mountedDecos = new Set();
     const decoRoots = new Map();

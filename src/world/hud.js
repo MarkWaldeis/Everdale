@@ -310,11 +310,14 @@ export function createHud({
     const decoCards = (game.decorations ?? DECORATIONS)
       .map((item) => {
         const cost = formatCost(item.cost);
-        const can = game.canPlaceDecoration?.(item.id) ?? false;
+        const repNow = game.getSnapshot?.().village?.reputation ?? 0;
+        const repLocked = repNow < (item.requiresRep ?? 0);
+        const can = !repLocked && (game.canPlaceDecoration?.(item.id) ?? false);
+        const state = repLocked ? `🔒 Ruf ${item.requiresRep} nötig` : can ? `Platzieren · ${cost}` : `Zu teuer · ${cost}`;
         return `<button class="glass-card ${can ? "is-ready" : "is-locked"}" type="button" data-build="${item.id}" ${can ? "" : "disabled"}>
           <strong>${item.icon} ${item.label}</strong>
           <small>${item.effect} · +${item.rep} Ruf</small>
-          <em>${can ? `Platzieren · ${cost}` : `Zu teuer · ${cost}`}</em>
+          <em>${state}</em>
         </button>`;
       })
       .join("");
