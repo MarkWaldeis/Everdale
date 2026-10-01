@@ -605,6 +605,18 @@ function animate(now = 0) {
     animationState.quarry?.update?.(delta, now * 0.001);
     animationState.apiary?.update?.(delta, now * 0.001);
     animationState.dayNight = updateDayNight(now);
+    const nightness = animationState.dayNight.night;
+    if (nightness > 0.82) {
+      animationState.villagers.forEach((member) => {
+        if (!member.hasJob() && !member.isBusy() && !member.isAsleep?.()) {
+          member.forceHomeSequence?.();
+        }
+      });
+      animationState.wasNight = true;
+    } else if (animationState.wasNight && nightness < 0.35) {
+      animationState.villagers.forEach((member) => member.wakeUp?.());
+      animationState.wasNight = false;
+    }
     animationState.giftBox?.update?.(delta, now * 0.001);
     if (animationState.giftBox && !animationState.giftBox.root.visible) {
       if (now * 0.001 >= (animationState.giftNextAt ?? 0)) {

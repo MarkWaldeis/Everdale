@@ -1235,6 +1235,27 @@ export function createCharacterController(
     transition(STATES.HOME_APPROACH);
   }
 
+  function isAsleep() {
+    return (
+      state === STATES.REST_INSIDE ||
+      state === STATES.CLOSE_INSIDE ||
+      state === STATES.ENTER ||
+      state === STATES.HOME_APPROACH ||
+      state === STATES.ASCEND_PORCH ||
+      state === STATES.ALIGN_AT_DOOR ||
+      state === STATES.REACH_TO_ENTER ||
+      state === STATES.OPEN_TO_ENTER
+    );
+  }
+
+  function wakeUp() {
+    if (state !== STATES.REST_INSIDE || !home || job) return;
+    model.visible = true;
+    applyMeshFade?.(0);
+    driveDoor(0);
+    transition(STATES.OPEN_TO_EXIT);
+  }
+
   function isBusy() {
     return Boolean(job) && !isStationed();
   }
@@ -1612,6 +1633,8 @@ export function createCharacterController(
     chainJob,
     isBusy,
     isIndoors,
+    isAsleep,
+    wakeUp,
     relocateWithHome,
     getJobProgress,
     getJobHits,
