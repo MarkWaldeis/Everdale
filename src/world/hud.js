@@ -9,6 +9,7 @@ const ITEM_ROWS = [
   ["wheat", "Weizen", "wheatCap"],
   ["wool", "Wolle", "woolCap"],
   ["apple", "Äpfel", "appleCap"],
+  ["berry", "Beeren", "berryCap"],
   ["scrolls", "Schriftrollen", null],
   ["gold", "Gold", null],
   ["gems", "Diamanten", null],
@@ -26,6 +27,7 @@ const COST_ROW_LABELS = {
   flour: "Mehl",
   wool: "Wolle",
   apple: "Äpfel",
+  berry: "Beeren",
 };
 
 const FIELD_LABELS = {
@@ -43,6 +45,7 @@ const FIELD_LABELS = {
   flour: "Mehl",
   wool: "Wolle",
   apple: "Apfel",
+  berry: "Beeren",
 };
 
 const ORDER_SINGULAR_LABELS = {
@@ -55,6 +58,7 @@ const ORDER_SINGULAR_LABELS = {
   flour: "Mehl",
   wool: "Wolle",
   apple: "Apfel",
+  berry: "Beere",
 };
 
 const BUILDING_INFO = {
@@ -96,6 +100,14 @@ const BUILDING_INFO = {
     resourceLabel: "Äpfel",
     worker: "Pflücker",
     blurb: "Reife Äpfel — der Pflücker schüttelt sie vom Baum.",
+  },
+  "berry-bush": {
+    label: "Brombeersträucher",
+    icon: "🫐",
+    resource: "berry",
+    resourceLabel: "Beeren",
+    worker: "Sammlerin",
+    blurb: "Wilde Brombeeren — die Sammlerin pflückt sie aus dem Gebüsch.",
   },
   well: {
     label: "Brunnen",

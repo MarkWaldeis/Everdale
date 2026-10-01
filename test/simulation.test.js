@@ -897,3 +897,15 @@ test("apple tree gates apple harvest for orders", () => {
   assert.equal(harvestResource(state, "apple", 4).total, 4);
   assert.equal(state.village.apple, 4);
 });
+
+test("berry bush gates berry harvest for orders", () => {
+  const state = createDefaultState();
+  state.unlocked["berry-bush"] = true;
+  state.village.wood = 40;
+  assert.equal(harvestResource(state, "berry", 2).ok, false);
+  placeBuilding(state, "berry-bush");
+  tickConstructions(state, 25);
+  assert.equal(state.placed["berry-bush"], true);
+  assert.equal(harvestResource(state, "berry", 6).total, 6);
+  assert.equal(state.village.berry, 6);
+});

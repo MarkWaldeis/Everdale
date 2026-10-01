@@ -40,6 +40,8 @@ import { createSheepPen } from "./world/sheep-pen.js";
 import { createSheepLoop } from "./world/sheep-loop.js";
 import { createAppleTree } from "./world/apple-tree.js";
 import { createAppleLoop } from "./world/apple-loop.js";
+import { createBerryBush } from "./world/berry-bush.js";
+import { createBerryLoop } from "./world/berry-loop.js";
 import { createStream, streamReservedCells } from "./world/stream.js";
 import { createGiftBox } from "./world/gift.js";
 import { createSocialLayer } from "./world/social.js";
@@ -381,6 +383,7 @@ function animate(now = 0) {
     animationState.wheatField?.update?.(delta, now * 0.001);
     animationState.sheepPen?.update?.(delta, now * 0.001);
     animationState.appleTree?.update?.(delta, now * 0.001);
+    animationState.berryBush?.update?.(delta, now * 0.001);
     animationState.giftBox?.update?.(delta, now * 0.001);
     if (animationState.giftBox && !animationState.giftBox.root.visible) {
       if (now * 0.001 >= (animationState.giftNextAt ?? 0)) {
@@ -530,6 +533,7 @@ async function start() {
     animationState.sheepPen = createSheepPen(world.walkArea.surfaceY);
     animationState.appleTree = createAppleTree(world.walkArea.surfaceY);
     animationState.walkArea = world.walkArea;
+    animationState.berryBush = createBerryBush(world.walkArea.surfaceY);
     animationState.giftBox = createGiftBox(world.walkArea.surfaceY);
     world.root.add(animationState.giftBox.root);
     animationState.giftNextAt = 140 + Math.random() * 60;
@@ -686,6 +690,22 @@ async function start() {
         animationState.sheepPen,
       ],
     });
+    animationState.berryLoop = createBerryLoop({
+      game: animationState.game,
+      berryBush: animationState.berryBush,
+      storages: [
+        animationState.yard,
+        animationState.stoneYard,
+        animationState.clayYard,
+        animationState.kitchen,
+        animationState.pumpkinField,
+        animationState.well,
+        animationState.clayPit,
+        animationState.wheatField,
+        animationState.mill,
+        animationState.sheepPen,
+      ],
+    });
     animationState.wheatLoop = createWheatLoop({
       game: animationState.game,
       wheatField: animationState.wheatField,
@@ -769,6 +789,13 @@ async function start() {
           module: animationState.appleTree,
           loop: animationState.appleLoop,
           title: "Apfelbaum · Äpfel pflücken",
+          usesQueue: false,
+          jobKinds: ["harvest"],
+        },
+        "berry-bush": {
+          module: animationState.berryBush,
+          loop: animationState.berryLoop,
+          title: "Brombeersträucher · Beeren pflücken",
           usesQueue: false,
           jobKinds: ["harvest"],
         },
@@ -1046,6 +1073,18 @@ async function start() {
         setYaw: (yaw) => animationState.appleTree.setYaw(yaw),
         refresh: () => animationState.appleTree.refreshAnchors(),
       },
+      "berry-bush": {
+        id: "berry-bush",
+        label: "Brombeersträucher",
+        root: animationState.berryBush.root,
+        size: animationState.berryBush.size,
+        w: 2,
+        h: 1,
+        padding: 1,
+        setWorldPosition: (x, z) => animationState.berryBush.setWorldPosition(x, z),
+        setYaw: (yaw) => animationState.berryBush.setYaw(yaw),
+        refresh: () => animationState.berryBush.refreshAnchors(),
+      },
     };
 
     animationState.paths = createDirtPaths();
@@ -1111,7 +1150,7 @@ async function start() {
     }
 
     ["cottage", "wood-storage", "kitchen", "pumpkin-patch", "well", "study", "order-board"].forEach(mountPlaced);
-    ["clay-pit", "clay-storage", "stone-storage", "house-ii", "house-iii", "bakery", "tailor", "wood-workshop", "wheat-field", "mill", "sheep-pen", "apple-tree"].forEach((id) => {
+    ["clay-pit", "clay-storage", "stone-storage", "house-ii", "house-iii", "bakery", "tailor", "wood-workshop", "wheat-field", "mill", "sheep-pen", "apple-tree", "berry-bush"].forEach((id) => {
       if (animationState.game.isPlaced(id)) mountPlaced(id);
     });
 
