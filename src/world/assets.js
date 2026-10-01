@@ -159,6 +159,16 @@ export const ASSETS = Object.freeze({
     url: new URL("../../3d Assets/wood-workshop.glb", import.meta.url).href,
     height: 2.2,
   },
+  decoDaisy: {
+    label: "Gänseblümchen",
+    url: new URL("../../3d Assets/daisy+plant+3d+model.glb", import.meta.url).href,
+    height: 0.55,
+  },
+  decoFountain: {
+    label: "Wasserspiel",
+    url: new URL("../../3d Assets/stylized water feature 3d model.glb", import.meta.url).href,
+    height: 1.7,
+  },
 });
 
 export const TREE_WEIGHTS = Object.freeze([

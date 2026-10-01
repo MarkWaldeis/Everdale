@@ -286,6 +286,25 @@ export const ORDER_DECK = Object.freeze([
   { requests: { blanket: 2, rope: 1 }, rewardGold: 36, rewardRep: 3, requiresPlaced: "tailor" },
 ]);
 
+export const DECORATIONS = Object.freeze([
+  {
+    id: "deko-daisy",
+    label: "Gänseblümchen",
+    icon: "🌼",
+    cost: { wood: 1 },
+    rep: 1,
+    effect: "Bringt Farbe ins Dorf.",
+  },
+  {
+    id: "deko-fountain",
+    label: "Wasserspiel",
+    icon: "⛲",
+    cost: { stone: 4, clay: 2 },
+    rep: 3,
+    effect: "Plätschert vor sich hin.",
+  },
+]);
+
 export const POTIONS = Object.freeze([
   {
     id: "energie",
@@ -421,6 +440,8 @@ export function createDefaultState() {
     potions: {},
     potionsUnlocked: false,
     brewing: { queue: [], progress: 0 },
+    decorations: [],
+    decoSeq: 0,
     nodes,
     research: {
       activeId: null,
@@ -617,6 +638,24 @@ export function tickProduction(state, buildingId, deltaSeconds) {
   state.village[field] = Math.min(cap, (state.village[field] ?? 0) + recipe.amount);
   addPlayerXp(state, 6);
   return { produced: recipe.id, output: recipe.output, amount: recipe.amount };
+}
+
+export function canPlaceDecoration(state, typeId) {
+  const item = DECORATIONS.find((entry) => entry.id === typeId);
+  return Boolean(item && canAfford(state, item.cost));
+}
+
+export function placeDecoration(state, typeId) {
+  const item = DECORATIONS.find((entry) => entry.id === typeId);
+  if (!item) return { ok: false, reason: "missing" };
+  if (!canAfford(state, item.cost)) return { ok: false, reason: "cost" };
+  spendCost(state, item.cost);
+  state.decorations ??= [];
+  state.decoSeq = (state.decoSeq ?? 0) + 1;
+  const uid = `${typeId}-${state.decoSeq}`;
+  state.decorations.push({ id: uid, type: typeId });
+  state.village.reputation = (state.village.reputation ?? 0) + (item.rep ?? 0);
+  return { ok: true, uid, village: { ...state.village } };
 }
 
 export function brewPotion(state, potionId) {

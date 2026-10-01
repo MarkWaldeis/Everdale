@@ -32,6 +32,8 @@ import {
   applyPotion,
   tickBuffs,
   villagerSpeed,
+  canPlaceDecoration,
+  placeDecoration,
 } from "../src/world/simulation.js";
 
 test("fresh start keeps later buildings locked", () => {
@@ -544,4 +546,19 @@ test("sattmacher feeds a hungry villager and energie speeds work", () => {
   state.villagers.john.state = "WORKING";
   tickBuffs(state, 121);
   assert.equal(state.villagers.john.activeBuff, null);
+});
+
+test("decorations can be placed repeatedly and grant reputation", () => {
+  const state = createDefaultState();
+  state.village.wood = 10;
+  const first = placeDecoration(state, "deko-daisy");
+  assert.equal(first.ok, true);
+  assert.equal(first.uid, "deko-daisy-1");
+  const second = placeDecoration(state, "deko-daisy");
+  assert.equal(second.ok, true);
+  assert.equal(second.uid, "deko-daisy-2");
+  assert.equal(state.village.wood, 8);
+  assert.equal(state.village.reputation, 2);
+  assert.equal(state.decorations.length, 2);
+  assert.equal(canPlaceDecoration(state, "deko-fountain"), false);
 });

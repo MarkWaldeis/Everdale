@@ -1,4 +1,4 @@
-import { RECIPES, POTIONS, formatCost } from "./simulation.js";
+import { RECIPES, POTIONS, DECORATIONS, formatCost } from "./simulation.js";
 
 const ITEM_ROWS = [
   ["wood", "Holz", "woodCap"],
@@ -153,11 +153,24 @@ export function createHud({
         </button>`;
       })
       .join("");
+    const decoCards = (game.decorations ?? DECORATIONS)
+      .map((item) => {
+        const cost = formatCost(item.cost);
+        const can = game.canPlaceDecoration?.(item.id) ?? false;
+        return `<button class="glass-card ${can ? "is-ready" : "is-locked"}" type="button" data-build="${item.id}" ${can ? "" : "disabled"}>
+          <strong>${item.icon} ${item.label}</strong>
+          <small>${item.effect} · +${item.rep} Ruf</small>
+          <em>${can ? `Platzieren · ${cost}` : `Zu teuer · ${cost}`}</em>
+        </button>`;
+      })
+      .join("");
     openSheet(
       "build",
       "Bauen",
       `<p class="glass-lead">Wähle ein erforschtes Gebäude. Danach setzt du es auf ein freies Feld.</p>
-       <div class="build-grid">${cards || "<p>Nichts verfügbar.</p>"}</div>`,
+       <div class="build-grid">${cards || "<p>Nichts verfügbar.</p>"}</div>
+       <h3 class="sheet-subtitle">Deko</h3>
+       <div class="build-grid">${decoCards}</div>`,
     );
   }
 
@@ -250,6 +263,17 @@ export function createHud({
   }
 
   function renderBuilding(id) {
+    if (id.startsWith("deko-")) {
+      const item = DECORATIONS.find((deco) => id === deco.id || id.startsWith(`${deco.id}-`));
+      openArg = id;
+      openSheet(
+        "building",
+        item?.label ?? "Deko",
+        `<p class="glass-lead">${item?.icon ?? "🌼"} ${item?.effect ?? ""}</p>
+         <p class="sheet-hint">Verschieben und Drehen geht über den Bau-Modus.</p>`,
+      );
+      return;
+    }
     const info = BUILDING_INFO[id];
     if (!info) return;
     openArg = id;

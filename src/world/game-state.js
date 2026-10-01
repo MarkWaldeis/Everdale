@@ -36,6 +36,9 @@ import {
   applyPotion,
   tickBuffs,
   villagerSpeed,
+  canPlaceDecoration,
+  placeDecoration,
+  DECORATIONS,
   getCatalogItem,
   getResearchNode,
   canAfford,
@@ -82,6 +85,8 @@ export function createGameState() {
         research: { ...base.research, ...saved.research },
         potions: { ...base.potions, ...saved.potions },
         brewing: { ...base.brewing, ...saved.brewing },
+        decorations: saved.decorations ?? base.decorations,
+        decoSeq: saved.decoSeq ?? base.decoSeq,
         valley: {
           ...base.valley,
           ...saved.valley,
@@ -249,6 +254,10 @@ export function createGameState() {
     applyPotion: (potionId, villagerId) => wrap(() => applyPotion(data, potionId, villagerId)),
     tickBuffs: (delta) => wrap(() => tickBuffs(data, delta)),
     villagerSpeed: (id) => villagerSpeed(data, id),
+    decorations: DECORATIONS,
+    getDecorations: () => [...(data.decorations ?? [])],
+    canPlaceDecoration: (typeId) => canPlaceDecoration(data, typeId),
+    placeDecoration: (typeId) => wrap(() => placeDecoration(data, typeId)),
     tickVillagerWork: (id, delta) => wrap(() => simTickWork(data, id, delta)),
     resetVillagerWork: (id) =>
       wrap(() => {

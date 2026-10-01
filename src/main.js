@@ -657,6 +657,39 @@ async function start() {
       );
     };
 
+    const decoModels = {
+      "deko-daisy": assets.decoDaisy,
+      "deko-fountain": assets.decoFountain,
+    };
+    const mountedDecos = new Set();
+    function mountDecoration(deco) {
+      if (!deco?.id || mountedDecos.has(deco.id)) return null;
+      const model = decoModels[deco.type]?.clone?.(true);
+      const root = new THREE.Group();
+      if (model) root.add(model);
+      root.position.y = world.walkArea.surfaceY;
+      world.root.add(root);
+      const label =
+        animationState.game.decorations?.find((entry) => entry.id === deco.type)?.label ??
+        deco.type;
+      const record = animationState.village.register({
+        id: deco.id,
+        label,
+        root,
+        w: 1,
+        h: 1,
+        padding: 0,
+        setWorldPosition: (x, z) => root.position.set(x, world.walkArea.surfaceY, z),
+        setYaw: (yaw) => {
+          root.rotation.y = yaw;
+        },
+        refresh: () => {},
+      });
+      mountedDecos.add(deco.id);
+      return record;
+    }
+    animationState.game.getDecorations?.().forEach(mountDecoration);
+
     const mounted = new Set();
     function mountPlaced(id) {
       const spec = placeable[id];
@@ -718,6 +751,14 @@ async function start() {
     animationState.hud = createHud({
       game: animationState.game,
       onBuild: (id) => {
+        if (id.startsWith("deko-")) {
+          const result = animationState.game.placeDecoration?.(id);
+          if (result?.ok) {
+            const record = mountDecoration({ id: result.uid, type: id });
+            animationState.village?.beginPlace?.(record);
+          }
+          return result;
+        }
         const result = animationState.game.placeBuilding(id);
         if (result.ok) {
           const record = mountPlaced(id);
@@ -870,6 +911,12 @@ async function start() {
       },
       givePotion: (potionId, villagerId) =>
         animationState.game?.applyPotion?.(potionId, villagerId),
+      placeDecoration: (typeId) => {
+        const result = animationState.game?.placeDecoration?.(typeId);
+        if (result?.ok) mountDecoration({ id: result.uid, type: typeId });
+        return result;
+      },
+      listDecorations: () => animationState.game?.getDecorations?.() ?? [],
       queueRecipe: (buildingId, recipeId) =>
         animationState.game?.queueRecipe?.(buildingId, recipeId ?? "bread"),
       assignWorkshop: (buildingId, villagerId) => {
