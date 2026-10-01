@@ -72,9 +72,8 @@ export function createSocialLayer(container) {
           return;
         }
         el.hidden = false;
-        const x = (projector.x * 0.5 + 0.5) * container.clientWidth;
-        const y = (-projector.y * 0.5 + 0.5) * container.clientHeight;
-        el.style.transform = `translate(-50%, -100%) translate(${x}px, ${y}px)`;
+        el.style.left = `${(projector.x * 0.5 + 0.5) * window.innerWidth}px`;
+        el.style.top = `${(-projector.y * 0.5 + 0.5) * window.innerHeight}px`;
         const speaker = Math.floor(chat.phase / 1.4) % 2;
         el.classList.toggle("is-muted", i !== speaker);
       });
