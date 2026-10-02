@@ -52,6 +52,7 @@ export const COST_LABELS = Object.freeze({
   apple: "Äpfel",
   berry: "Beeren",
   egg: "Eier",
+  milk: "Milch",
   fish: "Fische",
   honey: "Honig",
   gold: "Gold",
