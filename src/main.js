@@ -62,6 +62,7 @@ import { createKnoll } from "./world/knoll.js";
 import { createBirds } from "./world/birds.js";
 import { createCloudShadows } from "./world/cloud-shadows.js";
 import { createFog } from "./world/fog.js";
+import { createStreamFish } from "./world/stream-fish.js";
 import { createMushroomPatch } from "./world/mushroom-patch.js";
 import { createFishingDock } from "./world/fishing-dock.js";
 import { createFishLoop } from "./world/fish-loop.js";
@@ -660,6 +661,7 @@ function animate(now = 0) {
     const dawnPhase = animationState.dayNight?.phase ?? 0;
     const dawnStrength = Math.max(0, 1 - Math.abs(dawnPhase - 0.955) / 0.14) * 0.9;
     animationState.dawnFog?.update?.(delta, now * 0.001, dawnStrength);
+    animationState.streamFish?.update?.(delta, now * 0.001);
     animationState.cloudShadows?.update?.(delta, now * 0.001, 1 - (animationState.dayNight?.night ?? 0));
     animationState.birds?.update?.(delta, now * 0.001, [...(animationState.villagers ?? []), animationState.dog?.root, animationState.visitor].filter(Boolean), animationState.dayNight?.night ?? 0);
     animationState.rainbow?.update?.(delta);
@@ -1965,6 +1967,8 @@ async function start() {
     animationState.dog = createDog(world.walkArea.surfaceY, animationState.well?.root?.position ?? new THREE.Vector3());
     scene.add(animationState.ducks.root);
     scene.add(animationState.dog.root);
+    animationState.streamFish = createStreamFish(world.walkArea.surfaceY);
+    scene.add(animationState.streamFish.root);
     animationState.dawnFog = createFog(world.walkArea.surfaceY);
     scene.add(animationState.dawnFog.root);
     animationState.cloudShadows = createCloudShadows(world.walkArea);
