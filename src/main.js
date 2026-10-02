@@ -67,6 +67,7 @@ import { createStreamFish } from "./world/stream-fish.js";
 import { createOwl } from "./world/owl.js";
 import { createConfetti } from "./world/confetti.js";
 import { createRabbit } from "./world/rabbit.js";
+import { createShootingStar } from "./world/shooting-star.js";
 import { createMushroomPatch } from "./world/mushroom-patch.js";
 import { createFishingDock } from "./world/fishing-dock.js";
 import { createFishLoop } from "./world/fish-loop.js";
@@ -669,6 +670,7 @@ function animate(now = 0) {
     animationState.owl?.update?.(delta, now * 0.001, animationState.dayNight?.night ?? 0);
     animationState.confetti?.update?.(delta, now * 0.001);
     animationState.rabbit?.update?.(delta, now * 0.001, animationState.dayNight?.night ?? 0);
+    animationState.shootingStar?.update?.(delta, now * 0.001, animationState.dayNight?.night ?? 0);
     const duskPhase = animationState.dayNight?.phase ?? 0;
     const isCampEvening = duskPhase >= 0.47 && duskPhase <= 0.57;
     const campPoint = isCampEvening ? (animationState.firepitPositions?.[0] ?? null) : null;
@@ -2018,6 +2020,8 @@ async function start() {
     scene.add(animationState.dog.root);
     animationState.streamFish = createStreamFish(world.walkArea.surfaceY);
     scene.add(animationState.streamFish.root);
+    animationState.shootingStar = createShootingStar();
+    scene.add(animationState.shootingStar.root);
     animationState.rabbit = createRabbit(world.walkArea);
     scene.add(animationState.rabbit.root);
     animationState.confetti = createConfetti();
