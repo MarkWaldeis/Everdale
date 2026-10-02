@@ -6,9 +6,9 @@ function blobTexture() {
   canvas.height = 128;
   const ctx = canvas.getContext("2d");
   const grad = ctx.createRadialGradient(64, 64, 8, 64, 64, 62);
-  grad.addColorStop(0, "rgba(20,30,40,0.42)");
-  grad.addColorStop(0.55, "rgba(20,30,40,0.2)");
-  grad.addColorStop(1, "rgba(20,30,40,0)");
+  grad.addColorStop(0, "rgba(28,44,64,0.34)");
+  grad.addColorStop(0.55, "rgba(28,44,64,0.16)");
+  grad.addColorStop(1, "rgba(28,44,64,0)");
   ctx.fillStyle = grad;
   ctx.fillRect(0, 0, 128, 128);
   return new THREE.CanvasTexture(canvas);
@@ -62,7 +62,7 @@ export function createCloudShadows(walkArea) {
       b.mesh.position.x = b.x;
       b.mesh.position.z = b.z;
       const pulse = 0.7 + Math.sin(elapsed * 0.35 + b.seed) * 0.3;
-      b.mesh.material.opacity = 0.5 * pulse * dayFactor;
+      b.mesh.material.opacity = 0.42 * pulse * dayFactor;
     });
   }
   return { root, update };
