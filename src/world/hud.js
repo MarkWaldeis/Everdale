@@ -39,7 +39,7 @@ const COST_ROW_LABELS = {
   honey: "Honig",
 };
 
-const FIELD_LABELS = {
+export const FIELD_LABELS = {
   wood: "Holz",
   stone: "Stein",
   clay: "Lehm",

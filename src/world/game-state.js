@@ -1,5 +1,8 @@
 import {
   bumpStat,
+  rollTraderOffer,
+  traderActive,
+  acceptTraderOffer,
   STORAGE_VERSION,
   createDefaultState,
   harvestResource as simHarvest,
@@ -173,6 +176,9 @@ export function createGameState() {
     getSnapshot,
     getRaw: () => data,
     bumpStat: (key, by) => bumpStat(data, key, by),
+    rollTraderOffer: (nowMs) => rollTraderOffer(data, nowMs),
+    traderActive: (nowMs) => traderActive(data, nowMs),
+    acceptTraderOffer: (nowMs) => acceptTraderOffer(data, nowMs),
     subscribe: (listener) => {
       listeners.add(listener);
       return () => listeners.delete(listener);

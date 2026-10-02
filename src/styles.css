@@ -1931,3 +1931,33 @@ a:focus-visible {
 #worker-dock [data-villager] {
   position: relative;
 }
+
+.trader-offer {
+  display: flex;
+  align-items: center;
+  gap: 0.55rem;
+  padding: 0.45rem 0.7rem;
+  font-size: 0.82rem;
+}
+.trader-offer strong {
+  white-space: nowrap;
+}
+.trader-offer button {
+  border: 0;
+  border-radius: 8px;
+  padding: 0.28rem 0.65rem;
+  background: #e8a33d;
+  color: #3a2408;
+  font-weight: 700;
+  cursor: pointer;
+}
+.trader-offer button:active {
+  transform: scale(0.95);
+}
+.trader-offer small {
+  opacity: 0.75;
+  font-variant-numeric: tabular-nums;
+}
+.trader-offer[hidden] {
+  display: none;
+}

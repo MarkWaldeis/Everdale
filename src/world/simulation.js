@@ -1478,6 +1478,44 @@ export function sellSurplus(state, { amount = 2, keepFloor = 4, price = 2 } = {}
   return { ok: true, item: best, sold, gold: state.village.gold };
 }
 
+export function rollTraderOffer(state, nowMs = Date.now()) {
+  const candidates = SELLABLE.filter((key) => (state.village[villageField(key)] ?? 0) >= 3);
+  if (!candidates.length) return null;
+  const key = candidates[Math.floor(Math.random() * candidates.length)];
+  const amount = Math.min(4, state.village[villageField(key)] ?? 0);
+  const gold = Math.ceil(amount * 2 * 1.4);
+  state.trader = {
+    offer: { resource: key, amount, gold },
+    expiresAt: nowMs + 105_000,
+  };
+  return state.trader;
+}
+
+export function traderActive(state, nowMs = Date.now()) {
+  const t = state.trader;
+  if (!t?.offer) return null;
+  if ((t.expiresAt ?? 0) <= nowMs) {
+    delete state.trader;
+    return null;
+  }
+  const field = villageField(t.offer.resource);
+  if ((state.village[field] ?? 0) < t.offer.amount) return null;
+  return t;
+}
+
+export function acceptTraderOffer(state, nowMs = Date.now()) {
+  const t = traderActive(state, nowMs);
+  if (!t) return { ok: false, reason: "expired" };
+  const field = villageField(t.offer.resource);
+  state.village[field] -= t.offer.amount;
+  state.village.gold += t.offer.gold;
+  bumpStat(state, "marketSales");
+  bumpStat(state, "marketGold", t.offer.gold);
+  bumpStat(state, "traderDeals");
+  delete state.trader;
+  return { ok: true, offer: t.offer, gold: state.village.gold };
+}
+
 export function recordSkillHit(state, villagerId, key) {
   addSkillXp(state, villagerId, key, 1.5);
 }

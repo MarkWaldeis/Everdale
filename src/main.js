@@ -34,6 +34,7 @@ import { createButterflies } from "./world/butterflies.js";
 import { createDucks } from "./world/ducks.js";
 import { createDog } from "./world/dog.js";
 import { createVisitor } from "./world/visitor.js";
+import { createTradeCart } from "./world/trade-cart.js";
 import { createCritters } from "./world/critters.js";
 import { createOrderBoard } from "./world/order-board.js";
 import { createHouseIi } from "./world/house-ii.js";
@@ -68,7 +69,7 @@ import { createMarketLoop } from "./world/market-loop.js";
 import { createTownHall } from "./world/town-hall.js";
 import { createScribeLoop } from "./world/scribe-loop.js";
 import { createSocialLayer } from "./world/social.js";
-import { createHud } from "./world/hud.js";
+import { createHud, FIELD_LABELS } from "./world/hud.js";
 import "./styles.css";
 
 const canvas = document.querySelector("#world-canvas");
@@ -646,6 +647,35 @@ function animate(now = 0) {
         animationState.visitorNextAt = now * 0.001 + 150 + Math.random() * 90;
       }
     }
+    // wandering trader: scheduled offers at the order board
+    const nowMs = Date.now();
+    const trader = animationState.game?.traderActive?.(nowMs) ?? null;
+    if (!trader && (animationState.dayNight?.night ?? 0) < 0.5 && (animationState.game?.getSnapshot?.().village?.reputation ?? 0) >= 8 && nowMs >= (animationState.traderNextAt ?? 0)) {
+      animationState.game?.rollTraderOffer?.(nowMs);
+      animationState.traderNextAt = nowMs + 210_000 + Math.random() * 120_000;
+    }
+    const activeTrader = animationState.game?.traderActive?.(nowMs) ?? null;
+    if (animationState.tradeCart) {
+      const boardPos = animationState.orderBoard?.root?.position;
+      animationState.tradeCart.root.visible = Boolean(activeTrader) && animationState.view !== "valley";
+      if (activeTrader && boardPos) {
+        animationState.tradeCart.root.position.set(boardPos.x + 1.7, world.walkArea.surfaceY, boardPos.z + 0.9);
+        animationState.tradeCart.root.rotation.y = Math.atan2(boardPos.x - animationState.tradeCart.root.position.x, boardPos.z - animationState.tradeCart.root.position.z);
+      }
+      animationState.tradeCart.update?.(delta, now * 0.001);
+    }
+    const els = animationState.traderEls;
+    if (els?.card) {
+      if (activeTrader?.offer && animationState.view !== "valley") {
+        els.card.hidden = false;
+        const label = FIELD_LABELS[activeTrader.offer.resource] ?? FIELD_LABELS[activeTrader.offer.resource + "s"] ?? activeTrader.offer.resource;
+        els.text.textContent = `${activeTrader.offer.amount}× ${label} ⇄ ${activeTrader.offer.gold} 🪙`;
+        const secs = Math.max(0, Math.round((activeTrader.expiresAt - nowMs) / 1000));
+        els.timer.textContent = `${Math.floor(secs / 60)}:${String(secs % 60).padStart(2, "0")}`;
+      } else {
+        els.card.hidden = true;
+      }
+    }
     flickerDecos(now * 0.001);
     animationState.chimneySmoke?.update?.(delta, now * 0.001, animationState.windEnabled ? 1 : 0.2);
     const nightness = animationState.dayNight.night;
@@ -793,6 +823,23 @@ async function start() {
     );
     animationState.valley = createValleyHarbor(assets.valleyHarbor, world.walkArea.surfaceY);
     animationState.orderBoard = createOrderBoard(assets.orderBoard, world.walkArea.surfaceY);
+    animationState.tradeCart = createTradeCart(world.walkArea.surfaceY);
+    animationState.tradeCart.root.visible = false;
+    scene.add(animationState.tradeCart.root);
+    animationState.traderNextAt = Date.now() + 170_000 + Math.random() * 110_000;
+    const traderEls = {
+      card: document.querySelector("#trader-offer"),
+      text: document.querySelector("#trader-offer-text"),
+      timer: document.querySelector("#trader-offer-timer"),
+      accept: document.querySelector("#trader-offer-accept"),
+    };
+    traderEls.accept?.addEventListener("click", () => {
+      const res = animationState.game?.acceptTraderOffer?.();
+      if (res?.ok) {
+        animationState.harvest?.refreshHud?.();
+      }
+    });
+    animationState.traderEls = traderEls;
     animationState.houseIi = createHouseIi(assets.cottage.clone(true), world.walkArea.surfaceY);
     animationState.houseIii = createHouseIi(assets.cottage.clone(true), world.walkArea.surfaceY, {
       id: "house-iii",
