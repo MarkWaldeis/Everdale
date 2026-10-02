@@ -669,7 +669,9 @@ function animate(now = 0) {
     animationState.owl?.update?.(delta, now * 0.001, animationState.dayNight?.night ?? 0);
     animationState.confetti?.update?.(delta, now * 0.001);
     animationState.rabbit?.update?.(delta, now * 0.001, animationState.dayNight?.night ?? 0);
-    const campPoint = (animationState.dayNight?.night ?? 0) > 0.55 ? (animationState.firepitPositions?.[0] ?? null) : null;
+    const duskPhase = animationState.dayNight?.phase ?? 0;
+    const isCampEvening = duskPhase >= 0.47 && duskPhase <= 0.57;
+    const campPoint = isCampEvening ? (animationState.firepitPositions?.[0] ?? null) : null;
     animationState.villagers?.forEach?.((member) => member.setCampfire?.(campPoint));
     animationState.cloudShadows?.update?.(delta, now * 0.001, 1 - (animationState.dayNight?.night ?? 0));
     animationState.birds?.update?.(delta, now * 0.001, [...(animationState.villagers ?? []), animationState.dog?.root, animationState.visitor].filter(Boolean), animationState.dayNight?.night ?? 0);
