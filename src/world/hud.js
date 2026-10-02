@@ -153,7 +153,7 @@ const BUILDING_INFO = {
     label: "Käserei",
     icon: "🧀",
     worker: "Käserin",
-    blurb: "Zwei friedliche Kühe — die Kuhhirtin melkt frische Milch.",
+    blurb: "Die Käserin wandelt Milch in leckeren Käse um.",
   },
   "fishing-dock": {
     label: "Angelsteg",

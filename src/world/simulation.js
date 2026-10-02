@@ -1059,6 +1059,14 @@ export function cancelPlacedBuilding(state, id) {
 export function queueRecipe(state, buildingId, recipeId) {
   const recipe = RECIPES.find((entry) => entry.id === recipeId && entry.building === buildingId);
   if (!recipe) return { ok: false, reason: "missing" };
+  {
+    const capKey = RESOURCES[recipe.output]?.capKey;
+    if (capKey) {
+      const field = villageField(recipe.output);
+      const cap = state.village[capKey] ?? 0;
+      if ((state.village[field] ?? 0) >= cap) return { ok: false, reason: "full" };
+    }
+  }
   if (!state.placed[buildingId]) return { ok: false, reason: "locked" };
   if (state.constructions?.[buildingId]) return { ok: false, reason: "constructing" };
   const building = state.buildings[buildingId];
