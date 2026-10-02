@@ -1972,7 +1972,7 @@ async function start() {
     };
 
     ["cottage", "wood-storage", "kitchen", "pumpkin-patch", "well", "study", "order-board"].forEach(mountPlaced);
-    ["clay-pit", "clay-storage", "stone-storage", "house-ii", "house-iii", "bakery", "tailor", "wood-workshop", "wheat-field", "mill", "sheep-pen", "apple-tree", "berry-bush", "chicken-coop", "cow-pasture", "dairy", "fishing-dock", "quarry", "apiary", "market", "town-hall", "house-iv"].forEach((id) => {
+    ["clay-pit", "clay-storage", "stone-storage", "house-ii", "house-iii", "bakery", "tailor", "wood-workshop", "wheat-field", "mill", "sheep-pen", "apple-tree", "berry-bush", "chicken-coop", "cow-pasture", "dairy", "fishing-dock", "quarry", "apiary", "market", "town-hall", "house-iv", "juice-press"].forEach((id) => {
       if (animationState.game.isPlaced(id)) mountPlaced(id);
     });
 
