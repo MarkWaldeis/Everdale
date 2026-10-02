@@ -57,6 +57,7 @@ import { createEggLoop } from "./world/egg-loop.js";
 import { createMilkLoop } from "./world/milk-loop.js";
 import { createCowPasture } from "./world/cow-pasture.js";
 import { createDairyModel } from "./world/dairy.js";
+import { createRainbow } from "./world/rainbow.js";
 import { createFishingDock } from "./world/fishing-dock.js";
 import { createFishLoop } from "./world/fish-loop.js";
 import { createStream, streamReservedCells } from "./world/stream.js";
@@ -635,6 +636,7 @@ function animate(now = 0) {
     animationState.butterflies?.update?.(delta, now * 0.001, 1 - animationState.dayNight.night);
     animationState.ducks?.update?.(delta, now * 0.001);
     animationState.dog?.update?.(delta, now * 0.001, animationState.villagers, animationState.dayNight?.night ?? 0);
+    animationState.rainbow?.update?.(delta);
     if (!animationState.visitor && (animationState.dayNight?.night ?? 0) < 0.5 && (animationState.game?.getSnapshot?.().village?.reputation ?? 0) >= 5 && now * 0.001 >= (animationState.visitorNextAt ?? 0)) {
       animationState.spawnVisitor?.();
     }
@@ -828,6 +830,8 @@ async function start() {
     animationState.valley = createValleyHarbor(assets.valleyHarbor, world.walkArea.surfaceY);
     animationState.orderBoard = createOrderBoard(assets.orderBoard, world.walkArea.surfaceY);
     animationState.surfaceY = world.walkArea.surfaceY;
+    animationState.rainbow = createRainbow();
+    scene.add(animationState.rainbow.root);
     animationState.tradeCart = createTradeCart(world.walkArea.surfaceY);
     animationState.tradeCart.root.visible = false;
     scene.add(animationState.tradeCart.root);

@@ -52,6 +52,7 @@ export function createWeather() {
       if (state.remaining <= 0) {
         state.raining = false;
         state.nextIn = 90 + rand() * 80;
+        state.justEnded = true;
       }
     } else {
       state.nextIn -= delta;
