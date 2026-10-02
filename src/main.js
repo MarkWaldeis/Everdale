@@ -622,6 +622,7 @@ function animate(now = 0) {
     animationState.appleTree?.update?.(delta, now * 0.001);
     animationState.berryBush?.update?.(delta, now * 0.001);
     animationState.chickenCoop?.update?.(delta, now * 0.001);
+    animationState.cowPasture?.update?.(delta, now * 0.001);
     animationState.fishingDock?.update?.(delta, now * 0.001);
     animationState.quarry?.update?.(delta, now * 0.001);
     animationState.apiary?.update?.(delta, now * 0.001);
