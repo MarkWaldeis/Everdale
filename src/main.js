@@ -58,6 +58,7 @@ import { createMilkLoop } from "./world/milk-loop.js";
 import { createCowPasture } from "./world/cow-pasture.js";
 import { createDairyModel } from "./world/dairy.js";
 import { createRainbow } from "./world/rainbow.js";
+import { createKnoll } from "./world/knoll.js";
 import { createFishingDock } from "./world/fishing-dock.js";
 import { createFishLoop } from "./world/fish-loop.js";
 import { createStream, streamReservedCells } from "./world/stream.js";
@@ -625,6 +626,7 @@ function animate(now = 0) {
     animationState.berryBush?.update?.(delta, now * 0.001);
     animationState.chickenCoop?.update?.(delta, now * 0.001);
     animationState.cowPasture?.update?.(delta, now * 0.001);
+    animationState.knoll?.update?.(delta, now * 0.001);
     animationState.fishingDock?.update?.(delta, now * 0.001);
     animationState.quarry?.update?.(delta, now * 0.001);
     animationState.apiary?.update?.(delta, now * 0.001);
@@ -1929,6 +1931,8 @@ async function start() {
     scene.add(animationState.fireflies.root);
     animationState.weather = createWeather();
     scene.add(animationState.weather.root);
+    animationState.knoll = createKnoll(world.walkArea.surfaceY);
+    scene.add(animationState.knoll.root);
     animationState.mountains = createMountains(Math.max(world.walkArea.radiusX, world.walkArea.radiusZ) * 0.72);
     scene.add(animationState.mountains.root);
     animationState.clouds = createClouds();

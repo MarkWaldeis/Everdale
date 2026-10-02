@@ -2063,7 +2063,28 @@ export function getActiveQuest(state) {
   if (state.nodes["valley-access"] !== "done") {
     return { id: "research-valley", text: "Erforsche den Zugang zum Tal." };
   }
-  return { id: "visit-valley", text: "Besuche das Tal und belade ein Handelsschiff." };
+  const voyages = state.valley?.ship?.voyages ?? 0;
+  if (!state.valleyUnlocked || voyages === 0) {
+    return { id: "visit-valley", text: "Besuche das Tal und belade ein Handelsschiff." };
+  }
+  if (!state.valley?.library?.built) {
+    return { id: "valley-library", text: "Errichte die Große Bibliothek im Tal (+25 % Forschung)." };
+  }
+  if (!state.valley?.guildhall?.built) {
+    return { id: "valley-guildhall", text: "Baue die Gildenhalle — sie öffnet das Tal-Tor." };
+  }
+  if (!state.valley?.mine?.built) {
+    return { id: "valley-mine", text: "Erschließe die Everstein-Mine für regelmäßige Edelsteine." };
+  }
+  const stage = state.valley?.monument?.stage ?? 0;
+  if (stage < 3) {
+    return { id: `valley-monument-${stage + 1}`, text: `Baue das Tal-Denkmal — Stufe ${stage + 1} von 3.` };
+  }
+  const rep = state.village.reputation ?? 0;
+  if (rep < 25) {
+    return { id: "rep-25", text: "Sammle 25 Ruf — Besucher und die Feuerstelle warten." };
+  }
+  return { id: "prosper", text: "Dein Dorf blüht! Erweitere weiter und erfülle Wünsche." };
 }
 
 export function listHudControls() {
