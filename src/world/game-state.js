@@ -1,4 +1,5 @@
 import {
+  bumpStat,
   STORAGE_VERSION,
   createDefaultState,
   harvestResource as simHarvest,
@@ -171,6 +172,7 @@ export function createGameState() {
   return {
     getSnapshot,
     getRaw: () => data,
+    bumpStat: (key, by) => bumpStat(data, key, by),
     subscribe: (listener) => {
       listeners.add(listener);
       return () => listeners.delete(listener);

@@ -1323,7 +1323,7 @@ export function canCollectResource(state, resourceId) {
   return true;
 }
 
-function bumpStat(state, key, by = 1) {
+export function bumpStat(state, key, by = 1) {
   state.stats ??= {};
   state.stats[key] = (state.stats[key] ?? 0) + by;
 }
