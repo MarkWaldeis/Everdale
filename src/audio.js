@@ -99,6 +99,24 @@ export function createAmbientAudio() {
     }, delay);
   }
 
+  function hoot() {
+    if (!ctx || muted) return;
+    const now = ctx.currentTime;
+    [0, 0.35].forEach((offset, i) => {
+      const osc = ctx.createOscillator();
+      const gain = ctx.createGain();
+      osc.type = "sine";
+      osc.frequency.setValueAtTime(i === 0 ? 340 : 300, now + offset);
+      gain.gain.setValueAtTime(0, now + offset);
+      gain.gain.linearRampToValueAtTime(0.08, now + offset + 0.05);
+      gain.gain.exponentialRampToValueAtTime(0.0001, now + offset + (i === 0 ? 0.3 : 0.55));
+      osc.connect(gain);
+      gain.connect(master);
+      osc.start(now + offset);
+      osc.stop(now + offset + (i === 0 ? 0.32 : 0.58));
+    });
+  }
+
   function pluck(now, freq, volume = 0.2, dur = 0.35, type = "sine") {
     const osc = ctx.createOscillator();
     const gain = ctx.createGain();
@@ -208,6 +226,7 @@ export function createAmbientAudio() {
       nightLevel = n ?? 0;
     },
     chime,
+    hoot,
     isRunning: () => started,
     stop() {
       stopped = true;
