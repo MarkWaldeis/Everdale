@@ -55,7 +55,7 @@ export function createFog(surfaceY) {
       if (w.x > 4) w.x = -16;
       w.mesh.position.x = w.x;
       const pulse = 0.75 + Math.sin(elapsed * 0.25 + w.seed) * 0.25;
-      w.mesh.material.opacity = 0.5 * pulse * fogStrength;
+      w.mesh.material.opacity = 0.62 * pulse * fogStrength;
     });
   }
   return { root, update };

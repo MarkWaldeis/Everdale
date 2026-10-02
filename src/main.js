@@ -658,7 +658,7 @@ function animate(now = 0) {
     animationState.ducks?.update?.(delta, now * 0.001);
     animationState.dog?.update?.(delta, now * 0.001, animationState.villagers, animationState.dayNight?.night ?? 0);
     const dawnPhase = animationState.dayNight?.phase ?? 0;
-    const dawnStrength = Math.max(0, 1 - Math.abs(dawnPhase - 0.96) / 0.09) * 0.8;
+    const dawnStrength = Math.max(0, 1 - Math.abs(dawnPhase - 0.955) / 0.14) * 0.9;
     animationState.dawnFog?.update?.(delta, now * 0.001, dawnStrength);
     animationState.cloudShadows?.update?.(delta, now * 0.001, 1 - (animationState.dayNight?.night ?? 0));
     animationState.birds?.update?.(delta, now * 0.001, [...(animationState.villagers ?? []), animationState.dog?.root, animationState.visitor].filter(Boolean), animationState.dayNight?.night ?? 0);
