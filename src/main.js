@@ -54,6 +54,8 @@ import { createBerryBush } from "./world/berry-bush.js";
 import { createBerryLoop } from "./world/berry-loop.js";
 import { createChickenCoop } from "./world/chicken-coop.js";
 import { createEggLoop } from "./world/egg-loop.js";
+import { createMilkLoop } from "./world/milk-loop.js";
+import { createCowPasture } from "./world/cow-pasture.js";
 import { createFishingDock } from "./world/fishing-dock.js";
 import { createFishLoop } from "./world/fish-loop.js";
 import { createStream, streamReservedCells } from "./world/stream.js";
@@ -878,6 +880,7 @@ async function start() {
     animationState.walkArea = world.walkArea;
     animationState.berryBush = createBerryBush(world.walkArea.surfaceY);
     animationState.chickenCoop = createChickenCoop(world.walkArea.surfaceY);
+    animationState.cowPasture = createCowPasture(world.walkArea.surfaceY);
     animationState.fishingDock = createFishingDock(world.walkArea.surfaceY);
     animationState.quarry = createQuarry(world.walkArea.surfaceY);
     animationState.apiary = createApiary(world.walkArea.surfaceY);
@@ -1117,6 +1120,19 @@ async function start() {
         animationState.sheepPen,
       ],
     });
+    animationState.milkLoop = createMilkLoop({
+      game: animationState.game,
+      cowPasture: animationState.cowPasture,
+      storages: [
+        animationState.yard,
+        animationState.stoneYard,
+        animationState.clayYard,
+        animationState.kitchen,
+        animationState.pumpkinField,
+        animationState.well,
+        animationState.clayPit,
+      ],
+    });
     animationState.berryLoop = createBerryLoop({
       game: animationState.game,
       berryBush: animationState.berryBush,
@@ -1205,6 +1221,13 @@ async function start() {
         module: animationState.chickenCoop,
         loop: animationState.eggLoop,
         title: "Hühnerstall · Eier sammeln",
+        usesQueue: false,
+        jobKinds: ["harvest"],
+      },
+      "cow-pasture": {
+        module: animationState.cowPasture,
+        loop: animationState.milkLoop,
+        title: "Kuhweide · Milch melken",
         usesQueue: false,
         jobKinds: ["harvest"],
       },
@@ -1602,6 +1625,18 @@ async function start() {
         setYaw: (yaw) => animationState.berryBush.setYaw(yaw),
         refresh: () => animationState.berryBush.refreshAnchors(),
       },
+      "cow-pasture": {
+        id: "cow-pasture",
+        label: "Kuhweide",
+        root: animationState.cowPasture.root,
+        size: animationState.cowPasture.size,
+        w: 2,
+        h: 2,
+        padding: 0,
+        setWorldPosition: (x, z) => animationState.cowPasture.setWorldPosition(x, z),
+        setYaw: (yaw) => animationState.cowPasture.setYaw(yaw),
+        refresh: () => animationState.cowPasture.refreshAnchors(),
+      },
       "chicken-coop": {
         id: "chicken-coop",
         label: "Hühnerstall",
@@ -1804,7 +1839,7 @@ async function start() {
     };
 
     ["cottage", "wood-storage", "kitchen", "pumpkin-patch", "well", "study", "order-board"].forEach(mountPlaced);
-    ["clay-pit", "clay-storage", "stone-storage", "house-ii", "house-iii", "bakery", "tailor", "wood-workshop", "wheat-field", "mill", "sheep-pen", "apple-tree", "berry-bush", "chicken-coop", "fishing-dock", "quarry", "apiary", "market", "town-hall", "house-iv"].forEach((id) => {
+    ["clay-pit", "clay-storage", "stone-storage", "house-ii", "house-iii", "bakery", "tailor", "wood-workshop", "wheat-field", "mill", "sheep-pen", "apple-tree", "berry-bush", "chicken-coop", "cow-pasture", "fishing-dock", "quarry", "apiary", "market", "town-hall", "house-iv"].forEach((id) => {
       if (animationState.game.isPlaced(id)) mountPlaced(id);
     });
 
