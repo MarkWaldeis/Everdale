@@ -340,6 +340,85 @@ export function createValleyHarbor(model, surfaceY) {
   proxy.userData.buildingId = "valley-harbor";
   root.add(proxy);
 
+  // Neighbor villages: tiny island dioramas floating in the harbor water.
+  function makeLabelSprite(text) {
+    const canvas = document.createElement("canvas");
+    canvas.width = 256;
+    canvas.height = 64;
+    const ctx = canvas.getContext("2d");
+    ctx.fillStyle = "rgba(30, 40, 48, 0.72)";
+    ctx.beginPath();
+    ctx.roundRect(8, 8, 240, 48, 14);
+    ctx.fill();
+    ctx.fillStyle = "#f4ead0";
+    ctx.font = "bold 30px Georgia, serif";
+    ctx.textAlign = "center";
+    ctx.textBaseline = "middle";
+    ctx.fillText(text, 128, 33);
+    const tex = new THREE.CanvasTexture(canvas);
+    const sprite = new THREE.Sprite(new THREE.SpriteMaterial({ map: tex, transparent: true }));
+    sprite.scale.set(2.4, 0.6, 1);
+    return sprite;
+  }
+
+  function makeNeighborIsland(name, tint) {
+    const island = new THREE.Group();
+    const sand = new THREE.Mesh(
+      new THREE.CylinderGeometry(1.5, 1.7, 0.35, 12),
+      new THREE.MeshStandardMaterial({ color: 0xd9b27c, roughness: 0.95 }),
+    );
+    sand.position.y = 0.16;
+    island.add(sand);
+    const grass = new THREE.Mesh(
+      new THREE.CylinderGeometry(1.35, 1.5, 0.22, 12),
+      new THREE.MeshStandardMaterial({ color: 0x86a556, roughness: 1, flatShading: true }),
+    );
+    grass.position.y = 0.42;
+    island.add(grass);
+    const houseTints = [tint, 0xb4552f, 0x6f8fb4];
+    [[-0.5, -0.2], [0.45, -0.45], [0.1, 0.55]].forEach(([x, z], i) => {
+      const house = new THREE.Group();
+      const body = new THREE.Mesh(
+        new THREE.BoxGeometry(0.42, 0.3, 0.36),
+        new THREE.MeshStandardMaterial({ color: 0xf2ead9, roughness: 0.9, flatShading: true }),
+      );
+      body.position.y = 0.15;
+      house.add(body);
+      const roof = new THREE.Mesh(
+        new THREE.ConeGeometry(0.36, 0.26, 4),
+        new THREE.MeshStandardMaterial({ color: houseTints[i % 3], roughness: 0.85, flatShading: true }),
+      );
+      roof.rotation.y = Math.PI / 4;
+      roof.position.y = 0.43;
+      house.add(roof);
+      house.position.set(x, 0.53, z);
+      house.rotation.y = i * 0.9;
+      island.add(house);
+    });
+    const tree = new THREE.Mesh(
+      new THREE.ConeGeometry(0.2, 0.5, 7),
+      new THREE.MeshStandardMaterial({ color: 0x5d8f4f, roughness: 1, flatShading: true }),
+    );
+    tree.position.set(-0.85, 0.78, 0.45);
+    island.add(tree);
+    const label = makeLabelSprite(name);
+    label.position.y = 1.75;
+    island.add(label);
+    return island;
+  }
+
+  const neighbors = [
+    { name: "Morgenrot", tint: 0xc25b4f, x: 8.5, z: -3.2, yaw: 0.4 },
+    { name: "Birkenfeld", tint: 0x5d8f4f, x: 13.5, z: 4.5, yaw: -0.7 },
+    { name: "Sonnenborn", tint: 0xe0a83f, x: 9.8, z: 7.4, yaw: 1.8 },
+  ].map(({ name, tint, x, z, yaw }) => {
+    const island = makeNeighborIsland(name, tint);
+    island.position.set(x, surfaceY - 0.45, z);
+    island.rotation.y = yaw;
+    root.add(island);
+    return island;
+  });
+
   const sail = {
     phase: "dock", // dock → depart → gone → arrive
     t: 0,
@@ -383,6 +462,9 @@ export function createValleyHarbor(model, surfaceY) {
     }
     ship.position.y += Math.sin(elapsed * 1.4) * 0.05;
     water.position.y = surfaceY - 0.42 + Math.sin(elapsed * 0.7) * 0.02;
+    neighbors.forEach((island, i) => {
+      island.position.y = surfaceY - 0.45 + Math.sin(elapsed * 0.9 + i * 2.1) * 0.03;
+    });
   }
 
   return {
