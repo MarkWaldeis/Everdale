@@ -631,6 +631,10 @@ function animate(now = 0) {
     animationState.market?.update?.(delta, now * 0.001);
     animationState.townHall?.update?.(delta, now * 0.001);
     animationState.weather?.update?.(delta);
+    if (animationState.weather?.state?.justEnded) {
+      animationState.weather.state.justEnded = false;
+      if ((animationState.dayNight?.night ?? 0) < 0.6) animationState.rainbow?.trigger?.();
+    }
     animationState.dayNight = updateDayNight(now);
     animationState.fireflies?.update?.(delta, now * 0.001, animationState.dayNight.night);
     animationState.butterflies?.update?.(delta, now * 0.001, 1 - animationState.dayNight.night);
