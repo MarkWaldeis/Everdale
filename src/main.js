@@ -61,6 +61,7 @@ import { createRainbow } from "./world/rainbow.js";
 import { createKnoll } from "./world/knoll.js";
 import { createBirds } from "./world/birds.js";
 import { createCloudShadows } from "./world/cloud-shadows.js";
+import { createFog } from "./world/fog.js";
 import { createMushroomPatch } from "./world/mushroom-patch.js";
 import { createFishingDock } from "./world/fishing-dock.js";
 import { createFishLoop } from "./world/fish-loop.js";
@@ -302,8 +303,9 @@ function collectForage() {
   if (!mushroomPatch?.root.visible || !game) return;
   mushroomPatch.hide();
   const got = 2 + Math.floor(Math.random() * 2);
+  const before = game.getMushroom?.() ?? 0;
   const total = game.addMushroom?.(got) ?? 0;
-  game.bumpStat?.("foraged", got);
+  game.bumpStat?.("foraged", Math.max(0, total - before));
   hud?.showNotice?.("Pilze gesammelt", `Ein Pilzfleck am Waldrand! +${got} 🍄 (Lager ${total}/${game.getMushroomCap?.() ?? 10})`);
 }
 
@@ -655,6 +657,9 @@ function animate(now = 0) {
     animationState.butterflies?.update?.(delta, now * 0.001, 1 - animationState.dayNight.night);
     animationState.ducks?.update?.(delta, now * 0.001);
     animationState.dog?.update?.(delta, now * 0.001, animationState.villagers, animationState.dayNight?.night ?? 0);
+    const dawnPhase = animationState.dayNight?.phase ?? 0;
+    const dawnStrength = Math.max(0, 1 - Math.abs(dawnPhase - 0.96) / 0.09) * 0.8;
+    animationState.dawnFog?.update?.(delta, now * 0.001, dawnStrength);
     animationState.cloudShadows?.update?.(delta, now * 0.001, 1 - (animationState.dayNight?.night ?? 0));
     animationState.birds?.update?.(delta, now * 0.001, [...(animationState.villagers ?? []), animationState.dog?.root, animationState.visitor].filter(Boolean), animationState.dayNight?.night ?? 0);
     animationState.rainbow?.update?.(delta);
@@ -1960,6 +1965,8 @@ async function start() {
     animationState.dog = createDog(world.walkArea.surfaceY, animationState.well?.root?.position ?? new THREE.Vector3());
     scene.add(animationState.ducks.root);
     scene.add(animationState.dog.root);
+    animationState.dawnFog = createFog(world.walkArea.surfaceY);
+    scene.add(animationState.dawnFog.root);
     animationState.cloudShadows = createCloudShadows(world.walkArea);
     scene.add(animationState.cloudShadows.root);
     animationState.birds = createBirds(world.walkArea);
