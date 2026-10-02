@@ -25,6 +25,7 @@ export function createStreamFish(surfaceY) {
   finTop.position.set(0, 0.06, 0);
   fish.add(finTop);
   fish.visible = false;
+  fish.scale.setScalar(1.35);
   root.add(fish);
 
   const ring = new THREE.Mesh(new THREE.RingGeometry(0.12, 0.18, 14), RING.clone());
@@ -61,7 +62,7 @@ export function createStreamFish(surfaceY) {
         STREAM_CURVE.getPointAt(Math.min(Math.max(jumpT + jumpDir * 0.06, 0.02), 0.98), pos);
         ring.position.set(pos.x, STREAM_Y(surfaceY) + 0.02, pos.z);
         ring.visible = true;
-        nextAt = elapsed + NEXT_MIN + Math.random() * NEXT_SPAN;
+        nextAt = elapsed + (Math.random() < 0.25 ? 1.2 + Math.random() * 1.5 : NEXT_MIN + Math.random() * NEXT_SPAN);
       } else {
         const tNow = Math.min(Math.max(jumpT + jumpDir * t * 0.12, 0.02), 0.98);
         STREAM_CURVE.getPointAt(tNow, pos);

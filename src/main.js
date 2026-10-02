@@ -57,6 +57,7 @@ import { createEggLoop } from "./world/egg-loop.js";
 import { createMilkLoop } from "./world/milk-loop.js";
 import { createCowPasture } from "./world/cow-pasture.js";
 import { createDairyModel } from "./world/dairy.js";
+import { createJuicePressModel } from "./world/juice-press.js";
 import { createRainbow } from "./world/rainbow.js";
 import { createKnoll } from "./world/knoll.js";
 import { createBirds } from "./world/birds.js";
@@ -954,6 +955,11 @@ async function start() {
       position: { x: 3.4, z: -6.8 },
       yaw: -0.4,
     });
+    animationState.juicePress = createWorkshop(createJuicePressModel(), world.walkArea.surfaceY, {
+      id: "juice-press",
+      position: { x: -4.6, z: -7.4 },
+      yaw: 0.5,
+    });
     animationState.fishingDock = createFishingDock(world.walkArea.surfaceY);
     animationState.quarry = createQuarry(world.walkArea.surfaceY);
     animationState.apiary = createApiary(world.walkArea.surfaceY);
@@ -1124,6 +1130,13 @@ async function start() {
         building: animationState.dairy,
         buildingId: "dairy",
         taskId: "make-cheese",
+        villagers: animationState.villagers,
+      }),
+      "juice-press": createWorkshopLoop({
+        game: animationState.game,
+        building: animationState.juicePress,
+        buildingId: "juice-press",
+        taskId: "press-juice",
         villagers: animationState.villagers,
       }),
     };
@@ -1319,6 +1332,11 @@ async function start() {
         module: animationState.dairy,
         loop: animationState.workshopLoops.dairy,
         title: "Käserei · Käse herstellen",
+      },
+      "juice-press": {
+        module: animationState.juicePress,
+        loop: animationState.workshopLoops["juice-press"],
+        title: "Kelterei · Apfelsaft pressen",
       },
       "fishing-dock": {
         module: animationState.fishingDock,
@@ -1727,6 +1745,18 @@ async function start() {
         setWorldPosition: (x, z) => animationState.cowPasture.setWorldPosition(x, z),
         setYaw: (yaw) => animationState.cowPasture.setYaw(yaw),
         refresh: () => animationState.cowPasture.refreshAnchors(),
+      },
+      "juice-press": {
+        id: "juice-press",
+        label: "Kelterei",
+        root: animationState.juicePress.root,
+        size: animationState.juicePress.size,
+        w: 2,
+        h: 2,
+        padding: 0,
+        setWorldPosition: (x, z) => animationState.juicePress.setWorldPosition(x, z),
+        setYaw: (yaw) => animationState.juicePress.setYaw(yaw),
+        refresh: () => animationState.juicePress.refreshAnchors(),
       },
       "dairy": {
         id: "dairy",
