@@ -60,6 +60,7 @@ import { createDairyModel } from "./world/dairy.js";
 import { createRainbow } from "./world/rainbow.js";
 import { createKnoll } from "./world/knoll.js";
 import { createBirds } from "./world/birds.js";
+import { createCloudShadows } from "./world/cloud-shadows.js";
 import { createFishingDock } from "./world/fishing-dock.js";
 import { createFishLoop } from "./world/fish-loop.js";
 import { createStream, streamReservedCells } from "./world/stream.js";
@@ -643,6 +644,7 @@ function animate(now = 0) {
     animationState.butterflies?.update?.(delta, now * 0.001, 1 - animationState.dayNight.night);
     animationState.ducks?.update?.(delta, now * 0.001);
     animationState.dog?.update?.(delta, now * 0.001, animationState.villagers, animationState.dayNight?.night ?? 0);
+    animationState.cloudShadows?.update?.(delta, now * 0.001, 1 - (animationState.dayNight?.night ?? 0));
     animationState.birds?.update?.(delta, now * 0.001, [...(animationState.villagers ?? []), animationState.dog?.root, animationState.visitor].filter(Boolean), animationState.dayNight?.night ?? 0);
     animationState.rainbow?.update?.(delta);
     animationState.audio?.setRain?.(animationState.weather?.state?.strength ?? 0);
@@ -1927,6 +1929,8 @@ async function start() {
     animationState.dog = createDog(world.walkArea.surfaceY, animationState.well?.root?.position ?? new THREE.Vector3());
     scene.add(animationState.ducks.root);
     scene.add(animationState.dog.root);
+    animationState.cloudShadows = createCloudShadows(world.walkArea);
+    scene.add(animationState.cloudShadows.root);
     animationState.birds = createBirds(world.walkArea);
     scene.add(animationState.birds.root);
     animationState.butterflies = createButterflies(world.walkArea);
