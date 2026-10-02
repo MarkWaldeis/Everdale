@@ -476,6 +476,7 @@ export function createCharacterController(
   let chatFace = null;
   let hungry = false;
   let eating = null;
+  let campfirePoint = null;
   const stateOrigin = root.position.clone();
 
   function isTimedWork(entry = job) {
@@ -514,6 +515,12 @@ export function createCharacterController(
   }
 
   function chooseNextRoamTarget(preferAwayFromHome = false) {
+    if (campfirePoint && Math.random() < 0.4) {
+      roamTarget = campfirePoint.clone();
+      roamTarget.x += (Math.random() - 0.5) * 1.6;
+      roamTarget.z += (Math.random() - 0.5) * 1.6;
+      return;
+    }
     if (well?.points?.idle && Math.random() < 0.48) {
       roamTarget = well.points.idle.clone();
       return;
@@ -1514,6 +1521,10 @@ export function createCharacterController(
     return Boolean(job);
   }
 
+  function setCampfire(point) {
+    campfirePoint = point ?? null;
+  }
+
   function pauseRoam(seconds, facePoint) {
     if (state !== STATES.ROAM || job) return false;
     waitTime = Math.max(waitTime, seconds);
@@ -1628,6 +1639,7 @@ export function createCharacterController(
     assignJob,
     cancelJob,
     hasJob,
+    setCampfire,
     pauseRoam,
     isChatPaused,
     chainJob,

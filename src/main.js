@@ -669,6 +669,8 @@ function animate(now = 0) {
     animationState.owl?.update?.(delta, now * 0.001, animationState.dayNight?.night ?? 0);
     animationState.confetti?.update?.(delta, now * 0.001);
     animationState.rabbit?.update?.(delta, now * 0.001, animationState.dayNight?.night ?? 0);
+    const campPoint = (animationState.dayNight?.night ?? 0) > 0.55 ? (animationState.firepitPositions?.[0] ?? null) : null;
+    animationState.villagers?.forEach?.((member) => member.setCampfire?.(campPoint));
     animationState.cloudShadows?.update?.(delta, now * 0.001, 1 - (animationState.dayNight?.night ?? 0));
     animationState.birds?.update?.(delta, now * 0.001, [...(animationState.villagers ?? []), animationState.dog?.root, animationState.visitor].filter(Boolean), animationState.dayNight?.night ?? 0);
     animationState.rainbow?.update?.(delta);
@@ -1900,6 +1902,10 @@ async function start() {
       });
       mountedDecos.add(deco.id);
       decoRoots.set(deco.id, root);
+      if (deco.type === "deko-firepit") {
+        animationState.firepitPositions = animationState.firepitPositions ?? [];
+        animationState.firepitPositions.push(root.position);
+      }
       return record;
     }
     animationState.game.getDecorations?.().forEach(mountDecoration);
