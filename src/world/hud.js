@@ -704,8 +704,13 @@ export function createHud({
     );
   }
 
-  function showNotice(title, html) {
+  function showNotice(title, html, autoCloseMs = 0) {
     openSheet("notice", title, html);
+    if (autoCloseMs > 0) {
+      window.setTimeout(() => {
+        if (openId === "notice") closeSheet();
+      }, autoCloseMs);
+    }
   }
 
   function renderValley() {

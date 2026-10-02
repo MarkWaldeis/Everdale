@@ -686,7 +686,7 @@ function animate(now = 0) {
           animationState.audio?.chime?.("level");
           const wellPos = animationState.well?.root?.position ?? { x: 0, y: animationState.surfaceY ?? 0.6, z: 0 };
           animationState.confetti?.burst?.({ x: wellPos.x, y: (wellPos.y ?? 0) + 1.6, z: wellPos.z }, 30);
-          animationState.hud?.showNotice?.("Stufenaufstieg!", `Dein Dorf erreicht Stufe ${level}! 🎉`);
+          animationState.hud?.showNotice?.("Stufenaufstieg!", `Dein Dorf erreicht Stufe ${level}! 🎉`, 4500);
         }
       }
       animationState.chimeStats = {
