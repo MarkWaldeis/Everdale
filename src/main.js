@@ -32,6 +32,7 @@ import { createFireflies } from "./world/fireflies.js";
 import { createChimneySmoke } from "./world/chimney-smoke.js";
 import { createButterflies } from "./world/butterflies.js";
 import { createDucks } from "./world/ducks.js";
+import { createDog } from "./world/dog.js";
 import { createCritters } from "./world/critters.js";
 import { createOrderBoard } from "./world/order-board.js";
 import { createHouseIi } from "./world/house-ii.js";
@@ -627,6 +628,7 @@ function animate(now = 0) {
     animationState.fireflies?.update?.(delta, now * 0.001, animationState.dayNight.night);
     animationState.butterflies?.update?.(delta, now * 0.001, 1 - animationState.dayNight.night);
     animationState.ducks?.update?.(delta, now * 0.001);
+    animationState.dog?.update?.(delta, now * 0.001, animationState.villagers, animationState.dayNight?.night ?? 0);
     flickerDecos(now * 0.001);
     animationState.chimneySmoke?.update?.(delta, now * 0.001, animationState.windEnabled ? 1 : 0.2);
     const nightness = animationState.dayNight.night;
@@ -1742,7 +1744,9 @@ async function start() {
     world.root.add(animationState.valley.root);
     scene.add(world.root);
     animationState.ducks = createDucks(world.walkArea.surfaceY);
+    animationState.dog = createDog(world.walkArea.surfaceY, animationState.well?.root?.position ?? new THREE.Vector3());
     scene.add(animationState.ducks.root);
+    scene.add(animationState.dog.root);
     animationState.butterflies = createButterflies(world.walkArea);
     scene.add(animationState.butterflies.root);
     animationState.fireflies = createFireflies(world.walkArea);
