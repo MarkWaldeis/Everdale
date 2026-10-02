@@ -643,7 +643,7 @@ function animate(now = 0) {
     animationState.butterflies?.update?.(delta, now * 0.001, 1 - animationState.dayNight.night);
     animationState.ducks?.update?.(delta, now * 0.001);
     animationState.dog?.update?.(delta, now * 0.001, animationState.villagers, animationState.dayNight?.night ?? 0);
-    animationState.birds?.update?.(delta, now * 0.001, [...(animationState.villagers ?? []), animationState.dog?.root, animationState.visitor].filter(Boolean));
+    animationState.birds?.update?.(delta, now * 0.001, [...(animationState.villagers ?? []), animationState.dog?.root, animationState.visitor].filter(Boolean), animationState.dayNight?.night ?? 0);
     animationState.rainbow?.update?.(delta);
     animationState.audio?.setRain?.(animationState.weather?.state?.strength ?? 0);
     animationState.audio?.setNight?.(animationState.dayNight?.night ?? 0);

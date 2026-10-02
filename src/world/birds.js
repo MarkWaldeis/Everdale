@@ -62,6 +62,7 @@ export function createBirds(walkArea) {
       Math.sin(a) * walkArea.radiusZ * r,
     );
     bird.rotation.y = rand() * Math.PI * 2;
+    bird.scale.setScalar(1.35);
     Object.assign(bird.userData, {
       mode: "idle",
       wait: rand() * 2,
@@ -84,8 +85,14 @@ export function createBirds(walkArea) {
     );
   }
 
-  function update(delta, elapsed, disturbers) {
+  function update(delta, elapsed, disturbers, night = 0) {
     birds.forEach((bird) => {
+      // roost at night: tuck into the forest edge, hidden
+      if (night > 0.6) {
+        bird.visible = false;
+        return;
+      }
+      bird.visible = true;
       const u = bird.userData;
       // flee check: any disturber close by?
       let threat = null;
