@@ -413,8 +413,9 @@ export function createValleyHarbor(model, surfaceY) {
     { name: "Sonnenborn", tint: 0xe0a83f, x: 9.8, z: 7.4, yaw: 1.8 },
   ].map(({ name, tint, x, z, yaw }) => {
     const island = makeNeighborIsland(name, tint);
-    island.position.set(x, surfaceY - 0.45, z);
+    island.position.set(x, surfaceY - 0.2, z);
     island.rotation.y = yaw;
+    island.scale.setScalar(1.35);
     root.add(island);
     return island;
   });
@@ -463,7 +464,7 @@ export function createValleyHarbor(model, surfaceY) {
     ship.position.y += Math.sin(elapsed * 1.4) * 0.05;
     water.position.y = surfaceY - 0.42 + Math.sin(elapsed * 0.7) * 0.02;
     neighbors.forEach((island, i) => {
-      island.position.y = surfaceY - 0.45 + Math.sin(elapsed * 0.9 + i * 2.1) * 0.03;
+      island.position.y = surfaceY - 0.2 + Math.sin(elapsed * 0.9 + i * 2.1) * 0.03;
     });
   }
 
