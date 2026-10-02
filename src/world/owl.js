@@ -20,6 +20,7 @@ export function createOwl(surfaceY) {
   wingR.position.x = 0.2;
   owl.add(wingL, wingR);
   owl.visible = false;
+  owl.scale.setScalar(1.5);
   root.add(owl);
 
   let flyAt = -1;

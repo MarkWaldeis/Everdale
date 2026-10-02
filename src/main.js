@@ -65,6 +65,7 @@ import { createCloudShadows } from "./world/cloud-shadows.js";
 import { createFog } from "./world/fog.js";
 import { createStreamFish } from "./world/stream-fish.js";
 import { createOwl } from "./world/owl.js";
+import { createConfetti } from "./world/confetti.js";
 import { createMushroomPatch } from "./world/mushroom-patch.js";
 import { createFishingDock } from "./world/fishing-dock.js";
 import { createFishLoop } from "./world/fish-loop.js";
@@ -665,6 +666,7 @@ function animate(now = 0) {
     animationState.dawnFog?.update?.(delta, now * 0.001, dawnStrength);
     animationState.streamFish?.update?.(delta, now * 0.001);
     animationState.owl?.update?.(delta, now * 0.001, animationState.dayNight?.night ?? 0);
+    animationState.confetti?.update?.(delta, now * 0.001);
     animationState.cloudShadows?.update?.(delta, now * 0.001, 1 - (animationState.dayNight?.night ?? 0));
     animationState.birds?.update?.(delta, now * 0.001, [...(animationState.villagers ?? []), animationState.dog?.root, animationState.visitor].filter(Boolean), animationState.dayNight?.night ?? 0);
     animationState.rainbow?.update?.(delta);
@@ -678,7 +680,11 @@ function animate(now = 0) {
         if ((stats.ordersDelivered ?? 0) > prev.ordersDelivered) animationState.audio?.chime?.("order");
         if ((stats.wishesFulfilled ?? 0) > prev.wishesFulfilled) animationState.audio?.chime?.("wish");
         if ((stats.marketSales ?? 0) > prev.marketSales || (stats.traderDeals ?? 0) > prev.traderDeals) animationState.audio?.chime?.("coin");
-        if (level > prev.level) animationState.audio?.chime?.("level");
+        if (level > prev.level) {
+          animationState.audio?.chime?.("level");
+          const wellPos = animationState.well?.root?.position ?? { x: 0, y: animationState.surfaceY ?? 0.6, z: 0 };
+          animationState.confetti?.burst?.({ x: wellPos.x, y: (wellPos.y ?? 0) + 1.6, z: wellPos.z }, 30);
+        }
       }
       animationState.chimeStats = {
         ordersDelivered: stats.ordersDelivered ?? 0,
@@ -2001,6 +2007,8 @@ async function start() {
     scene.add(animationState.dog.root);
     animationState.streamFish = createStreamFish(world.walkArea.surfaceY);
     scene.add(animationState.streamFish.root);
+    animationState.confetti = createConfetti();
+    scene.add(animationState.confetti.root);
     animationState.owl = createOwl(world.walkArea.surfaceY);
     animationState.owl.setHootHandler(() => animationState.audio?.hoot?.());
     scene.add(animationState.owl.root);
