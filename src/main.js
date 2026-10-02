@@ -641,6 +641,26 @@ function animate(now = 0) {
     animationState.ducks?.update?.(delta, now * 0.001);
     animationState.dog?.update?.(delta, now * 0.001, animationState.villagers, animationState.dayNight?.night ?? 0);
     animationState.rainbow?.update?.(delta);
+    animationState.audio?.setRain?.(animationState.weather?.state?.strength ?? 0);
+    animationState.audio?.setNight?.(animationState.dayNight?.night ?? 0);
+    {
+      const stats = animationState.game?.getSnapshot?.().stats ?? {};
+      const level = animationState.game?.getSnapshot?.().player?.level ?? 1;
+      const prev = animationState.chimeStats ?? {};
+      if (prev.ordersDelivered !== undefined) {
+        if ((stats.ordersDelivered ?? 0) > prev.ordersDelivered) animationState.audio?.chime?.("order");
+        if ((stats.wishesFulfilled ?? 0) > prev.wishesFulfilled) animationState.audio?.chime?.("wish");
+        if ((stats.marketSales ?? 0) > prev.marketSales || (stats.traderDeals ?? 0) > prev.traderDeals) animationState.audio?.chime?.("coin");
+        if (level > prev.level) animationState.audio?.chime?.("level");
+      }
+      animationState.chimeStats = {
+        ordersDelivered: stats.ordersDelivered ?? 0,
+        wishesFulfilled: stats.wishesFulfilled ?? 0,
+        marketSales: stats.marketSales ?? 0,
+        traderDeals: stats.traderDeals ?? 0,
+        level,
+      };
+    }
     if (!animationState.visitor && (animationState.dayNight?.night ?? 0) < 0.5 && (animationState.game?.getSnapshot?.().village?.reputation ?? 0) >= 5 && now * 0.001 >= (animationState.visitorNextAt ?? 0)) {
       animationState.spawnVisitor?.();
     }
