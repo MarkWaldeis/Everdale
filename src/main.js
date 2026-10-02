@@ -61,6 +61,7 @@ import { createRainbow } from "./world/rainbow.js";
 import { createKnoll } from "./world/knoll.js";
 import { createBirds } from "./world/birds.js";
 import { createCloudShadows } from "./world/cloud-shadows.js";
+import { createMushroomPatch } from "./world/mushroom-patch.js";
 import { createFishingDock } from "./world/fishing-dock.js";
 import { createFishLoop } from "./world/fish-loop.js";
 import { createStream, streamReservedCells } from "./world/stream.js";
@@ -294,6 +295,16 @@ function collectGift() {
   }
   game.addGiftCollected?.();
   hud?.showNotice?.("Geschenk geöffnet", `Ein Geschenk aus dem Dorf! ${parts.join(" · ")}`);
+}
+
+function collectForage() {
+  const { mushroomPatch, game, hud } = animationState;
+  if (!mushroomPatch?.root.visible || !game) return;
+  mushroomPatch.hide();
+  const got = 2 + Math.floor(Math.random() * 2);
+  const total = game.addMushroom?.(got) ?? 0;
+  game.bumpStat?.("foraged", got);
+  hud?.showNotice?.("Pilze gesammelt", `Ein Pilzfleck am Waldrand! +${got} 🍄 (Lager ${total}/${game.getMushroomCap?.() ?? 10})`);
 }
 
 function findGiftSpot() {
@@ -729,6 +740,20 @@ function animate(now = 0) {
       }
     }
     animationState.giftBox?.update?.(delta, now * 0.001);
+    animationState.mushroomPatch?.update?.(delta, now * 0.001);
+    if (animationState.mushroomPatch) {
+      const el = now * 0.001;
+      if (!animationState.mushroomPatch.root.visible && el >= (animationState.mushroomNextAt ?? 0)) {
+        const spot = findGiftSpot();
+        if (spot) {
+          animationState.mushroomPatch.show(spot, el);
+          animationState.mushroomDespawnAt = el + 75;
+        }
+        animationState.mushroomNextAt = el + 120 + Math.random() * 80;
+      } else if (animationState.mushroomPatch.root.visible && el > (animationState.mushroomDespawnAt ?? 0)) {
+        animationState.mushroomPatch.hide();
+      }
+    }
     if (animationState.giftBox && !animationState.giftBox.root.visible) {
       if (now * 0.001 >= (animationState.giftNextAt ?? 0)) {
         const spot = findGiftSpot();
@@ -945,6 +970,10 @@ async function start() {
     animationState.giftBox = createGiftBox(world.walkArea.surfaceY);
     world.root.add(animationState.giftBox.root);
     animationState.giftNextAt = 140 + Math.random() * 60;
+    animationState.mushroomPatch = createMushroomPatch(world.walkArea.surfaceY);
+    world.root.add(animationState.mushroomPatch.root);
+    animationState.mushroomNextAt = 100 + Math.random() * 70;
+    animationState.mushroomDespawnAt = 0;
     animationState.workshopModules = {
       bakery: animationState.bakery,
       tailor: animationState.tailor,
@@ -1351,7 +1380,9 @@ async function start() {
       orderBoard: animationState.orderBoard,
       onOpenOrders: () => animationState.hud?.renderOrders?.(),
       giftBox: animationState.giftBox,
+      foragePatch: animationState.mushroomPatch,
       onCollectGift: collectGift,
+      onCollectForage: collectForage,
       workshops: animationState.workshops,
       decoRoots,
     });

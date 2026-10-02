@@ -116,7 +116,9 @@ export function createHarvestDirector({
   houseIi,
   workshops,
   giftBox,
+  foragePatch,
   onCollectGift,
+  onCollectForage,
 }) {
   const raycaster = new THREE.Raycaster();
   const marker = createGroundMarker();
@@ -686,6 +688,16 @@ export function createHarvestDirector({
     setTrayOpen(true);
   }
 
+  function pickForage(clientX, clientY) {
+    if (!foragePatch?.root?.visible) return null;
+    const bounds = canvas.getBoundingClientRect();
+    scratch.pointer.x = ((clientX - bounds.left) / bounds.width) * 2 - 1;
+    scratch.pointer.y = -((clientY - bounds.top) / bounds.height) * 2 + 1;
+    raycaster.setFromCamera(scratch.pointer, camera);
+    const hits = raycaster.intersectObject(foragePatch.root, true);
+    return hits.length ? foragePatch.root : null;
+  }
+
   function pickGift(clientX, clientY) {
     if (!giftBox?.root?.visible) return null;
     const bounds = canvas.getBoundingClientRect();
@@ -1144,6 +1156,11 @@ export function createHarvestDirector({
     const giftHit = pickGift(event.clientX, event.clientY);
     if (giftHit) {
       onCollectGift?.();
+      return;
+    }
+    const forageHit = pickForage(event.clientX, event.clientY);
+    if (forageHit) {
+      onCollectForage?.();
       return;
     }
     const kitchenHit = pickKitchen(event.clientX, event.clientY);
