@@ -55,7 +55,7 @@ import { createFishingDock } from "./world/fishing-dock.js";
 import { createFishLoop } from "./world/fish-loop.js";
 import { createStream, streamReservedCells } from "./world/stream.js";
 import { createGiftBox } from "./world/gift.js";
-import { createDecoMesh, flickerDecos } from "./world/decos.js";
+import { createDecoMesh, flickerDecos, registerFirepitFlames } from "./world/decos.js";
 import { createConstructionLoop } from "./world/construction-loop.js";
 import { createQuarry } from "./world/quarry.js";
 import { createStoneLoop } from "./world/stone-loop.js";
@@ -1608,6 +1608,7 @@ async function start() {
     function mountDecoration(deco) {
       if (!deco?.id || mountedDecos.has(deco.id)) return null;
       const model = decoModels[deco.type]?.clone?.(true);
+      if (model) registerFirepitFlames(model);
       const root = new THREE.Group();
       if (model) root.add(model);
       const proxy = new THREE.Mesh(

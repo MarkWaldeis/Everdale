@@ -165,15 +165,27 @@ function firepit() {
   });
   const flame = new THREE.Mesh(new THREE.ConeGeometry(0.12, 0.32, 6), flameMat);
   flame.position.y = 0.24;
+  flame.userData.flameRole = "outer";
   g.add(flame);
   const core = new THREE.Mesh(
     new THREE.ConeGeometry(0.06, 0.18, 5),
     new THREE.MeshStandardMaterial({ color: 0xffd35e, emissive: 0xffbe3d, emissiveIntensity: 2.2, flatShading: true }),
   );
   core.position.y = 0.2;
+  core.userData.flameRole = "core";
   g.add(core);
   activeFlames.push({ flame, core, seed: Math.random() * 10 });
   return g;
+}
+
+export function registerFirepitFlames(root) {
+  const outer = [];
+  const core = [];
+  root.traverse?.((node) => {
+    if (node.userData?.flameRole === "outer") outer.push(node);
+    if (node.userData?.flameRole === "core") core.push(node);
+  });
+  outer.forEach((flame, i) => activeFlames.push({ flame, core: core[i], seed: Math.random() * 10 }));
 }
 
 export function flickerDecos(elapsed) {
