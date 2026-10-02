@@ -33,6 +33,7 @@ import { createChimneySmoke } from "./world/chimney-smoke.js";
 import { createButterflies } from "./world/butterflies.js";
 import { createDucks } from "./world/ducks.js";
 import { createDog } from "./world/dog.js";
+import { createVisitor } from "./world/visitor.js";
 import { createCritters } from "./world/critters.js";
 import { createOrderBoard } from "./world/order-board.js";
 import { createHouseIi } from "./world/house-ii.js";
@@ -629,6 +630,22 @@ function animate(now = 0) {
     animationState.butterflies?.update?.(delta, now * 0.001, 1 - animationState.dayNight.night);
     animationState.ducks?.update?.(delta, now * 0.001);
     animationState.dog?.update?.(delta, now * 0.001, animationState.villagers, animationState.dayNight?.night ?? 0);
+    if (!animationState.visitor && (animationState.dayNight?.night ?? 0) < 0.5 && (animationState.game?.getSnapshot?.().village?.reputation ?? 0) >= 5 && now * 0.001 >= (animationState.visitorNextAt ?? 0)) {
+      animationState.spawnVisitor?.();
+    }
+    if (animationState.visitor) {
+      animationState.visitor.update(delta, now * 0.001);
+      if (animationState.visitor.gone) {
+        const raw = animationState.game?.getRaw?.();
+        if (raw?.village) {
+          raw.village.reputation = (raw.village.reputation ?? 0) + 2 + (animationState.visitor.chats > 0 ? 1 : 0);
+        }
+        animationState.game?.bumpStat?.("visitorsReceived", 1);
+        animationState.visitor.root.parent?.remove(animationState.visitor.root);
+        animationState.visitor = null;
+        animationState.visitorNextAt = now * 0.001 + 150 + Math.random() * 90;
+      }
+    }
     flickerDecos(now * 0.001);
     animationState.chimneySmoke?.update?.(delta, now * 0.001, animationState.windEnabled ? 1 : 0.2);
     const nightness = animationState.dayNight.night;
@@ -699,7 +716,8 @@ function animate(now = 0) {
   updateWishBubbles();
   updateWorkerAlerts();
   updateTaskBubbles();
-  socialLayer.update(delta, now * 0.001, animationState.villagers, camera, animationState.view);
+  const socialMembers = animationState.visitor ? [...animationState.villagers, animationState.visitor] : animationState.villagers;
+  socialLayer.update(delta, now * 0.001, socialMembers, camera, animationState.view);
   renderer.render(scene, camera);
 }
 
@@ -882,6 +900,22 @@ async function start() {
       makeVillager(lukasModel, "lukas", "Lukas"),
     ];
     animationState.character = animationState.villagers[0];
+    animationState.visitor = null;
+    animationState.visitorNextAt = performance.now() / 1000 + 95 + Math.random() * 50;
+    animationState.visitorAssets = { john: assets.characterJohn, sophie: assets.characterSophie };
+    animationState.spawnVisitor = () => {
+      if (animationState.visitor) return null;
+      const src = Math.random() < 0.5 ? animationState.visitorAssets.john : animationState.visitorAssets.sophie;
+      const model = cloneSkinned(src);
+      model.userData.animationClips = src.userData.animationClips;
+      animationState.visitor = createVisitor(
+        model,
+        world.walkArea,
+        animationState.well?.root?.position ?? new THREE.Vector3(),
+      );
+      scene.add(animationState.visitor.root);
+      return animationState.visitor;
+    };
     const villagerFacade = {
       root: animationState.character.root,
       isBusy: () => animationState.villagers.some((member) => member.isBusy()),
