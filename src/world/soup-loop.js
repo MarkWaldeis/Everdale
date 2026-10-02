@@ -49,7 +49,7 @@ export function createSoupLoop({
     node.className = "need-bubble";
     node.hidden = true;
     node.dataset.villager = id;
-    node.innerHTML = '<span class="need-bubble-bowl" aria-hidden="true"></span><small>Hungrig</small>';
+    node.innerHTML = '<span class="need-bubble-bowl" aria-hidden="true"></span><small class="need-bubble-label">Hungrig</small>';
     bubblesHost.appendChild(node);
     bubbles.set(id, node);
     return node;
@@ -151,6 +151,8 @@ export function createSoupLoop({
     const x = view.left + (scratch.projected.x * 0.5 + 0.5) * view.width;
     const y = view.top + (-scratch.projected.y * 0.5 + 0.5) * view.height;
     node.hidden = false;
+    const label = node.querySelector(".need-bubble-label");
+    if (label) label.textContent = game.getSoup() > 0 ? "Hungrig" : "Keine Suppe!";
     node.style.transform = `translate(${x}px, ${y}px) translate(-50%, -100%)`;
   }
 
