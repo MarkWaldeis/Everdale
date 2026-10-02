@@ -659,7 +659,7 @@ function animate(now = 0) {
       const boardPos = animationState.orderBoard?.root?.position;
       animationState.tradeCart.root.visible = Boolean(activeTrader) && animationState.view !== "valley";
       if (activeTrader && boardPos) {
-        animationState.tradeCart.root.position.set(boardPos.x + 1.7, world.walkArea.surfaceY, boardPos.z + 0.9);
+        animationState.tradeCart.root.position.set(boardPos.x + 1.7, animationState.surfaceY ?? 0, boardPos.z + 0.9);
         animationState.tradeCart.root.rotation.y = Math.atan2(boardPos.x - animationState.tradeCart.root.position.x, boardPos.z - animationState.tradeCart.root.position.z);
       }
       animationState.tradeCart.update?.(delta, now * 0.001);
@@ -823,6 +823,7 @@ async function start() {
     );
     animationState.valley = createValleyHarbor(assets.valleyHarbor, world.walkArea.surfaceY);
     animationState.orderBoard = createOrderBoard(assets.orderBoard, world.walkArea.surfaceY);
+    animationState.surfaceY = world.walkArea.surfaceY;
     animationState.tradeCart = createTradeCart(world.walkArea.surfaceY);
     animationState.tradeCart.root.visible = false;
     scene.add(animationState.tradeCart.root);
