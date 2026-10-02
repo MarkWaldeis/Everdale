@@ -66,6 +66,7 @@ import { createFog } from "./world/fog.js";
 import { createStreamFish } from "./world/stream-fish.js";
 import { createOwl } from "./world/owl.js";
 import { createConfetti } from "./world/confetti.js";
+import { createRabbit } from "./world/rabbit.js";
 import { createMushroomPatch } from "./world/mushroom-patch.js";
 import { createFishingDock } from "./world/fishing-dock.js";
 import { createFishLoop } from "./world/fish-loop.js";
@@ -667,6 +668,7 @@ function animate(now = 0) {
     animationState.streamFish?.update?.(delta, now * 0.001);
     animationState.owl?.update?.(delta, now * 0.001, animationState.dayNight?.night ?? 0);
     animationState.confetti?.update?.(delta, now * 0.001);
+    animationState.rabbit?.update?.(delta, now * 0.001, animationState.dayNight?.night ?? 0);
     animationState.cloudShadows?.update?.(delta, now * 0.001, 1 - (animationState.dayNight?.night ?? 0));
     animationState.birds?.update?.(delta, now * 0.001, [...(animationState.villagers ?? []), animationState.dog?.root, animationState.visitor].filter(Boolean), animationState.dayNight?.night ?? 0);
     animationState.rainbow?.update?.(delta);
@@ -684,6 +686,7 @@ function animate(now = 0) {
           animationState.audio?.chime?.("level");
           const wellPos = animationState.well?.root?.position ?? { x: 0, y: animationState.surfaceY ?? 0.6, z: 0 };
           animationState.confetti?.burst?.({ x: wellPos.x, y: (wellPos.y ?? 0) + 1.6, z: wellPos.z }, 30);
+          animationState.hud?.showNotice?.("Stufenaufstieg!", `Dein Dorf erreicht Stufe ${level}! 🎉`);
         }
       }
       animationState.chimeStats = {
@@ -2007,6 +2010,8 @@ async function start() {
     scene.add(animationState.dog.root);
     animationState.streamFish = createStreamFish(world.walkArea.surfaceY);
     scene.add(animationState.streamFish.root);
+    animationState.rabbit = createRabbit(world.walkArea);
+    scene.add(animationState.rabbit.root);
     animationState.confetti = createConfetti();
     scene.add(animationState.confetti.root);
     animationState.owl = createOwl(world.walkArea.surfaceY);
